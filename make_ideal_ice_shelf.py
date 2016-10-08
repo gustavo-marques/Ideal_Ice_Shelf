@@ -164,14 +164,15 @@ def make_forcing(x,y,L):
    # wind parameters
    name = 'forcing'
    Ly = L # domain size km
-   Lc = 400.0  # km
+   Lc = 360.0  # km
    Lq = 1700.0 # km
    Q0 = 10. # W/m^2
    Yt = 1100.0  # km
    Lasf = 900.0 # km
    tau_acc = 0.2 # N/m^2
    tau_asf = -0.05 # N/m^2
-   
+   sponge = 100.0 # km
+
    nx = len(x); ny = len(y); nt =1 # time
    tau_x = np.zeros((nt,ny,nx))
    for j in range(ny):
@@ -191,9 +192,11 @@ def make_forcing(x,y,L):
    for j in range(ny):
     if y[j] <= Lc:
        heat[0,j,:] = 0.0
-    else:
-       tmp = (3*np.pi*y[j]-Lc)/Ly
+    elif (y[j]> Lc and y[t]<= Ly-sponge):
+       tmp = (3*np.pi*y[j]-Lc)/(Ly-Lc-sponge)
        heat[0,j,:] = -Q0 * np.cos(tmp)
+    else:
+       heat[0,j,:] = 0.0
    
    # evap, proxy for brine formation in polynyas
    brine = np.zeros((nt,ny,nx))
