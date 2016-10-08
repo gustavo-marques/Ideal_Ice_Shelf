@@ -194,7 +194,13 @@ def make_forcing(x,y,L):
     else:
        tmp = (3*np.pi*y[j]-Lc)/Ly
        heat[0,j,:] = -Q0 * np.cos(tmp)
-    
+   
+   # evap, proxy for brine formation in polynyas
+   brine = np.zeros((nt,ny,nx))
+   for j in range(ny):
+     if (y[j] >= 350.0 and y[j] <= 500.0):
+        brine[0,j,:] = -2.5E-6 # value similar to Andrew Stewart's case
+ 
    # create ncfile
    # open a new netCDF file for writing.
    ncfile = Dataset(name+'.nc','w')
@@ -274,7 +280,7 @@ def make_forcing(x,y,L):
    evap.units = 'kilogram meter-2 second-1'
    evap.missing_value = 1.e+20
    evap.long_name = 'Evaporation at ocean surface (usually negative)'
-   evap[:] = 0.0
+   evap[:] = brine[:]
 
    taux = ncfile.createVariable('taux',np.dtype('float32').char,('time', 'yh', 'xq'), fill_value = 1.e+20)
    taux.units = 'Pascal'
