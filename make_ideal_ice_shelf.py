@@ -39,6 +39,10 @@ def parseCommandLine():
   parser.add_argument('-max_depth', type=float, default=3.0e3,
       help='''Maximum ocean depth (m). Default is 3E3.''')
 
+  -2.5E-6
+  parser.add_argument('-salt_flux', type=float, default=-2.5e-6,
+      help='''Salt flux into the ocean in the coastal polynya (kg m^2 s^-1). Default is -2.5e-6, similar to Andrew Stewart's case.''')
+
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
@@ -64,7 +68,7 @@ def driver(args):
    #make_iceShelf(y,x) #not implemented yet because it needs scipy
 
    # create forcing
-   make_forcing(x,y,L) 
+   make_forcing(x,y,args) 
    
    return
 
@@ -160,10 +164,10 @@ def make_ts(D,nz,x,y):
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
-def make_forcing(x,y,L):
+def make_forcing(x,y,args):
    # wind parameters
    name = 'forcing'
-   Ly = L # domain size km
+   Ly = args.L # domain size km
    Lc = 360.0  # km
    Lq = 1700.0 # km
    Q0 = 10. # W/m^2
@@ -172,6 +176,8 @@ def make_forcing(x,y,L):
    tau_acc = 0.2 # N/m^2
    tau_asf = -0.05 # N/m^2
    sponge = 100.0 # km
+   # salt_flux
+   salt_flux = args.salt_flux
 
    nx = len(x); ny = len(y); nt =1 # time
    tau_x = np.zeros((nt,ny,nx))
@@ -190,11 +196,12 @@ def make_forcing(x,y,L):
    # heat 
    heat = np.zeros((nt,ny,nx))
    for j in range(ny):
-    if y[j] <= Lc:
+    if y[j] < Lc:
        heat[0,j,:] = 0.0
-    elif (y[j]> Lc and y[t]<= Ly-sponge):
-       tmp = (3*np.pi*y[j]-Lc)/(Ly-Lc-sponge)
-       heat[0,j,:] = -Q0 * np.cos(tmp)
+    elif (y[j]>= Lc and y[j]<= Ly-sponge):
+       tmp = (2*np.pi*(y[j]-Lc))/((Ly-Lc-sponge))
+       heat[0,j,:] = -Q0 * np.sin(tmp)
+       #heat[0,j,:] = -Q0 * np.cos(tmp)
     else:
        heat[0,j,:] = 0.0
    
@@ -202,7 +209,7 @@ def make_forcing(x,y,L):
    brine = np.zeros((nt,ny,nx))
    for j in range(ny):
      if (y[j] >= 350.0 and y[j] <= 500.0):
-        brine[0,j,:] = -2.5E-6 # value similar to Andrew Stewart's case
+        brine[0,j,:] = salt_flux
  
    # create ncfile
    # open a new netCDF file for writing.
