@@ -39,9 +39,11 @@ def parseCommandLine():
   parser.add_argument('-max_depth', type=float, default=3.0e3,
       help='''Maximum ocean depth (m). Default is 3E3.''')
 
-  -2.5E-6
-  parser.add_argument('-salt_flux', type=float, default=-2.5e-6,
-      help='''Salt flux into the ocean in the coastal polynya (kg m^2 s^-1). Default is -2.5e-6, similar to Andrew Stewart's case.''')
+  parser.add_argument('-heat_flux_polynya', type=float, default=-50.0,
+      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -50.''')
+
+  parser.add_argument('-salt_flux_polynya', type=float, default=-3.2e-5,
+      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -3.2E-5 (equivalent to gorwing 1 m of sea ice per year in the polynya region.)''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
@@ -176,8 +178,9 @@ def make_forcing(x,y,args):
    tau_acc = 0.2 # N/m^2
    tau_asf = -0.05 # N/m^2
    sponge = 100.0 # km
-   # salt_flux
-   salt_flux = args.salt_flux
+   # salt and salt fluxes
+   salt_flux = args.salt_flux_polynya
+   heat_flux = args.heat_flux_polynya
 
    nx = len(x); ny = len(y); nt =1 # time
    tau_x = np.zeros((nt,ny,nx))
@@ -210,6 +213,7 @@ def make_forcing(x,y,args):
    for j in range(ny):
      if (y[j] >= 350.0 and y[j] <= 500.0):
         brine[0,j,:] = salt_flux
+        heat[0,j,:] = heat_flux
  
    # create ncfile
    # open a new netCDF file for writing.
