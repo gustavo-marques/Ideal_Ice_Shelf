@@ -21,29 +21,29 @@ def parseCommandLine():
       ''',
   epilog='Written by Gustavo Marques, Oct. 2016.')
 
-  parser.add_argument('-nx', type=int, default=4,
-      help='''The total number of grid points in the x direction (default = 4).''')
+  parser.add_argument('-nx', type=int, default=100,
+      help='''The total number of grid points in the x direction (default = 100).''')
 
-  parser.add_argument('-ny', type=int, default=200,
-      help='''The total number of grid points in the y direction (default = 200).''')
+  parser.add_argument('-ny', type=int, default=300,
+      help='''The total number of grid points in the y direction (default = 300).''')
 
-  parser.add_argument('-nz', type=int, default=50,
-      help='''Number of model layers (default = 50).''')
+  parser.add_argument('-nz', type=int, default=63,
+      help='''Number of model layers (default = 63).''')
   
-  parser.add_argument('-W', type=float, default=40.,
+  parser.add_argument('-W', type=float, default=500.,
       help='''Domain width in the x direction (km). Default is 40.''')
 
-  parser.add_argument('-L', type=float, default=2.0e3,
-      help='''Domain lenght in the y direction (km). Default is 2E3''')
+  parser.add_argument('-L', type=float, default=1500.,
+      help='''Domain lenght in the y direction (km). Default is 1.5E3''')
 
   parser.add_argument('-max_depth', type=float, default=3.0e3,
       help='''Maximum ocean depth (m). Default is 3E3.''')
 
-  parser.add_argument('-heat_flux_polynya', type=float, default=-50.0,
-      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -50.''')
+  parser.add_argument('-heat_flux_polynya', type=float, default=-500.0,
+      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -500.''')
 
-  parser.add_argument('-salt_flux_polynya', type=float, default=-3.2e-5,
-      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -3.2E-5 (equivalent to gorwing 1 m of sea ice per year in the polynya region.)''')
+  parser.add_argument('-salt_flux_polynya', type=float, default=-4e-5,
+      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -4E-5 (equivalent to gorwing 1 m of sea ice per year in the polynya region.)''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
@@ -211,7 +211,7 @@ def make_forcing(x,y,args):
    # evap, proxy for brine formation in polynyas
    brine = np.zeros((nt,ny,nx))
    for j in range(ny):
-     if (y[j] >= 350.0 and y[j] <= 500.0):
+     if (y[j] >= 300.0 and y[j] <= 400.0):
         brine[0,j,:] = salt_flux
         heat[0,j,:] = heat_flux
  
