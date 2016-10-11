@@ -78,19 +78,20 @@ def make_ts(x,y,args):
    '''
    Extract T/S from WOA05 for a particulat lat. then interpolate results into ocean grid. 
    '''
-   # all values at 60 S (j=60)
-   j=60
+   # all values at ~ 50 S (j=40)
+   j=40
    temp = Dataset('WOA05_pottemp_salt.nc').variables['PTEMP'][:,:,j,:]
    salt = Dataset('WOA05_pottemp_salt.nc').variables['SALT'][:,:,j,:]
    depth = Dataset('WOA05_pottemp_salt.nc').variables['DEPTH'][:]
+ 
    # mean (time and space) values
    temp_mean = temp.mean(axis=2).mean(axis=0)
    salt_mean = salt.mean(axis=2).mean(axis=0)
    # model depth
    z = np.linspace(0,args.max_depth,args.nz) # positive downward
-   # interpolate
-   temp = np.interp(z, depth, temp_mean)
-   salt = np.interp(z, depth, salt_mean)
+   # interpolate, notice that z and depth are normalized
+   temp = np.interp(z/z.max(), depth/depth.max(), temp_mean)
+   salt = np.interp(z/z.max(), depth/depth.max(), salt_mean)
 
    temp3D = np.zeros((1,args.nz,len(y),len(x)))
    salt3D = np.zeros((1,args.nz,len(y),len(x)))
