@@ -61,10 +61,10 @@ def driver(args):
    x = np.arange(dx/2.,W,dx)
 
    # create topography
-   make_topo(x,y,L)
+   make_topo(x,y,args)
 
    # initial T/S
-   make_ts(D,nz,x,y)
+   make_ts(x,y,args)
 
    # create ice shelf
    #make_iceShelf(y,x) #not implemented yet because it needs scipy
@@ -74,12 +74,12 @@ def driver(args):
    
    return
 
-def make_ts(D,nz,x,y):
+def make_ts(x,y,args):
    '''
    Extract T/S from WOA05 for a particulat lat. then interpolate results into ocean grid. 
    '''
-   # all values at 45 S (j=45)
-   j=45
+   # all values at 60 S (j=60)
+   j=60
    temp = Dataset('WOA05_pottemp_salt.nc').variables['PTEMP'][:,:,j,:]
    salt = Dataset('WOA05_pottemp_salt.nc').variables['SALT'][:,:,j,:]
    depth = Dataset('WOA05_pottemp_salt.nc').variables['DEPTH'][:]
@@ -87,13 +87,13 @@ def make_ts(D,nz,x,y):
    temp_mean = temp.mean(axis=2).mean(axis=0)
    salt_mean = salt.mean(axis=2).mean(axis=0)
    # model depth
-   z = np.linspace(0,D,nz) # positive downward
+   z = np.linspace(0,args.max_depth,args.nz) # positive downward
    # interpolate
    temp = np.interp(z, depth, temp_mean)
    salt = np.interp(z, depth, salt_mean)
 
-   temp3D = np.zeros((1,nz,len(y),len(x)))
-   salt3D = np.zeros((1,nz,len(y),len(x)))
+   temp3D = np.zeros((1,args.nz,len(y),len(x)))
+   salt3D = np.zeros((1,args.nz,len(y),len(x)))
    for i in range(len(x)):
       for j in range(len(y)):
           temp3D[0,:,j,i] = temp[:]
@@ -106,7 +106,7 @@ def make_ts(D,nz,x,y):
    name = 'ic_ts'
    ncfile = Dataset(name+'.nc','w')
    # create dimensions.
-   ncfile.createDimension('DEPTH',nz)
+   ncfile.createDimension('DEPTH',args.nz)
    ncfile.createDimension('LAT',len(y))
    ncfile.createDimension('LON',len(x))
    ncfile.createDimension('TIME',1)
@@ -150,7 +150,7 @@ def make_ts(D,nz,x,y):
    name = 'ts_ic_profile'
    ncfile = Dataset(name+'.nc','w')
    # create dimensions.
-   ncfile.createDimension('Layer',nz)
+   ncfile.createDimension('Layer',args.nz)
 
    # create variables
    PTEMP = ncfile.createVariable('PTEMP',np.dtype('double').char,('Layer'))
@@ -170,13 +170,12 @@ def make_forcing(x,y,args):
    # wind parameters
    name = 'forcing'
    Ly = args.L # domain size km
-   Lc = 360.0  # km
-   Lq = 1700.0 # km
+   Lc = 200.0  # km
    Q0 = 10. # W/m^2
-   Yt = 1100.0  # km
-   Lasf = 900.0 # km
+   Yt = 900.0  # km
+   Lasf = 500.0 # km
    tau_acc = 0.2 # N/m^2
-   tau_asf = -0.05 # N/m^2
+   tau_asf = -0.075 # N/m^2
    sponge = 100.0 # km
    # salt and salt fluxes
    salt_flux = args.salt_flux_polynya
@@ -331,13 +330,13 @@ def make_forcing(x,y,args):
    
    return
 
-def make_topo(x,y,L):
+def make_topo(x,y,args):
    # parameters
    name = 'topog'
    Hs = 500  # max depth at shelf
-   Ys = 800.0e3 # width of shelf
-   Ws = 100.0e3 # width of slope
-   H = 3.0e3 # max depth
+   Ys = 600.0e3 # width of shelf
+   Ws = 70.0e3 # width of slope
+   H = args.max_depth # max depth
 
    [X,Y] = np.meshgrid(x,y) 
    nx = len(x); ny = len(y)
