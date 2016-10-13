@@ -33,6 +33,15 @@ def parseCommandLine():
   parser.add_argument('-W', type=float, default=500.,
       help='''Domain width in the x direction (km). Default is 40.''')
 
+  parser.add_argument('-ice_shelf_lenght', type=float, default=250.,
+      help='''Ice shelf lenght in the x direction (km). Default is 250.''')
+
+  parser.add_argument('-polynya_major', type=float, default=75.,
+      help='''Major axis (x direction) of polynya region (km). Default is 75.''')
+
+  parser.add_argument('-polynya_minor', type=float, default=50.,
+      help='''Minor axis (y direction) of polynya region (km). Default is 50.''')
+
   parser.add_argument('-L', type=float, default=1500.,
       help='''Domain lenght in the y direction (km). Default is 1.5E3''')
 
@@ -171,6 +180,7 @@ def make_forcing(x,y,args):
    # wind parameters
    name = 'forcing'
    Ly = args.L # domain size km
+   W = args.W # domain width km
    Lc = 200.0  # km
    Q0 = 10. # W/m^2
    Yt = 900.0  # km
@@ -178,8 +188,13 @@ def make_forcing(x,y,args):
    tau_acc = 0.2 # N/m^2
    tau_asf = -0.075 # N/m^2
    sponge = 100.0 # km
-   # salt and salt fluxes
-   salt_flux = args.salt_flux_polynya
+   # polynya salt and salt fluxes
+   major = args.polynya_major
+   minor = args.polynya_minor
+   area = np.pi * major * minor * 0.5
+   print 'Polynya area is (km^2):', area
+   ISL = args.ice_shelf_lenght
+   salt_flux = args.salt_flux_polynya 
    heat_flux = args.heat_flux_polynya
 
    nx = len(x); ny = len(y); nt =1 # time
@@ -210,10 +225,12 @@ def make_forcing(x,y,args):
    
    # evap, proxy for brine formation in polynyas
    brine = np.zeros((nt,ny,nx))
-   for j in range(ny):
-     if (y[j] >= 300.0 and y[j] <= 400.0):
-        brine[0,j,:] = salt_flux
-        heat[0,j,:] = heat_flux
+   for i in range(nx):
+     for j in range(ny):
+       if (x[i] - W/2. >= -major and x[i] - W/2. <= major):
+          if (y[j]-ISL >= 0.) and (y[j]-ISL <= (minor * np.abs((1-(x[i]-W/2.)**2/major**2)**(1/2.)))):
+            brine[0,j,i] = salt_flux
+            heat[0,j,i] = heat_flux
  
    # create ncfile
    # open a new netCDF file for writing.
