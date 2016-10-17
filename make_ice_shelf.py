@@ -33,7 +33,7 @@ C = 1.4440e-06
 H0 = 1500.0 #m
 Q0 = 0.03327 #m^2/s
 ISL = 250e3 # ice shelf lenght
-
+gp = 20.e3 # grouding line position
 # IS file
 file = Dataset('IC_IS.nc', 'r+')
 y = Dataset('ic_ts.nc').variables['LAT'][:] * 1.0E3 # in m
@@ -42,15 +42,17 @@ x = Dataset('ic_ts.nc').variables['LON'][:] * 1.0E3 # in m
 dx = x[1]-x[0]
 thick = file.variables['thick'][:]
 
-h =  H0 *(Q0)**(1./4.) / (Q0+100*H0**4*C**3*(y-50e3))**(1./4.)
+h =  H0 *(Q0)**(1./4.) / (Q0+100*H0**4*C**3*(y-gp))**(1./4.)
 h[y>=ISL] = 0.0
-h[y<20.e3] = H0
+h[y<gp] = H0
 
 # smooth
 h_smooth = gaussian_filter(h,1)
 h_smooth[y>=ISL] = 0.0
-#plt.plot(y,h,'k',y,h_smooth,'r')
-#plt.show()
+h_smooth[y<gp] = H0
+
+plt.plot(y,h,'k',y,h_smooth,'r')
+plt.show()
 
 NY, NX = thick.shape
 area = np.ones(NY) * dx * dy
