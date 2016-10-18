@@ -57,8 +57,8 @@ def parseCommandLine():
   parser.add_argument('-heat_flux_polynya', type=float, default=-500.0,
       help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -500.''')
 
-  parser.add_argument('-salt_flux_polynya', type=float, default=-4e-5,
-      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -4E-5 (equivalent to gorwing 1 m of sea ice per year in the polynya region.)''')
+  parser.add_argument('-salt_flux_polynya', type=float, default=-2.5e-6,
+      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -2.5E-6 (equivalent to gorwing 1 cm/s of sea ice in the polynya region.)''')
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
 
@@ -544,7 +544,7 @@ def make_forcing(x,y,args):
        if (x[i] - W/2. >= -major and x[i] - W/2. <= major):
           if (y[j]-ISL >= 0.) and (y[j]-ISL <= (minor * np.abs((1-(x[i]-W/2.)**2/major**2)**(1/2.)))):
             evaporation[0,j,i] = salt_flux
-            salt[0,j,i] = 2.5e-6
+            salt[0,j,i] = salt_flux
             heat[0,j,i] = heat_flux
  
    # create ncfile
@@ -621,7 +621,7 @@ def make_forcing(x,y,args):
      salt_flux.units = 'kg/(m^2 s)'
      salt_flux.missing_value = 1.e+20
      salt_flux.long_name = 'salt flux'
-     salt_flux[:] = -salt[:]
+     salt_flux[:] = -salt[:] # change sign in ice
 
    else:
      SW = ncfile.createVariable('SW',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
