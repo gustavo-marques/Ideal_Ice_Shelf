@@ -57,7 +57,7 @@ def parseCommandLine():
   parser.add_argument('-heat_flux_polynya', type=float, default=-500.0,
       help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -500.''')
 
-  parser.add_argument('-salt_flux_polynya', type=float, default=-2.5e-6,
+  parser.add_argument('-salt_flux_polynya', type=float, default=2.5e-6,
       help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -2.5E-6 (equivalent to gorwing 1 cm/s of sea ice in the polynya region.)''')
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
