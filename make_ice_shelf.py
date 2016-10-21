@@ -32,7 +32,7 @@ from scipy.ndimage.filters import gaussian_filter
 C = 1.4440e-06
 H0 = 1500.0 #m
 Q0 = 0.03327 #m^2/s
-ISL = 250e3 # ice shelf lenght
+ISL = 200e3 # ice shelf lenght
 gp = 20.e3 # grouding line position
 # IS file
 file = Dataset('IC_IS.nc', 'r+')
