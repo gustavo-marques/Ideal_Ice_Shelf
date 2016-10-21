@@ -5,6 +5,8 @@
 
 import argparse
 from netCDF4 import MFDataset, Dataset
+from scipy.interpolate import interp1d
+from scipy.ndimage.filters import gaussian_filter
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -21,11 +23,11 @@ def parseCommandLine():
       ''',
   epilog='Written by Gustavo Marques, Oct. 2016.')
 
-  parser.add_argument('-nx', type=int, default=100,
-      help='''The total number of grid points in the x direction (default = 100).''')
+  parser.add_argument('-nx', type=int, default=200,
+      help='''The total number of grid points in the x direction (default = 200).''')
 
-  parser.add_argument('-ny', type=int, default=300,
-      help='''The total number of grid points in the y direction (default = 300).''')
+  parser.add_argument('-ny', type=int, default=400,
+      help='''The total number of grid points in the y direction (default = 400).''')
 
   parser.add_argument('-nz', type=int, default=63,
       help='''Number of model layers (default = 63).''')
@@ -33,14 +35,14 @@ def parseCommandLine():
   parser.add_argument('-W', type=float, default=500.,
       help='''Domain width in the x direction (km). Default is 500.''')
 
-  parser.add_argument('-cshelf_lenght', type=float, default=600.,
-      help='''Continental shelf lenght in the y direction (km). Default is 600.''')
+  parser.add_argument('-cshelf_lenght', type=float, default=400.,
+      help='''Continental shelf lenght in the y direction (km). Default is 400.''')
 
-  parser.add_argument('-slope_lenght', type=float, default=70.,
-      help='''Continental shelf slope lenght in the y direction (km). Default is 70.''')
+  parser.add_argument('-slope_lenght', type=float, default=50.,
+      help='''Continental shelf slope lenght in the y direction (km). Default is 50.''')
 
-  parser.add_argument('-ice_shelf_lenght', type=float, default=250.,
-      help='''Ice shelf lenght in the x direction (km). Default is 250.''')
+  parser.add_argument('-ice_shelf_lenght', type=float, default=200.,
+      help='''Ice shelf lenght in the x direction (km). Default is 200.''')
 
   parser.add_argument('-polynya_major', type=float, default=75.,
       help='''Major axis (x direction) of polynya region (km). Default is 75.''')
@@ -48,17 +50,17 @@ def parseCommandLine():
   parser.add_argument('-polynya_minor', type=float, default=75.,
       help='''Minor axis (y direction) of polynya region (km). Default is 75.''')
 
-  parser.add_argument('-L', type=float, default=1500.,
+  parser.add_argument('-L', type=float, default=1000.,
       help='''Domain lenght in the y direction (km). Default is 1.5E3''')
 
   parser.add_argument('-max_depth', type=float, default=3.0e3,
       help='''Maximum ocean depth (m). Default is 3E3.''')
 
-  parser.add_argument('-heat_flux_polynya', type=float, default=-500.0,
-      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -500.''')
+  parser.add_argument('-heat_flux_polynya', type=float, default=-700.0,
+      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -700.''')
 
-  parser.add_argument('-salt_flux_polynya', type=float, default=2.5e-6,
-      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is -2.5E-6 (equivalent to gorwing 1 cm/s of sea ice in the polynya region.)''')
+  parser.add_argument('-salt_flux_polynya', type=float, default=1e-5,
+      help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is 1E-5 (equivalent to gorwing ?? cm/s of sea ice in the polynya region.)''')
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
 
@@ -394,27 +396,51 @@ def make_ts(x,y,args):
    '''
    Extract T/S from WOA05 for a particulat lat. then interpolate results into ocean grid. 
    '''
-   # all values at ~ 50 S (j=40)
-   j=40
-   temp = Dataset('WOA05_pottemp_salt.nc').variables['PTEMP'][:,:,j,:]
-   salt = Dataset('WOA05_pottemp_salt.nc').variables['SALT'][:,:,j,:]
+   # all values at ~ 58 S (j=27)
+   # 185 lon (Off Ross Sea)
+   # just winter time
+   j=27
+   temp = Dataset('WOA05_pottemp_salt.nc').variables['PTEMP'][6,:,j,185]
+   salt = Dataset('WOA05_pottemp_salt.nc').variables['SALT'][6,:,j,185]
    depth = Dataset('WOA05_pottemp_salt.nc').variables['DEPTH'][:]
- 
+   # remove skin layer
+   temp[-3::] = temp[-4]; salt[-3::] = salt[-4]
+   # remove mask in the bottom
+   temp[depth<=100.] = 0.0; salt[depth<=100.] = 33.94
+   # smooth
+   salt = gaussian_filter(salt,2)
+   temp = gaussian_filter(temp,2)
+
    # mean (time and space) values
-   temp_mean = temp.mean(axis=2).mean(axis=0)
-   salt_mean = salt.mean(axis=2).mean(axis=0)
+   #temp_mean = temp.mean(axis=2).mean(axis=0)
+   #salt_mean = salt.mean(axis=2).mean(axis=0)
+   
    # model depth
    z = np.linspace(0,args.max_depth,args.nz) # positive downward
    # interpolate, notice that z and depth are normalized
-   temp = np.interp(z/z.max(), depth/depth.max(), temp_mean)
-   salt = np.interp(z/z.max(), depth/depth.max(), salt_mean)
+   # cubic
+   f1 = interp1d(depth/depth.max(), temp)
+   temp_int = f1(z/z.max())
+   f1 = interp1d(depth/depth.max(), salt)
+   salt_int = f1(z/z.max())
+   # linear
+   #temp_int = np.interp(z/z.max(), depth/depth.max(), temp)
+   #salt_int = np.interp(z/z.max(), depth/depth.max(), salt)
+
+   plt.figure()
+   plt.plot(temp,-depth,temp_int,-z)
+   plt.show()
+
+   plt.figure()
+   plt.plot(salt,-depth,salt_int,-z)
+   plt.show()
 
    temp3D = np.zeros((1,args.nz,len(y),len(x)))
    salt3D = np.zeros((1,args.nz,len(y),len(x)))
    for i in range(len(x)):
       for j in range(len(y)):
-          temp3D[0,:,j,i] = temp[:]
-          salt3D[0,:,j,i] = salt[:]
+          temp3D[0,:,j,i] = temp_int[:]
+          salt3D[0,:,j,i] = salt_int[:]
 
    # create ncfiles
 
@@ -473,12 +499,12 @@ def make_ts(x,y,args):
    PTEMP = ncfile.createVariable('PTEMP',np.dtype('double').char,('Layer'))
    PTEMP.units = 'Celcius'
    PTEMP.long_name = 'Potential Temperature'
-   PTEMP[:] = temp[:]
+   PTEMP[:] = temp_int[:]
 
    SALT = ncfile.createVariable('SALT',np.dtype('double').char,('Layer'))
    SALT.units = 'PSU'
    SALT.long_name = 'Salinity'
-   SALT[:] = salt[:]
+   SALT[:] = salt_int[:]
 
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
@@ -503,7 +529,9 @@ def make_forcing(x,y,args):
    ISL = args.ice_shelf_lenght
    salt_flux = args.salt_flux_polynya 
    heat_flux = args.heat_flux_polynya
-
+   ice_form = ((np.abs(salt_flux)*3600*24) * area * 1.0e6* 1.0e3/34.) * 1.0e-3 / (area * 1.0e6) 
+   print 'Sea ice formation (m/day)', ice_form
+   ice_form = ice_form/area
    nx = len(x); ny = len(y); nt =1 # time
    tau_x = np.zeros((nt,ny,nx))
    tau_y = np.zeros((nt,ny,nx))
@@ -696,7 +724,7 @@ def make_topo(x,y,args):
    Ys = args.cshelf_lenght * 1.0e3 # len of shelf in m
    Ws = args.slope_lenght * 1.0e3 # len of slope in m
    H = args.max_depth # max depth
-
+   W = args.W  # domain width in km
    [X,Y] = np.meshgrid(x,y) 
    nx = len(x); ny = len(y)
    D = np.zeros((ny,nx))
@@ -705,13 +733,14 @@ def make_topo(x,y,args):
       for i in range(nx):
           D[j,i] = Hs + 0.5 * (H-Hs) * (1.0 + np.tanh((Y[j,i]*1.0e3 - Ys)/Ws))
 
-   H1 = 300.
-   L1 = 250.0e3
+   H1 = 300. # # depth increase under ice shelf
+   L1 = 200.0e3 # size of ice shelf cavity
+   Wl = 50.0 # widht of land region next to ice shelf in km
    for j in range(ny):
       for i in range(nx):
           if Y[j,i]<= L1/1.0e3:
              D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1/2.)/(L1/10.)) - 1.0) 
-             if (i == 0 or i == nx-1): # side walls
+             if (X[j,i] <= Wl or X[j,i] >= W-Wl): # side walls
                 D[j,i] = 0.0 # land
 
    # open a new netCDF file for writing.
