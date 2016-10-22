@@ -41,8 +41,8 @@ def parseCommandLine():
   parser.add_argument('-slope_lenght', type=float, default=50.,
       help='''Continental shelf slope lenght in the y direction (km). Default is 50.''')
 
-  parser.add_argument('-ice_shelf_lenght', type=float, default=200.,
-      help='''Ice shelf lenght in the x direction (km). Default is 200.''')
+  parser.add_argument('-ice_shelf_lenght', type=float, default=150.,
+      help='''Ice shelf lenght in the x direction (km). Default is 150.''')
 
   parser.add_argument('-polynya_major', type=float, default=75.,
       help='''Major axis (x direction) of polynya region (km). Default is 75.''')
@@ -83,7 +83,7 @@ def driver(args):
    Ocean_Depth = make_topo(x,y,args)
 
    # create ice shelf
-   #make_iceShelf(y,x) #not implemented yet because it needs scipy, this need to be run seperatly.
+   make_ice_shelf(x,y,args) 
 
    if args.coupled_run:
 
@@ -96,6 +96,69 @@ def driver(args):
    make_forcing(x,y,args) 
    
    return
+
+def make_ice_shelf(x,y,args):
+   '''
+   Here is a slightly different version but with constants
+   H(x) = H0 *(Q0)^(1/4) / [Q0+4*H0^4*C^3*x]^(1/4)
+   where H0 is ice thickness at the grounding line Q0 = U0*H0 is ice flux at the grounding line, C = rho*g*(1-rho/rho_w)/4/Bbar, rho is the ice density, rho_w is the sea-water density, Bbar is ice stiffness parameter.
+   for the following parameters 
+   rho = 917 kg/m^3
+   rho_w = 1028 kg/m^3
+   Bbar = 1.68e8
+   C = 1.4440e-06
+   U0= 700 m/yr = 2.2182e-05 m/s
+   H0 = 1500 m
+   Q0 = 0.0333 m^2/s
+   rho = 917. #kg/m^3
+   rho_w = 1028. #kg/m^3
+   Bbar = 1.68e8
+   '''
+   x = x * 1.0e3 # im m
+   y = y * 1.0e3 # im m
+   C = 1.4440e-06
+   H0 = 1500.0 #m
+   Q0 = 0.03327 #m^2/s
+   ISL = args.ice_shelf_lenght * 1.0e3 # ice shelf lenght
+   gp = 20.e3 # grouding line position
+   dy = y[1]-y[0]
+   dx = x[1]-x[0]
+
+   h =  H0 *(Q0)**(1./4.) / (Q0+100*H0**4*C**3*(y-gp))**(1./4.)
+   h[y>=ISL] = 0.0
+   h[y<gp] = H0
+
+   # smooth
+   h_smooth = gaussian_filter(h,4)
+   h_smooth[y>=ISL] = 0.0
+   h_smooth[y<gp] = H0
+
+   #plt.plot(y,h,'k',y,h_smooth,'r')
+   #plt.show()
+
+   area_tmp = np.ones(args.ny) * dx * dy
+   area_tmp[h_smooth == 0.0] = 0.0
+
+   # Create a netcdf horizontal ocean-grid file
+   name = 'IC_IS'
+   ncfile = Dataset(name+'.nc','w')
+   ncfile.createDimension('nx',args.nx)
+   ncfile.createDimension('ny',args.ny)
+   thick = ncfile.createVariable('thick','double',('ny','nx',))
+   thick.units = 'm'
+   thick.standard_name =  'ice shelf thickness'
+   area = ncfile.createVariable('area','double',('ny','nx',))
+   area.units = 'm2'
+   area.standard_name =  'ice shelf area'  
+
+   # write into nc file
+   for i in range(args.nx):
+        thick[:,i] = h_smooth[:]
+        area[:,i] = area_tmp[:]
+
+   ncfile.sync()
+   ncfile.close()
+   print ('*** SUCCESS creating '+name+'.nc!') 
 
 def make_mosaic(x,y,Ocean_Depth,args):
    '''
@@ -322,7 +385,7 @@ def make_mosaic(x,y,Ocean_Depth,args):
    print ('*** SUCCESS creating '+name+'.nc!')
 
 
-   name = 'grid_spec' # sometimes grid_spec is called mosaic.nc
+   name = 'mosaic' # sometimes grid_spec is called mosaic.nc
    rg = Dataset(name+'.nc','w')
    rg.createDimension('string',255)
    rg.createDimension('nfile_aXo',1) # -1 is for a single land point
@@ -419,10 +482,10 @@ def make_ts(x,y,args):
    z = np.linspace(0,args.max_depth,args.nz) # positive downward
    # interpolate, notice that z and depth are normalized
    # cubic
-   f1 = interp1d(depth/depth.max(), temp)
-   temp_int = f1(z/z.max())
-   f1 = interp1d(depth/depth.max(), salt)
-   salt_int = f1(z/z.max())
+   f1 = interp1d(depth, temp)
+   temp_int = f1(z)
+   f1 = interp1d(depth, salt)
+   salt_int = f1(z)
    # linear
    #temp_int = np.interp(z/z.max(), depth/depth.max(), temp)
    #salt_int = np.interp(z/z.max(), depth/depth.max(), salt)
@@ -515,12 +578,12 @@ def make_forcing(x,y,args):
    Ly = args.L # domain size km
    W = args.W # domain width km
    CSL = args.cshelf_lenght  # km
-   Q0 = 10. # W/m^2
-   Yt = 900.0  # km
-   Lasf = 500.0 # km
+   Q0 = 100. # W/m^2
+   Yt = 550.0  # km
+   Lasf = 300.0 # km
    tau_acc = 0.2 # N/m^2
    tau_asf = -0.075 # N/m^2
-   sponge = 100.0 # km
+   sponge = 50.0 # km
    # polynya salt and salt fluxes
    major = args.polynya_major
    minor = args.polynya_minor
@@ -569,6 +632,7 @@ def make_forcing(x,y,args):
    # evap, proxy for brine formation in polynyas
    for i in range(nx):
      for j in range(ny):
+       if y[j]>ISL and (heat[0,j,i] >= 0.): heat[0,j,:] = -Q0/10.
        if (x[i] - W/2. >= -major and x[i] - W/2. <= major):
           if (y[j]-ISL >= 0.) and (y[j]-ISL <= (minor * np.abs((1-(x[i]-W/2.)**2/major**2)**(1/2.)))):
             evaporation[0,j,i] = salt_flux
