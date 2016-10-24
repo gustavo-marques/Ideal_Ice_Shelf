@@ -47,6 +47,15 @@ def parseCommandLine():
   parser.add_argument('-polynya_major', type=float, default=75.,
       help='''Major axis (x direction) of polynya region (km). Default is 75.''')
 
+  parser.add_argument('-tau_acc', type=float, default=0.2,
+      help='''Max. wind stress in the ACC (N/m^2). Default is 0.2.''')
+
+  parser.add_argument('-tau_asf', type=float, default=-0.075,
+      help='''Max. wind stress in the ASF (N/m^2). Default is -0.075''')
+
+  parser.add_argument('-katabatic_wind', type=float, default=0.05,
+      help='''Max. katabatic wind stress (N/m^2). Default is 0.05''')
+
   parser.add_argument('-polynya_minor', type=float, default=75.,
       help='''Minor axis (y direction) of polynya region (km). Default is 75.''')
 
@@ -56,11 +65,14 @@ def parseCommandLine():
   parser.add_argument('-max_depth', type=float, default=3.0e3,
       help='''Maximum ocean depth (m). Default is 3E3.''')
 
-  parser.add_argument('-heat_flux_polynya', type=float, default=-700.0,
-      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -700.''')
+  parser.add_argument('-heat_flux_polynya', type=float, default=-200.0,
+      help='''Sensible heat flux into the ocean in the coastal polynya (W/m^2). Default is -200.''')
 
   parser.add_argument('-salt_flux_polynya', type=float, default=1e-5,
       help='''Salt flux into the ocean in the coastal polynya (kg m^-2 s^-1). Default is 1E-5 (equivalent to gorwing ?? cm/s of sea ice in the polynya region.)''')
+
+  parser.add_argument('-latent_heat_flux_polynya', type=float, default=0.0,
+      help='''Latent heat flux in the coastal polynya (W/m^2). Default is 0.0)''')
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
 
@@ -490,13 +502,13 @@ def make_ts(x,y,args):
    #temp_int = np.interp(z/z.max(), depth/depth.max(), temp)
    #salt_int = np.interp(z/z.max(), depth/depth.max(), salt)
 
-   plt.figure()
-   plt.plot(temp,-depth,temp_int,-z)
-   plt.show()
+   #plt.figure()
+   #plt.plot(temp,-depth,temp_int,-z)
+   #plt.show()
 
-   plt.figure()
-   plt.plot(salt,-depth,salt_int,-z)
-   plt.show()
+   #plt.figure()
+   #plt.plot(salt,-depth,salt_int,-z)
+   #plt.show()
 
    temp3D = np.zeros((1,args.nz,len(y),len(x)))
    salt3D = np.zeros((1,args.nz,len(y),len(x)))
@@ -578,11 +590,12 @@ def make_forcing(x,y,args):
    Ly = args.L # domain size km
    W = args.W # domain width km
    CSL = args.cshelf_lenght  # km
-   Q0 = 100. # W/m^2
+   Q0 = 10. # W/m^2
    Yt = 550.0  # km
    Lasf = 300.0 # km
-   tau_acc = 0.2 # N/m^2
-   tau_asf = -0.075 # N/m^2
+   tau_acc = args.tau_acc # default is 0.2 # N/m^2
+   tau_asf = args.tau_asf # default is -0.075 # N/m^2
+   katabatic_wind = args.katabatic_wind # def is 0.05 N/m2
    sponge = 50.0 # km
    # polynya salt and salt fluxes
    major = args.polynya_major
@@ -592,6 +605,7 @@ def make_forcing(x,y,args):
    ISL = args.ice_shelf_lenght
    salt_flux = args.salt_flux_polynya 
    heat_flux = args.heat_flux_polynya
+   latent_flux = args.latent_heat_flux_polynya
    ice_form = ((np.abs(salt_flux)*3600*24) * area * 1.0e6* 1.0e3/34.) * 1.0e-3 / (area * 1.0e6) 
    print 'Sea ice formation (m/day)', ice_form
    ice_form = ice_form/area
@@ -601,21 +615,24 @@ def make_forcing(x,y,args):
    evaporation = np.zeros((nt,ny,nx))
    salt = np.zeros((nt,ny,nx))
    heat = np.zeros((nt,ny,nx))
+   latent = np.zeros((nt,ny,nx))
 
+   # tau x
    for j in range(ny):
       if y[j] <= (Yt-Lasf):
         tauX = 0.0
-        tauY = 0.05
       elif (y[j] > (Yt-Lasf) and y[j] <= Yt):
          tmp = np.pi*(Yt-y[j])/Lasf
          tauX = tau_asf * np.sin(tmp)**2
-         tauY = 0.05
       else:
          tmp = np.pi*(Yt-y[j])/(Ly-Yt)
          tauX = tau_acc * np.sin(tmp)**2
-         tauY = 0.0 
       tau_x[0,j,:] = tauX
-      tau_y[0,j,:] = tauY
+
+   # tau y (decays linearly away from the ice shelf front)
+   for j in range(ny):
+      if y[j] >= ISL and y[j] <= Yt:
+         tau_y[0,j,:] = (-katabatic_wind/(Yt-ISL)) * (y[j]-ISL) + katabatic_wind
 
    # heat/brine
    tmp1 = ISL + minor
@@ -632,13 +649,16 @@ def make_forcing(x,y,args):
    # evap, proxy for brine formation in polynyas
    for i in range(nx):
      for j in range(ny):
-       if y[j]>ISL and (heat[0,j,i] >= 0.): heat[0,j,:] = -Q0/10.
        if (x[i] - W/2. >= -major and x[i] - W/2. <= major):
           if (y[j]-ISL >= 0.) and (y[j]-ISL <= (minor * np.abs((1-(x[i]-W/2.)**2/major**2)**(1/2.)))):
             evaporation[0,j,i] = salt_flux
             salt[0,j,i] = salt_flux
             heat[0,j,i] = heat_flux
- 
+            latent[0,j,i] = latent_flux
+
+   # remove heat gain
+   for j in range(ny):
+       if y[j]>ISL and (heat[0,j,i] > 0.): heat[0,j,:] = 0.0 
    # create ncfile
    # open a new netCDF file for writing.
    ncfile = Dataset(name+'.nc','w')
@@ -708,6 +728,13 @@ def make_forcing(x,y,args):
      t_flux.missing_value = 1.e+20
      t_flux.long_name = 'Sensible heat flux'
      t_flux[:] = -heat[:] # change sign in ice
+
+     # latent heat
+     lt = ncfile.createVariable('latent',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
+     lt.units = 'Watt meter-2'
+     lt.missing_value = 1.e+20
+     lt.long_name = 'Latent heat flux'
+     lt[:] = -latent # change sign in ice
 
      salt_flux = ncfile.createVariable('salt_flux',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
      salt_flux.units = 'kg/(m^2 s)'
