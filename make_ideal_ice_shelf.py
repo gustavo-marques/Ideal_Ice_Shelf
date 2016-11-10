@@ -65,7 +65,12 @@ def parseCommandLine():
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
   
   parser.add_argument('-debug', help='''Adds prints and plots to help debug.''', action="store_true")
+
+  parser.add_argument('-freeze_ic', help='''Sets the temp to the freezing point in the upper 50 m of the IC.''', action="store_true")
+
   parser.add_argument('-trough', help='''Adds a trough cutting the continental shelf.''', action="store_true")
+  
+  parser.add_argument('-homogeneous_ts', help='''Make the initial T/S homogeneous in the horizontal.''', action="store_true")
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
@@ -489,20 +494,27 @@ def get_profile(t,i,j,var,depth,z,args,vname,take_mean = True):
 
    return f1(z)
 
-def set_freezing_temp(T,S,z,args):
+def set_freezing_temp(T,S,z,y,args):
     '''
-    Set the temp. in the upper 50 m to the freezing point, then smooth data
+    Set the temp. in the upper 50 m to the surface freezing point, then smooth data
     '''
     d = np.nonzero(z<=50.)[0]
     for k in range(len(d)):
         for j in range(args.ny):
-           T[0,k,j,:] = eos.tfreeze(S[0,k,j,:],1.0e5) - 0.1
+           if y[j] <= (args.ISL + args.cshelf_lenght + args.slope_lenght):
+              T[0,k,j,:] = eos.tfreeze(S[0,k,j,:],1.0e5) 
 
     for j in range(args.ny):
       for i in range(args.nx):
-         T[0,d[-1]::,j,i] = gaussian_filter(T[0,d[-1]::,j,i],1) # filter std 1
+         T[0,d,j,i] = gaussian_filter(T[0,d,j,i],1) # filter std 1
 
-    return T
+    # smooth T and S in the cross slope direction
+    #for k in range(args.nz):
+    #   for j in range(args.ny):
+    #       T[0,k,:,i] = gaussian_filter(T[0,k,:,i],2)
+    #       S[0,k,:,i] = gaussian_filter(T[0,k,:,i],2)
+
+    return T,S
 
 def make_ts(x,y,args):
    '''
@@ -523,27 +535,63 @@ def make_ts(x,y,args):
    temp_break = get_profile(t,i,j,'PTEMP',depth,z,args,'TempSlope')
    salt_break = get_profile(t,i,j,'SALT',depth,z,args,'SaltSlope')
    # northern wall conditions (-65)
-   j = 24
+   j = 21
    temp_north = get_profile(t,i,j,'PTEMP',depth,z,args,'TempNorth')
    salt_north = get_profile(t,i,j,'SALT',depth,z,args,'SaltNorth')
 
    # distace from southern wall to use in the interp.
-   dist = [0,args.cshelf_lenght+args.slope_lenght*0.5,args.L,args.L]
+   #dist = [0,args.cshelf_lenght+args.slope_lenght*0.5,args.L,args.L]
+   dummy = args.ISL + args.cshelf_lenght
+   dist = [0, dummy, dummy+args.slope_lenght, args.L-50.,args.L]
    # 3d fields
    temp3D = np.zeros((1,args.nz,len(y),len(x)))
    salt3D = np.zeros((1,args.nz,len(y),len(x)))
-   # horizontal interp
-   for k in range(args.nz):
-       f1 = interp1d(dist, [temp_south[k],temp_break[k],temp_north[k], temp_north[k]])
-       dummy_t = f1(y)
-       f1 = interp1d(dist, [salt_south[k],salt_break[k],salt_north[k], salt_north[k]])
-       dummy_s = f1(y)
-       for i in range(args.nx):
-          temp3D[0,k,:,i] = dummy_t[:]
-          salt3D[0,k,:,i] = dummy_s[:]
+
+   if args.homogeneous_ts:
+    dist = [0,args.max_depth]
+    f1 = interp1d(dist,[0, -2])
+    dummy_t = f1(z)
+    f1 = interp1d(dist,[34.,34.62])
+    dummy_s = f1(z)
+    sigma2 = eos.wright_eos(dummy_t,dummy_s,2.0e7)
+    # compute rho0/alpha/beta
+    alpha = eos.alpha_wright_eos(dummy_t,dummy_s,2.0e7)
+    beta = eos.beta_wright_eos(dummy_t,dummy_s,2.0e7)
+    Rho_T0_S0 = eos.wright_eos(0.,0.,2.0e7) + 0. # 0.017 is a correction factor
+    # compute linear eos
+    rho_lin = Rho_T0_S0 + alpha.mean()*dummy_t + beta.mean()*dummy_t
+    print 'sigma2 - rho_lin',sigma2 - rho_lin
+    plt.close('all')
+    plt.figure()
+    plt.plot(sigma2-1000.,-z,'k',rho_lin-1000,-z,'r')
+    plt.show()
+
+    for i in range(args.nx):
+       for j in range(args.ny):
+           temp3D[0,:,j,i] = dummy_t[:]
+           salt3D[0,:,j,i] = dummy_s[:]
+
+   else:
+     # distace from southern wall to use in the interp.
+     #dist = [0,args.cshelf_lenght+args.slope_lenght*0.5,args.L,args.L]
+     dummy = args.ISL + args.cshelf_lenght
+     dist = [0, dummy, dummy+args.slope_lenght, args.L-50.,args.L]
+     # horizontal interp
+     for k in range(args.nz):
+         #f1 = interp1d(dist, [temp_south[k],temp_break[k],temp_north[k], temp_north[k]])
+         f1 = interp1d(dist, [temp_south[k],temp_south[k],temp_north[k],temp_north[k], temp_north[k]])
+         dummy_t = f1(y)
+         #f1 = interp1d(dist, [salt_south[k],salt_break[k],salt_north[k], salt_north[k]])
+         f1 = interp1d(dist, [salt_south[k],salt_south[k],salt_north[k], salt_north[k], salt_north[k]])
+         dummy_s = f1(y)
+         for i in range(args.nx):
+            temp3D[0,k,:,i] = dummy_t[:]
+            salt3D[0,k,:,i] = dummy_s[:]
 
    # set temp below 50 m to freezing point
-   #temp3D = set_freezing_temp(temp3D,salt3D,z,args)
+   if args.freeze_ic:
+      temp3D, salt3D = set_freezing_temp(temp3D,salt3D,z,y,args)
+
    # compute sigma2
    sigma2 = eos.wright_eos(temp3D,salt3D,2.0e7)
    # compute rho0/alpha/beta
@@ -554,30 +602,19 @@ def make_ts(x,y,args):
    # compute linear eos
    rho_lin = Rho_T0_S0 + alpha.mean()*temp3D + beta.mean()*salt3D
 
-   # generate vertical coord
-   #layers = [] # list
-   # light water
-   #tmp = np.linspace(1005.2,rho_lin.min()-0.01,12)
-   #for i in range(len(tmp)):
-   #   layers.append(tmp[i])
-
-   # initial water
-   #tmp = np.linspace(rho_lin.min(),rho_lin.max(),args.nz-24)
-   #for i in range(len(tmp)):
-   #   layers.append(tmp[i])
-
-   # dense water
-   #tmp = np.linspace(rho_lin.max()+0.01,1031.8,12)
-   #for i in range(len(tmp)):
-   #   layers.append(tmp[i])
-
-   # convert list into array
-   #layers = np.asarray(layers)
    layers = Dataset('GOLD_IC.2010.11.15.nc').variables['Layer'][:] # used in the global run with sig2
    if args.debug:
       print 'alpha,beta,Rho_T0_S0',alpha.mean(),beta.mean(),Rho_T0_S0
       print 'sigma2 - rho_lin',sigma2[0,:,0,0] - rho_lin[0,:,0,0]
 
+      plt.figure()
+      plt.contourf(y,-z,rho_lin[0,:,:,0])
+      plt.colorbar()
+      plt.contour(y,-z,rho_lin[0,:,:,0]-1000.,layers-1000,colors='k',linewidths=2)
+      plt.title('Density - 1000.')
+      plt.savefig('PNG/rho_section.png')
+  
+ 
       plt.figure()
       plt.plot(sigma2[0,:,0,0]-1000.,-z,'b',rho_lin[0,:,0,0]-1000.,-z,'bx')
       plt.plot(sigma2[0,:,args.ny/2.,0]-1000.,-z,'r',rho_lin[0,:,args.ny/2.,0]-1000.,-z,'rx')
@@ -701,9 +738,10 @@ def make_forcing(x,y,args):
    Q0 = 10. # W/m^2
    Qmax = 50.
    Yt = 600.0  # km
-   Lasf = 600.0 # km
-   tau_asf = -0.075 # default is -0.075 # N/m^2
-   katabatic_wind = 0.05 # def is 0.05 N/m2
+   Lasf = 400.0 # km
+   tau_acc = 0.2
+   tau_asf = -0.05 # default is -0.075 # N/m^2
+   katabatic_wind = 0.075 # def is 0.05 N/m2
    sponge = 50.0 # km
    # polynya salt and salt fluxes
    major = 75.0
@@ -726,7 +764,7 @@ def make_forcing(x,y,args):
    latent = np.zeros((nt,ny,nx))
    # core atm params and values
    u10_asf = args.u10_asf # def is -0.5  m/s
-   v10_katabatic = 5.0 # m/s
+   v10_katabatic = 15.0 # m/s
    t10_min = 250. # kelvin
    t10_max = 270.
    t10_polynya = 0.
@@ -736,7 +774,7 @@ def make_forcing(x,y,args):
 
    # wind and heat
    # x-dir
-   tmp1 = ISL + CSL*0.5
+   tmp1 = ISL + 100.
    for j in range(ny):
       if y[j] < tmp1:
         tau_x[0,j,:] = 0.0
@@ -744,21 +782,25 @@ def make_forcing(x,y,args):
         heat[0,j,:] = -Q0
       elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
          tmp = np.pi*(y[j]-tmp1)/Lasf
-         u10[0,j,:] = u10_asf * np.sin(tmp)
-         tau_x[0,j,:] = tau_asf * np.sin(tmp) 
+         u10[0,j,:] = u10_asf * np.sin(tmp)**2
+         tau_x[0,j,:] = tau_asf * np.sin(tmp)**2 
          heat[0,j,:] = -Q0 - (8 * Q0 * np.sin(tmp))
       else:
+         tmp2 = (y[j] - tmp1 - Lasf)/(2.*(Ly-tmp1 - Lasf))
          u10[0,j,:] = 0.0
-         tau_x[0,j,:] = 0.0
+         tau_x[0,j,:] = tau_acc * np.sin(tmp2 * np.pi)**2
          heat[0,j,:] = -Q0 
         
    # y-dir (decays linearly away from the ice shelf front)
    # has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
    W_v10 = 50000. # km
-   dummy = Yt + ISL
+   dummy = ISL + args.cshelf_lenght + args.slope_lenght
    for i in range(nx):
       for j in range(ny):
-         if y[j] > 0. and y[j] <= dummy:
+         if y[j] < ISL:
+            tau_y[0,j,i] = katabatic_wind
+            v10[0,j,i] = v10_katabatic
+         elif y[j] <= dummy:
             tmp =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
             tau_y[0,j,i] = ((-katabatic_wind/(dummy)) * (y[j]) + katabatic_wind) * tmp
             v10[0,j,i] = ((-v10_katabatic/(dummy)) * (y[j]) + v10_katabatic) * tmp
@@ -767,12 +809,18 @@ def make_forcing(x,y,args):
    T0 = Dataset('ic_ts.nc').variables['PTEMP'][0,1,:,0] + 273.
    # T10 = T10 - 10 * np.exp(-(y[j]-ISL)/150.)
    # e-folding scale is 150 km
+   efold = args.cshelf_lenght + args.slope_lenght
    for j in range(ny):
       if y[j]<=ISL:
-         t10[0,j,:] = T0[j] - 10. 
+         t10[0,j,:] = 250. #T0[j] - 10. 
+         heat[0,j,:] = -100.
+      elif y[j]<=ISL + efold:
+         t10[0,j,:] = 270 - 20. * np.exp(-(y[j]-ISL)/100.)
+         heat[0,j,:] = -100. * np.exp(-(y[j]-ISL)/100.)
       else:
-         t10[0,j,:] = T0[j] - 10. * np.exp(-(y[j]-ISL)/150.)
-
+         t10[0,j,:] = 0.0
+         heat[0,j,:] = 0.0
+   
    # evap, proxy for brine formation in polynyas
    if t10_polynya > 0.:
      for i in range(nx):
@@ -785,6 +833,14 @@ def make_forcing(x,y,args):
 	      latent[0,j,i] = latent_flux
 	      t10[0,j,i] = t10_polynya
 
+   # set salt flux such that net buoynacy flux is zero
+   # B_heat = B_salt
+   cp = 3974.0 # J/(K kg)
+   rho0 = 1028.0; alpha = 0.11069/rho0; beta = 0.7906/rho0; g = 9.8
+   B_heat = heat[0,:,:] * g * alpha/ (rho0 * cp)
+   salt[0,:,:] = B_heat * rho0 / (beta * g)
+   print 'B_heat',B_heat.min(),B_heat.max()
+   print 'salt',salt.min(),salt.max()
    # plots
    if args.debug:
 
@@ -842,6 +898,12 @@ def make_forcing(x,y,args):
       plt.contourf(x,y,heat[0,:,:]); plt.colorbar()
       plt.xlabel('x [km]'); plt.ylabel('y [km]')
       plt.savefig('PNG/sensible_heat.png')
+
+      plt.figure()
+      plt.title('Salt flux kg/(m^2 s)')
+      plt.contourf(x,y,heat[0,:,:]); plt.colorbar()
+      plt.xlabel('x [km]'); plt.ylabel('y [km]')
+      plt.savefig('PNG/salt_flux.png')
 
       plt.figure()
       plt.subplot(211)
@@ -982,7 +1044,7 @@ def make_forcing(x,y,args):
      salt_flux.units = 'kg/(m^2 s)'
      salt_flux.missing_value = 1.e+20
      salt_flux.long_name = 'salt flux'
-     salt_flux[:] = -salt[:] # change sign in ice
+     salt_flux[:] = -salt[:] # + adds salt from ocean
 
    else:
      SW = ncfile.createVariable('SW',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
