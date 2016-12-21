@@ -40,14 +40,29 @@ def parseCommandLine():
   parser.add_argument('-W', type=float, default=600.,
       help='''Domain width in the x direction (km). Default is 600.''')
 
-  parser.add_argument('-cshelf_lenght', type=float, default=500.,
-      help='''Continental shelf lenght in the y direction (km). Default is 500.''')
+  parser.add_argument('-cshelf_lenght', type=float, default=600.,
+      help='''Continental shelf lenght in the y direction (km). Default is 600.''')
 
-  parser.add_argument('-slope_lenght', type=float, default=50.,
-      help='''Continental shelf slope lenght in the y direction (km). Default is 50.''')
+  parser.add_argument('-slope_lenght', type=float, default=100.,
+      help='''Continental shelf slope lenght in the y direction (km). Default is 100.''')
 
-  parser.add_argument('-u10_asf', type=float, default=-5.0,
-      help='''Max. wind speed at the ASF (m/2). Default is -5.0''')
+  parser.add_argument('-taux', type=float, default=-0.075,
+      help='''Max. wind stress in x (Pa). Default is -0.075''')
+
+  parser.add_argument('-wind_x_max', type=float, default=-5.0,
+      help='''Max. wind vel in x (m/s). Default is -5.0''')
+
+  parser.add_argument('-tauy_max', type=float, default=0.05,
+      help='''Max. (katabatic) wind stress in y (Pa). Default is 0.05''')
+
+  parser.add_argument('-tauy_min', type=float, default=0.001,
+      help='''Min. (katabatic) wind stress in y (Pa). Default is 0.001''')
+  
+  parser.add_argument('-wind_y_max', type=float, default=7.5,
+      help='''Max. (katabatic) wind vel. in y (m/s). Default is 7.5''')
+
+  parser.add_argument('-wind_y_min', type=float, default=0.15,
+      help='''Min. (katabatic) wind vel. in y (m/s). Default is 0.15''')
 
   parser.add_argument('-L', type=float, default=1200.,
       help='''Domain lenght in the y direction (km). Default is 1.2E3''')
@@ -61,11 +76,36 @@ def parseCommandLine():
   parser.add_argument('-Qmax', type=float, default=70.0,
       help='''Maximum heat flux loss (W/m^2). Default is 70.''')
 
+  parser.add_argument('-Qmin', type=float, default=10.0,
+      help='''Minimum heat flux loss (W/m^2). Default is 20.''')
+
+  parser.add_argument('-Tmax', type=float, default=270.0,
+      help='''Maximum atm temp. (K). Default is 270.''')
+
+  parser.add_argument('-Tmin', type=float, default=250.0,
+      help='''Minimum atm temp. (K). Default is 250.''')
+
+  parser.add_argument('-liq_prec', type=float, default=5.0e-5,
+      help='''Max. liquid precipitation (kg/(m^2 s)). Default is 5.0e-5.''')
+
   parser.add_argument('-land_width', type=float, default=100.0,
       help='''Widht of land region next to ice shelf (km)- this also controls the shape
       of the ice shelf. Default is 100.''')
 
+  parser.add_argument('-sponge_width', type=float, default=100.0,
+      help='''Widht of sponge layer (km). Default is 100.''')
+
+  parser.add_argument('-wind_period', type=float, default=1.0,
+      help='''Period of katabatic winds (days). Default is 1. which means constant wind.''')
+
+  parser.add_argument('-temp_period', type=float, default=1.0,
+      help='''Period of the near coast atm. temp (days). Default is 1. which means constant temp.''')
+
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
+  
+  parser.add_argument('-linear_forcing', help='''If true, tauy and sensible decrease linearly from the coast''', action="store_true")
+  
+  parser.add_argument('-tauy_confined', help='''If true, tauy varies in x using a gaussian function.''', action="store_true")
   
   parser.add_argument('-debug', help='''Adds prints and plots to help debug.''', action="store_true")
   
@@ -74,6 +114,8 @@ def parseCommandLine():
   parser.add_argument('-trough', help='''Adds a trough cutting the continental shelf.''', action="store_true")
   
   parser.add_argument('-homogeneous_ts', help='''Make the initial T/S homogeneous in the horizontal.''', action="store_true")
+  
+  parser.add_argument('-mean_profile', help='''The initial T/S profiles is contructed using time-averages.''', action="store_true")
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
@@ -144,7 +186,7 @@ def make_ice_shelf(x,y,args):
    h[y<gp] = H0
    h[y>Lice] = 0.0 
    # smooth
-   h_smooth = gaussian_filter(h,2)
+   h_smooth = gaussian_filter(h,4)
    h_smooth[y<gp] = H0
    h_smooth[h_smooth<50.0] = 0.0
    # find meridional lenght of ice shelf
@@ -476,11 +518,11 @@ def make_mosaic(x,y,Ocean_Depth,args):
    print ('*** SUCCESS creating '+name+'.nc!')
    os.system('cp mosaic.nc grid_spec.nc')
 
-def get_profile(t,i,j,var,depth,z,args,vname,take_mean = True):
+def get_profile(t,i,j,var,depth,z,args,vname):
    '''
    Get data (var), remove mask, smooth profile then interpolate to z grid.
    '''
-   if take_mean:
+   if args.mean_profile:
       data = np.mean(Dataset('WOA05_pottemp_salt.nc').variables[var][:,:,j,i], axis=0)
       
    else:
@@ -535,15 +577,15 @@ def make_ts(x,y,args):
    # all values between -78 to - 60
    # use sw.dist to find distance
    # 176 lon (Ross Sea), July, southern wall conditions (-78)
-   i =  176; t = 6; j = 11
+   i =  176; t = 6; j = 14 # 11
    temp_south = get_profile(t,i,j,'PTEMP',depth,z,args,'TempSouth')
    salt_south = get_profile(t,i,j,'SALT',depth,z,args,'SaltSouth')
    # shelf break conditions (-72)
-   j = 17
+   j = 21 # j = 17
    temp_break = get_profile(t,i,j,'PTEMP',depth,z,args,'TempSlope')
    salt_break = get_profile(t,i,j,'SALT',depth,z,args,'SaltSlope')
    # northern wall conditions (-65)
-   j = 21
+   j = 21 # j = 27
    temp_north = get_profile(t,i,j,'PTEMP',depth,z,args,'TempNorth')
    salt_north = get_profile(t,i,j,'SALT',depth,z,args,'SaltNorth')
 
@@ -552,29 +594,16 @@ def make_ts(x,y,args):
    salt3D = np.zeros((1,args.nz,len(y),len(x)))
 
    if args.homogeneous_ts:
-    dist = [0,args.max_depth]
-    f1 = interp1d(dist,[0, 2])
-    dummy_t = f1(z)
-    f1 = interp1d(dist,[33.,35.])
-    dummy_s = f1(z)
-    sigma2 = eos.wright_eos(dummy_t,dummy_s,2.0e7)
-    # compute rho0/alpha/beta
-    alpha = eos.alpha_wright_eos(dummy_t[0],dummy_s[0],2.0e7)
-    beta = eos.beta_wright_eos(dummy_t[0],dummy_s[0],2.0e7)
-    Rho_T0_S0 = eos.wright_eos(0.,0.,2.0e7) + 0.# 0.017 is a correction factor
-    # compute linear eos
-    rho_lin = Rho_T0_S0 + alpha*dummy_t + beta*dummy_t
-    print 'sigma2 - rho_lin',sigma2 - rho_lin
-    print 'alpha,beta,Rho_T0_S0',alpha.mean(),beta.mean(),Rho_T0_S0
-    plt.close('all')
-    plt.figure()
-    plt.plot(sigma2-1000.,-z,'k',rho_lin-1000,-z,'r')
-    plt.show()
-
-    for i in range(args.nx):
-       for j in range(args.ny):
-           temp3D[0,:,j,i] = dummy_t[:]
-           salt3D[0,:,j,i] = dummy_s[:]
+     dist = [0, args.ISL, args.L-100.,args.L]
+     # horizontal interp
+     for k in range(args.nz):
+         f1 = interp1d(dist, [temp_north[k],temp_north[k],temp_north[k], temp_north[k]])
+         dummy_t = f1(y)
+         f1 = interp1d(dist, [salt_north[k],salt_north[k], salt_north[k], salt_north[k]])
+         dummy_s = f1(y)
+         for i in range(args.nx):
+            temp3D[0,k,:,i] = dummy_t[:]
+            salt3D[0,k,:,i] = dummy_s[:]
 
    else:
      # distace from southern wall to use in the interp.
@@ -587,29 +616,38 @@ def make_ts(x,y,args):
          f1 = interp1d(dist, [temp_south[k],temp_south[k],temp_north[k], temp_north[k]])
          dummy_t = f1(y)
          #f1 = interp1d(dist, [salt_south[k],salt_break[k],salt_north[k], salt_north[k]])
-         f1 = interp1d(dist, [salt_south[k],salt_south[k], salt_north[k], salt_north[k]])
+         f1 = interp1d(dist, [salt_south[k],salt_south[k],salt_north[k], salt_north[k]])
          dummy_s = f1(y)
          for i in range(args.nx):
             temp3D[0,k,:,i] = dummy_t[:]
             salt3D[0,k,:,i] = dummy_s[:]
 
-     # set temp below 50 m to freezing point
-     #if args.freeze_ic:
-     #	temp3D, salt3D = set_freezing_temp(temp3D,salt3D,z,y,args)
+   # compute heat content in the upper 50 m of the sponge layer
+   OHC = np.trapz(temp_north[depth<=50], dx=args.max_depth/args.nz) * 1028. * 4000.0
+   # C m kg Kg m^2 / s^2  Kg C m^3 = kg/s^2 = J/m^2
+   #J = kg m^2/ s^2
+   # multiply by area 
+   OHC = OHC * args.sponge_width * args.W # unit = J
+   print '#####################'
+   print 'Sponge (upper 50 m) OHC is ~ (J)', OHC
+   # compute power, units J/s
+   power = OHC/(3600.*24*16.) # ave nud. time scale is ~ 16 days
+   print 'Power (upper 50 m) due to nudging is ~ (J/s)', power
+   print '#####################'
 
-     # compute sigma2
-     sigma2 = eos.wright_eos(temp3D,salt3D,2.0e7)
-     # print min/max sigma2
-     print 'sigma2.min(),sigma2.max()',sigma2.min(),sigma2.max()
+   # compute sigma2
+   sigma2 = eos.wright_eos(temp3D,salt3D,2.0e7)
+   # print min/max sigma2
+   print 'sigma2.min(),sigma2.max()',sigma2.min(),sigma2.max()
 
-     # compute rho0/alpha/beta
-     alpha = eos.alpha_wright_eos(temp3D,salt3D,2.0e7)
-     beta = eos.beta_wright_eos(temp3D,salt3D,2.0e7)
-     Rho_T0_S0 = eos.wright_eos(0.,0.,2.0e7) + 0.017 # 0.017 is a correction factor
+   # compute rho0/alpha/beta
+   alpha = eos.alpha_wright_eos(temp3D,salt3D,2.0e7)
+   beta = eos.beta_wright_eos(temp3D,salt3D,2.0e7)
+   Rho_T0_S0 = eos.wright_eos(0.,0.,2.0e7) + 0.017 # 0.017 is a correction factor
    
-     # compute linear eos
-     rho_lin = Rho_T0_S0 + alpha.mean()*temp3D + beta.mean()*salt3D
-
+   # compute linear eos
+   rho_lin = Rho_T0_S0 + alpha.mean()*temp3D + beta.mean()*salt3D
+   
    layers = Dataset('GOLD_IC.2010.11.15.nc').variables['Layer'][:] # used in the global run with sig2
    if args.debug:
       print 'alpha,beta,Rho_T0_S0',alpha.mean(),beta.mean(),Rho_T0_S0
@@ -743,63 +781,155 @@ def make_forcing(x,y,args):
    Ly = args.L # domain size km
    W = args.W # domain width km
    CSL = args.cshelf_lenght  # km
-   Q0 = 20. # W/m^2
-   Qmax = args.Qmax
-   Yt = 600.0  # km
-   Lasf = 300.0 # km
-   Lacc = 450.0
+   Qmin = args.Qmin # typical 20  W/m^2
+   Tmin = args.Tmin # typical 250 K
+   Qmax = args.Qmax # 
+   Tmax = args.Tmax # 270 k
+   Lasf = 700.0
    tau_acc = 0.1
-   tau_asf = -0.05 # default is -0.075 # N/m^2
-   katabatic_wind = 0.05 # def is 0.05 N/m2
-   sponge = 100.0 # km
+   liq_prec = args.liq_prec # kg/(m^2 s)
+   tau_asf = args.taux # default is 0.075 # N/m^2
+   wind_x_max = args.wind_x_max
+   tauy_max = args.tauy_max # def is 0.05 N/m2
+   tauy_min = args.tauy_min  # min northward wind
+   wind_y_max = args.wind_y_max
+   wind_y_min = args.wind_y_min
+   sponge = args.sponge_width # 100 km
    ISL = args.ISL
    heat_flux = 0.0
-   nx = len(x); ny = len(y); nt =1 # time
-   tau_x = np.zeros((nt,ny,nx)) # ice forcing
+   wind_period = args.wind_period
+   temp_period = args.temp_period
+   nx = len(x); ny = len(y)
+   if wind_period>1 or temp_period>1.:
+     nt = 365*4 # one year every 6 hours
+     print('About to create forcing file with',nt, ' records...')
+   else:
+     nt = 1
+
+   
+   # atmos/ice forcing
+   time_days = np.zeros(nt)
+   t_bot = np.zeros((nt,ny,nx)) 
+   wind_x = np.zeros((nt,ny,nx)) 
+   wind_y = np.zeros((nt,ny,nx)) 
+   tau_x = np.zeros((nt,ny,nx)) 
    tau_y = np.zeros((nt,ny,nx))
    heat = np.zeros((nt,ny,nx))
+   liq = np.zeros((nt,ny,nx))
 
-   # wind and heat
-   # x-dir
-   tmp1 = ISL + 100.
-   tmp1 = 300.
-   for j in range(ny):
-      if y[j] < tmp1:
-        tau_x[0,j,:] = 0.0
-      elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
-         tmp = np.pi*(y[j]-tmp1)/Lasf
-         tau_x[0,j,:] = tau_asf * np.sin(tmp)**2 
-      elif y[j] > tmp1 + Lasf and y[j] <= tmp1 + Lasf + Lacc:
-         tmp = np.pi*(y[j]-tmp1-Lasf)/Lacc 
-         tau_x[0,j,:] = tau_acc * np.sin(tmp)**2
-      else:
-         tau_x[0,j,:] = 0.0
-        
-   # y-dir (decays linearly away from the ice shelf front)
-   # has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
-   W_v10 = 50000. # km
-   dummy = ISL + args.cshelf_lenght #+ args.slope_lenght
-   for i in range(nx):
-      for j in range(ny):
-         if y[j] < ISL:
-            tau_y[0,j,i] = katabatic_wind
-         elif y[j] <= dummy:
-            tmp =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
-            tau_y[0,j,i] = ((-katabatic_wind/(dummy)) * (y[j]) + katabatic_wind) * tmp
+   # loop in time
+   for t in range(nt):
+     # wind and heat
+     time_days[t] = t * 0.25
+     print'Time:',time_days[t]
+     temp_cos = np.cos(np.pi*time_days[t]/temp_period)**2
+     wind_cos = np.cos(np.pi*time_days[t]/wind_period)**2
 
-   # read ocean's initial SST (in K)
-   T0 = Dataset('ic_ts.nc').variables['PTEMP'][0,1,:,0] + 273.
-   # T10 = T10 - 10 * np.exp(-(y[j]-ISL)/150.)
-   # e-folding scale is 150 km
-   efold = args.cshelf_lenght + args.slope_lenght
-   for j in range(ny):
-      if y[j]<=ISL:
-         heat[0,j,:] = -Qmax
-      elif y[j]<=ISL + efold:
-         heat[0,j,:] = -(Qmax - Q0) * np.exp(-(y[j]-ISL)/100.) - Q0
-      else:
-         heat[0,j,:] = -Q0
-   
+     if temp_cos==0.0: temp_cos=0.1
+     if wind_cos==0.0: wind_cos=0.1
+ 
+     # x-dir
+     tmp1 = ISL + 200.
+     Lasf = Ly - tmp1 - 200.
+     for j in range(ny):
+       if y[j] < tmp1:
+	  tau_x[t,j,:] = 0.0
+	  wind_x[t,j,:] = 0.0
+       elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
+          tmp = np.pi*(y[j]-tmp1)/(Lasf)
+	  tau_x[t,j,:] = tau_asf * np.sin(tmp) 
+	  wind_x[t,j,:] = wind_x_max * np.sin(tmp) 
+       else:
+	  tau_x[t,j,:] = 0.0
+	  wind_x[t,j,:] = 0.0
+
+     # heat, northward wind, liq
+     # wind has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
+     #W_v10 = 50000. # km
+     #dummy = ISL + args.cshelf_lenght + args.slope_lenght + 200.
+     #dummy = Ly - ISL
+     # heat
+     # Follow http://onlinelibrary.wiley.com/doi/10.1002/wea.436/pdf
+     # Q is ~ linear
+     
+     # katabatic
+     # follow ~ http://journals.ametsoc.org/doi/pdf/10.1175/1520-0493(1994)122%3C0671%3ADOATDM%3E2.0.CO%3B2
+     # # has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
+     W_v10 = 50000. # km
+     # tau_y and heat are zero at y = 300 and 400 km, respect.
+     tmp = 400.0 - ISL; tmp1 = 400.0 - ISL
+     tmp_inv = 1.0/tmp; tmp1_inv = 1.0/tmp1
+
+     delta_tauy = tauy_max - tauy_min
+     delta_wind_y = wind_y_max - wind_y_min
+     delta_temp = Tmax - Tmin
+     delta_Q = Qmax - Qmin
+     if args.linear_forcing:
+       # tauy
+       for j in range(ny):
+          if y[j] < ISL:
+	      tau_y[t,j,:] = tauy_max 
+              wind_y[t,j,:] = wind_y_max 
+          elif y[j] >= ISL and y[j] <= (Ly - 800.): 
+              wind_y[t,j,:] = ((-delta_wind_y * tmp1_inv * (y[j]-ISL) + wind_y_max) * wind_cos)\
+                              + wind_y_min
+              tau_y[t,j,:] = ((-delta_tauy * tmp1_inv * (y[j]-ISL) + tauy_max) * wind_cos) \
+                              + tauy_min
+          else:
+              tau_y[t,j,:] = 0.0
+              wind_y[t,j,:] = 0.0
+
+       # heat
+       for j in range(ny):
+          if y[j] < ISL:
+              heat[t,j,:] = Qmax 
+              t_bot[t,j,:] = Tmin 
+          elif y[j] >= ISL and y[j] <= (Ly - 800.):
+              heat[t,j,:] = (delta_Q * tmp_inv * (y[j]-ISL) * temp_cos) + Qmax
+              t_bot[t,j,:] = (delta_temp * tmp_inv * (y[j]-ISL) * temp_cos ) + Tmin
+          else:
+              heat[t,j,:] = Qmin
+              t_bot[t,j,:] = Tmax
+
+     else: # exponential
+       efold = 20. # km
+       for i in range(nx):
+         for j in range(ny):
+	   if y[j] < ISL+efold:
+	      t_bot[t,j,i] = (-delta_temp * temp_cos) + Tmax
+	      wind_y[t,j,i] = (delta_wind_y * wind_cos) + wind_y_min
+	      tau_y[t,j,i] = (delta_tauy * wind_cos) + tauy_min
+	      heat[t,j,i] = (delta_Q * temp_cos) + Qmin
+	   else:
+	      t_bot[t,j,i] = (-delta_temp * np.exp(-(y[j]-ISL-efold)/(efold)) * temp_cos) + Tmax
+	      heat[t,j,i] = (delta_Q * np.exp(-(y[j]-ISL-efold)/(efold)) * temp_cos) + Qmin
+              if args.tauy_confined:
+                 tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
+              else:
+                 tmp1 = 1.0
+              tau_y[t,j,i] = (((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                              * tmp1) * wind_cos) + tauy_min
+              wind_y[t,j,i] = (((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                              * tmp1) * wind_cos) + wind_y_min
+     tmp = 500.
+     # lprec
+     for j in range(ny):
+	if y[j] < tmp:
+	   liq[t,j,:] = 0.0
+	elif y[j]>= tmp and y[j]< (Ly-sponge):
+	   liq[t,j,:] = liq_prec
+	else:
+	   liq[t,j,:] = 0.0
+
+   #
+   # End of time loop
+   #
+
+   # power lost due to heat loss
+   #grid_area = (y[1]-y[0]) * (x[1]-x[0])
+   #power = np.sum(heat*grid_area)
+   #print 'Power due to sensible heat (J/s, negative means loss):', power
+
    # evap, proxy for brine formation in polynyas
    #if t10_polynya > 0.:
    #  for i in range(nx):
@@ -823,15 +953,15 @@ def make_forcing(x,y,args):
    # plots
    if args.debug:
 
-      #plt.figure()
-      #u=u10[0,::5,::5]; v=v10[0,::5,::5]; mag = np.sqrt(u**2 + v**2)
-      #plt.quiver(x[::5],y[::5],u, v, mag, cmap = plt.cm.seismic)
-      #plt.colorbar()
-      #plt.plot(x,np.ones(nx)*ISL,'k')
-      #plt.plot(x,np.ones(nx)*(ISL+CSL),'k')
-      #plt.title('Wind vel. at 10 m (m/s)')
-      #plt.xlabel('x [km]'); plt.ylabel('y [km]')
-      #plt.savefig('PNG/wind10m.png')
+      plt.figure()
+      u=tau_x[0,::5,::5]; v=tau_y[0,::5,::5]; mag = np.sqrt(u**2 + v**2)
+      plt.quiver(x[::5],y[::5],u, v, mag, cmap = plt.cm.seismic)
+      plt.colorbar()
+      plt.plot(x,np.ones(nx)*ISL,'k')
+      plt.plot(x,np.ones(nx)*(ISL+CSL),'k')
+      plt.title('Wind (m/s)')
+      plt.xlabel('x [km]'); plt.ylabel('y [km]')
+      plt.savefig('PNG/wind_vector.png')
 
       #plt.figure()
       #plt.subplot(211)
@@ -887,51 +1017,55 @@ def make_forcing(x,y,args):
    # create ncfile
    # open a new netCDF file for writing.
    # # used when forcing is applied in the atm
-   #name = 'forcing_10'
-   #ncfile = Dataset(name+'.nc','w')
+   name = 'forcing_10'
+   ncfile = Dataset(name+'.nc','w')
    # create dimensions.
-   #ncfile.createDimension('LON',nx)
-   #ncfile.createDimension('LAT',ny)
-   #ncfile.createDimension('TIME',None)
+   ncfile.createDimension('LON',nx)
+   ncfile.createDimension('LAT',ny)
+   ncfile.createDimension('TIME',None)
    # create variables
-   #LON = ncfile.createVariable('LON',np.dtype('double').char,('LON'))
-   #LON.units = 'km'
-   #LON.long_name = 'h point nominal longitude'
-   #LON.cartesian_axis = 'X'
-   #LON[:] = x[:]
+   LON = ncfile.createVariable('LON',np.dtype('double').char,('LON'))
+   LON.units = 'km'
+   LON.long_name = 'h point nominal longitude'
+   LON.cartesian_axis = 'X'
+   LON[:] = x[:]
 
-   #LAT = ncfile.createVariable('LAT',np.dtype('double').char,('LAT'))
-   #LAT.units = 'km'
-   #LAT.long_name = 'h point nominal latitude'
-   #LAT.cartesian_axis = 'Y'
-   #LAT[:] = y[:]
+   LAT = ncfile.createVariable('LAT',np.dtype('double').char,('LAT'))
+   LAT.units = 'km'
+   LAT.long_name = 'h point nominal latitude'
+   LAT.cartesian_axis = 'Y'
+   LAT[:] = y[:]
 
-   #time = ncfile.createVariable('TIME',np.dtype('double').char,('TIME'))
-   #time.long_name = 'time'
-   #time.units = 'days since 0001-01-01 00:00:00'
-   #time.cartesian_axis = 'T'
-   #time.calendar_type = 'NOLEAP'
-   #time.calendar = 'NOLEAP'
-   #time.bounds = 'time_bounds'
-   #time[0] = 0
+   time = ncfile.createVariable('TIME',np.dtype('double').char,('TIME'))
+   time.long_name = 'time'
+   time.units = 'days since 0001-01-01 00:00:00'
+   time.cartesian_axis = 'T'
+   time.calendar_type = 'NOLEAP'
+   time.calendar = 'NOLEAP'
+   time.bounds = 'time_bounds'
+   if wind_period>1 or temp_period>1.:
+      time.modulo = '' # make it cyclic
+      time[:] = time_days[:] + (time_days[1] - time_days[0])
+   else:
+      time[0] = 0.0
 
-   #t_10 = ncfile.createVariable('T_10',np.dtype('float32').char,('TIME','LAT','LON')) 
-   #t_10.long_name = 'Air Temperature'
-   #t_10.units = 'Kelvin'
-   #t_10[:] = t10[:]
+   t_10 = ncfile.createVariable('T_10',np.dtype('float32').char,('TIME','LAT','LON')) 
+   t_10.long_name = 'Air Temperature'
+   t_10.units = 'Kelvin'
+   t_10[:] = t_bot[:]
 
-   #u_10 = ncfile.createVariable('U_10',np.dtype('float32').char,('TIME','LAT','LON'))
-   #u_10.long_name = 'U wind'
-   #u_10.units = 'm/s'
-   #u_10[:] = u10[:]
+   u_10 = ncfile.createVariable('U_10',np.dtype('float32').char,('TIME','LAT','LON'))
+   u_10.long_name = 'U wind'
+   u_10.units = 'm/s'
+   u_10[:] = wind_x[:]
 
-   #v_10 = ncfile.createVariable('V_10',np.dtype('float32').char,('TIME','LAT','LON'))
-   #v_10.long_name = 'U wind'
-   #v_10.units = 'm/s'
-   #v_10[:] = v10[:]
-
-   #ncfile.close()
-   #print ('*** SUCCESS creating '+name+'.nc!')
+   v_10 = ncfile.createVariable('V_10',np.dtype('float32').char,('TIME','LAT','LON'))
+   v_10.long_name = 'V wind'
+   v_10.units = 'm/s'
+   v_10[:] = wind_y[:]
+   
+   ncfile.close()
+   print ('*** SUCCESS creating '+name+'.nc!')
 
    # used when forcing is applied in the sea ice
    name = 'forcing'
@@ -976,7 +1110,11 @@ def make_forcing(x,y,args):
    time.calendar_type = 'NOLEAP'
    time.calendar = 'NOLEAP'
    time.bounds = 'time_bounds'
-   time[0] = 0
+   if wind_period>1 or temp_period>1.:
+      time.modulo = '' # make it cyclic
+      time[:] = time_days[:] + (time_days[1] - time_days[0])
+   else:
+      time[0] = 0
 
    nv = ncfile.createVariable('nv',np.dtype('double').char,('nv'))   
    nv.long_name = 'vertex number'
@@ -1015,6 +1153,12 @@ def make_forcing(x,y,args):
      salt_flux.missing_value = 1.e+20
      salt_flux.long_name = 'salt flux'
      salt_flux[:] = 0.0 # + adds salt from ocean
+
+     lprec = ncfile.createVariable('lprec',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
+     lprec.units = 'kg/(m^2 s)'
+     lprec.missing_value = 1.e+20
+     lprec.long_name = 'liquid precipitation'
+     lprec[:] = liq[:] # positive is adding water into the ocean
 
    else:
      SW = ncfile.createVariable('SW',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
@@ -1079,7 +1223,10 @@ def make_forcing(x,y,args):
 
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
-   
+  
+   print ('*** Run make_quick_mosaic ***')
+   os.system('module load fre')
+   os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
    return
 
 def make_topo(x,y,args):
@@ -1098,6 +1245,35 @@ def make_topo(x,y,args):
       for i in range(nx):
           D[j,i] = Hs + 0.5 * (H-Hs) * (1.0 + np.tanh((Y[j,i]*1.0e3 - Ys)/Ws))
 
+
+   if args.ice_shelf:
+     H1 = 300. # # depth increase under ice shelf
+     ISL = args.ISL  # lenght of ice shelf cavity in m
+     ymask = ISL 
+     ymask2 = ISL + 100.
+     L1 = (ISL * 1.0e3) 
+     minor = 2*ISL
+     major = 200.0
+     Wl = args.land_width # widht of land region next to ice shelf in km
+     # land mask
+     land = np.zeros(nx)
+     for i in range(nx):
+        if X[0,i]<= W*0.5:
+           land[i] = (ymask2*0.5) - (ymask2*0.5) * (np.tanh(((X[0,i]-Wl)/20.) - 1.0))
+        else:
+           x_tmp = X[0,i] - W*0.5
+           land[i] = (ymask2*0.5) + (ymask2*0.5) * (np.tanh(((x_tmp-(W*0.5-Wl))/20.) + 1.0))
+
+     for j in range(ny):
+	for i in range(nx):
+	    if Y[j,i]<= ymask2: # depth under ice shelf or land
+                #if X[j,i]<= major*0.5 or X[j,i]>= (W-major*0.5): # add land mask
+                if Y[j,i]<= land[i]: # add land mask
+                   D[j,i] = 0.0
+                else:
+                   if Y[j,i]<= ISL:
+                      D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1*0.5)/(50.e3)) - 1.0) 
+
    # add trough(s)
    trough = np.zeros((ny,nx))
    xx = x - args.W*0.5
@@ -1106,59 +1282,41 @@ def make_topo(x,y,args):
           trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+30.)/10.))
        else:
           trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-30.)/10.))
-
+  
    if args.trough:
-      D[trough>D]=trough[trough>D]
-
+      for j in range(ny):
+        for i in range(nx):
+           if X[j,i]> major*0.5 and X[j,i]< (W-major*0.5):
+              if (trough[j,i] > D[j,i]): D[j,i] = trough[j,i]
+ 
+   ##if args.trough:
    # remove corners or "right angles" in the topography   
    for i in range(nx):
-      D[:,i] = gaussian_filter(D[:,i],2)
-
- 
-   if args.ice_shelf:
-     H1 = 500. # # depth increase under ice shelf
-     ISL = args.ISL  # lenght of ice shelf cavity in m
-     L1 = (ISL * 1.0e3) 
-     minor = 2*ISL
-     major = 200.0
-     Wl = args.land_width # widht of land region next to ice shelf in km
-     for j in range(ny):
-	for i in range(nx):
-            #if X[j,i]<= W*0.5:
-            #  land = (ISL + 10) - ISL * (np.tanh((Y[j,i]*1.0e3 - L1)/(L1/10.)) - 1.0)
-            #else:
-            #land = (ISL + 10) - ISL * 
-            if X[j,i]<= major*0.5 or X[j,i]>= (W-major*0.5): # add land mask
-               if Y[j,i]<= ISL + 10:
-                  D[j,i] = 0.0
-            else:
-	       if Y[j,i]<= ISL: # depth under ice shelf or land
-	          D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1)/(L1/10.)) - 1.0) 
-	          #dummy1 = X[j,i] - W*0.5
-                  #dummy2 = Y[j,i] - ISL
-                  #if (dummy1 <= -major or dummy1 >= major):
-                  #   D[j,i] = 0.0
-                  #else: 
-                  #   if (dummy2 < -(minor*np.sqrt((1-(abs(dummy1)**2)/major**2)))):
-                  #      D[j,i] = 0.0 # land
+      tmp = np.nonzero(Y[:,i]>land[i])[0]
+      if len(tmp)>1:
+         D[tmp[0]::,i] = gaussian_filter(D[tmp[0]::,i],2)
+      else:
+         D[:,i] = gaussian_filter(D[:,i],2)
 
    # to avoid sea ice formation under ice shelves,
    # two topography files need to be constructed.
    # The coupler topo is where the cavity is masked.
 
-   if not args.ice_shelf:
-     D[0,:] = 0.
-   else:
-     D[0,0] = 0.
+   #if not args.ice_shelf:
+   #  D[0,:] = 0.
+   #else:
+   #  D[0,0] = 0.
+   D[0,:] = 0.0
 
-   Dcoupler = D.copy()
+   Dice = D.copy()
    for j in range(ny):
-     if y[j]<= args.ISL:
-       Dcoupler[j,:] = 0.0
+     if y[j]<= ymask:
+     #if y[j]<= ISL:
+       Dice[j,:] = 0.0
 
    # 1) topography used in the coupler
    # open a new netCDF file for writing.
-   name = 'ocean_topog'
+   name = 'ice_topog'
    ncfile = Dataset(name+'.nc','w')
    # create dimensions.
    ncfile.createDimension('nx',nx)
@@ -1182,13 +1340,13 @@ def make_topo(x,y,args):
    depth.units = 'm'
    depth.description = 'depth at h points'
    depth.long_name = 'depth at h points'
-   depth[:,:] = Dcoupler[:,:]
+   depth[:,:] = Dice[:,:]
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
    # 2) topography used ny the ocean
    # open a new netCDF file for writing.
-   name = 'topog'
+   name = 'ocean_topog'
    ncfile = Dataset(name+'.nc','w')
    # create dimensions.
    ncfile.createDimension('nx',nx)
@@ -1216,7 +1374,7 @@ def make_topo(x,y,args):
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
  
-   return Dcoupler
+   return D
 
 # A helper function to use when writing strings in a netcdf file
 def set_string(variable, value):
