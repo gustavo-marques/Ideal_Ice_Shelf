@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-ssh = Dataset('00010101.ocean_sfc.nc').variables['SSH'][:]
+ssh = Dataset('ocean_sfc.nc').variables['SSH'][:]
 nt, ny, nx = ssh.shape
 ssh_tend = np.zeros((nt-2,ny,nx))
 for t in range(1,nt-1):
