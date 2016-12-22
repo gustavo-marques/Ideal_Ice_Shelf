@@ -10,12 +10,23 @@ from netCDF4 import MFDataset, Dataset
 from scipy.interpolate import interp1d
 from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import curve_fit
+from scipy import interpolate
 import numpy as np
 import matplotlib.pyplot as plt
 import wright_eos as eos
 import gsw
 import warnings
 import os
+
+class MyError(Exception):
+  """
+  Class for error handling
+  """
+  def __init__(self, value):
+    self.value = value
+  def __str__(self):
+    return repr(self.value)
+
 
 def parseCommandLine():
   """
@@ -40,8 +51,8 @@ def parseCommandLine():
   parser.add_argument('-W', type=float, default=600.,
       help='''Domain width in the x direction (km). Default is 600.''')
 
-  parser.add_argument('-cshelf_lenght', type=float, default=600.,
-      help='''Continental shelf lenght in the y direction (km). Default is 600.''')
+  parser.add_argument('-cshelf_lenght', type=float, default=700.,
+      help='''Continental shelf lenght in the y direction (km). Default is 700.''')
 
   parser.add_argument('-slope_lenght', type=float, default=100.,
       help='''Continental shelf slope lenght in the y direction (km). Default is 100.''')
@@ -73,17 +84,23 @@ def parseCommandLine():
   parser.add_argument('-min_depth', type=float, default=500.0,
       help='''Minimum ocean depth (m). Default is 500.''')
 
-  parser.add_argument('-Qmax', type=float, default=70.0,
-      help='''Maximum heat flux loss (W/m^2). Default is 70.''')
+  parser.add_argument('-t1min', type=float, default=-40,
+      help='''Min. temp (Celcius) at southern boundary. Default is -40.''')
 
-  parser.add_argument('-Qmin', type=float, default=10.0,
-      help='''Minimum heat flux loss (W/m^2). Default is 20.''')
+  parser.add_argument('-dt1', type=float, default=35,
+      help='''Change in temp (Celcius) at southern boundary. Default is 35''')
 
-  parser.add_argument('-Tmax', type=float, default=270.0,
-      help='''Maximum atm temp. (K). Default is 270.''')
+  parser.add_argument('-t2min', type=float, default=-15,
+      help='''Min. temp (Celcius) at shelf break. Default is -15.''')
 
-  parser.add_argument('-Tmin', type=float, default=250.0,
-      help='''Minimum atm temp. (K). Default is 250.''')
+  parser.add_argument('-dt2', type=float, default=20,
+      help='''Change in temp (Celcius) at shelf break. Default is 20''')
+
+  parser.add_argument('-t3min', type=float, default=0,
+      help='''Min. temp (Celcius) at northern boundary. Default is 0.''')
+
+  parser.add_argument('-dt3', type=float, default=10,
+      help='''Change in temp (Celcius) at northern boundary. Default is 10''')
 
   parser.add_argument('-liq_prec', type=float, default=5.0e-5,
       help='''Max. liquid precipitation (kg/(m^2 s)). Default is 5.0e-5.''')
@@ -103,8 +120,6 @@ def parseCommandLine():
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
   
-  parser.add_argument('-linear_forcing', help='''If true, tauy and sensible decrease linearly from the coast''', action="store_true")
-  
   parser.add_argument('-tauy_confined', help='''If true, tauy varies in x using a gaussian function.''', action="store_true")
   
   parser.add_argument('-debug', help='''Adds prints and plots to help debug.''', action="store_true")
@@ -116,6 +131,11 @@ def parseCommandLine():
   parser.add_argument('-homogeneous_ts', help='''Make the initial T/S homogeneous in the horizontal.''', action="store_true")
   
   parser.add_argument('-mean_profile', help='''The initial T/S profiles is contructed using time-averages.''', action="store_true")
+  
+  parser.add_argument('-ts_restart', help='''The initial T/S profiles is contructed from a file a given file (-ts_file).''', action="store_true")
+
+  parser.add_argument('-ts_file', type=str, default='',
+      help='''Path and name of ocean_month_z file that will be used to generate the initial T/S. Default is empty.''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
@@ -148,8 +168,12 @@ def driver(args):
 
      make_mosaic(x,y,Ocean_Depth,args) 
 
-   # initial T/S
-   make_ts(x,y,args)
+   if args.ts_restart:
+      # use T/S from specified run
+      make_ts_restart(x,y,args)
+   else: # default
+      # initial T/S from climatology
+      make_ts(x,y,args)
 
    # create forcing
    make_forcing(x,y,args) 
@@ -566,6 +590,69 @@ def set_freezing_temp(T,S,z,y,args):
 
     return T,S
 
+def make_ts_restart(x,y,args):
+   '''
+   Extract last T/S from ts_file(ocean_month_z) and save them in a ncfile. 
+   '''
+   if args.ts_file == '': 
+      print
+      raise MyError( 'Parameter -ts_file must be specified.')
+
+   print 'Processing ', args.ts_file + ', this might take a while...'
+   xh = Dataset(args.ts_file).variables['xh'][:]
+   yh = Dataset(args.ts_file).variables['yh'][:]
+   zt = Dataset(args.ts_file).variables['zt'][:]
+   temp = Dataset(args.ts_file).variables['temp'][-1,:]
+   salt = Dataset(args.ts_file).variables['salt'][-1,:]
+
+   XH,YH = np.meshgrid(xh,yh)
+   # 3D fields where data will be interpolated 
+   # x,y, are high-res and zt is from month_z
+   temp3D = np.zeros((len(zt),len(y),len(x)))
+   salt3D = np.zeros((len(zt),len(y),len(x)))
+   temp3D_new = np.zeros((1,args.nz,len(y),len(x)))
+   salt3D_new = np.zeros((1,args.nz,len(y),len(x)))
+
+   dz = args.max_depth / args.nz
+   z = np.linspace(0.5*dz,args.max_depth-0.5*dz,args.nz)
+
+   # replace mask value with last good value
+   # first in the vertical, then in the horizontal (done in the second loop)
+   for i in range(len(xh)):
+      for j in range(len(yh)):
+         tmp = np.nonzero(temp.mask[:,j,i]==False)[0]
+         if len(tmp)>0:
+            tmp = tmp[-1]
+            if tmp < (len(zt)-1):
+               temp[tmp+1::,j,i] = temp[tmp,j,i]
+               salt[tmp+1::,j,i] = salt[tmp,j,i]
+
+   for k in range(len(zt)):
+       print 'level', str(k) + ' out of ' + str(len(zt))
+       # replace mask value with last good value
+       # in the x dir
+       for i in range(len(xh)):
+          tmp = np.nonzero(temp.mask[k,:,i]==False)[0][0]
+          temp[k,0:tmp,i] = temp[k,tmp,i]
+          salt[k,0:tmp,i] = salt[k,tmp,i]
+          
+       #ftemp = interpolate.RectBivariateSpline(yh, xh, temp[k,:,:], bbox=[0,args.L,0,args.W])
+       ftemp = interpolate.RectBivariateSpline(yh, xh, temp[k,:,:])
+       temp3D[k,:] = ftemp(y,x)
+       fsalt = interpolate.RectBivariateSpline(yh, xh, salt[k,:,:], bbox=[0,args.L,0,args.W])
+       salt3D[k,:] = fsalt(y,x)
+
+   # now interpolate on final grid
+   for i in range(len(x)):
+      for j in range(len(y)):
+          ftemp = interp1d(zt,temp3D[:,j,i])
+          fsalt = interp1d(zt,salt3D[:,j,i])
+          temp3D_new[0,:,j,i] = ftemp(z)
+          salt3D_new[0,:,j,i] = fsalt(z)
+
+   # write ncfile
+   write_ic_ncfile('ic_ts',x,y,z,temp3D_new,salt3D_new)   
+
 def make_ts(x,y,args):
    '''
    Extract T/S from WOA05 for a particulat lat. then interpolate results into ocean grid. 
@@ -710,13 +797,18 @@ def make_ts(x,y,args):
 
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
-   
+   write_ic_ncfile('ic_ts',x,y,z,temp3D,salt3D)
+  
+def write_ic_ncfile(name,x,y,z,T,S):
+   '''
+   Write the initial T/S condition into a netcdf file called name.
+
+   '''
    # 1) The name of the z-space input file used to initialize
    #  the layer thicknesses, temperatures and salinities.
-   name = 'ic_ts'
    ncfile = Dataset(name+'.nc','w')
    # create dimensions.
-   ncfile.createDimension('DEPTH',args.nz)
+   ncfile.createDimension('DEPTH',len(z))
    ncfile.createDimension('LAT',len(y))
    ncfile.createDimension('LON',len(x))
    ncfile.createDimension('TIME',1)
@@ -748,11 +840,11 @@ def make_ts(x,y,args):
 
    PTEMP = ncfile.createVariable('PTEMP',np.dtype('float32').char,('TIME','DEPTH','LAT','LON'), fill_value = -1.e+34)
    PTEMP.missing_value = -1.e+34
-   PTEMP[:] = temp3D[:] 
+   PTEMP[:] = T[:] 
 
    SALT = ncfile.createVariable('SALT',np.dtype('float32').char,('TIME','DEPTH','LAT','LON'), fill_value = -1.e+34)  
    SALT.missing_value = -1.e+34
-   SALT[:] = salt3D[:]
+   SALT[:] = S[:]
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
@@ -776,17 +868,17 @@ def make_ts(x,y,args):
    #ncfile.close()
    #print ('*** SUCCESS creating '+name+'.nc!')
 
+def celcius_to_kelvin(tc):
+    '''
+    Convert temp in C to temp in K
+    '''
+    return tc + 273.15
+
 def make_forcing(x,y,args):
    # forcing parameters
    Ly = args.L # domain size km
    W = args.W # domain width km
    CSL = args.cshelf_lenght  # km
-   Qmin = args.Qmin # typical 20  W/m^2
-   Tmin = args.Tmin # typical 250 K
-   Qmax = args.Qmax # 
-   Tmax = args.Tmax # 270 k
-   Lasf = 700.0
-   tau_acc = 0.1
    liq_prec = args.liq_prec # kg/(m^2 s)
    tau_asf = args.taux # default is 0.075 # N/m^2
    wind_x_max = args.wind_x_max
@@ -796,7 +888,6 @@ def make_forcing(x,y,args):
    wind_y_min = args.wind_y_min
    sponge = args.sponge_width # 100 km
    ISL = args.ISL
-   heat_flux = 0.0
    wind_period = args.wind_period
    temp_period = args.temp_period
    nx = len(x); ny = len(y)
@@ -805,7 +896,6 @@ def make_forcing(x,y,args):
      print('About to create forcing file with',nt, ' records...')
    else:
      nt = 1
-
    
    # atmos/ice forcing
    time_days = np.zeros(nt)
@@ -814,40 +904,46 @@ def make_forcing(x,y,args):
    wind_y = np.zeros((nt,ny,nx)) 
    tau_x = np.zeros((nt,ny,nx)) 
    tau_y = np.zeros((nt,ny,nx))
-   heat = np.zeros((nt,ny,nx))
    liq = np.zeros((nt,ny,nx))
+   snow = np.zeros((nt,ny,nx))
+
+   # atm params
+   t1min = celcius_to_kelvin(args.t1min) # -40
+   dt1 = args.dt1 # 30
+   t2min = celcius_to_kelvin(args.t2min)  # -15
+   dt2 = args.dt2 # 20
+   t3min = celcius_to_kelvin(args.t3min) # 0
+   dt3 = args.dt3 # 10
 
    # loop in time
    for t in range(nt):
      # wind and heat
      time_days[t] = t * 0.25
-     print'Time:',time_days[t]
-     temp_cos = np.cos(np.pi*time_days[t]/temp_period)**2
-     wind_cos = np.cos(np.pi*time_days[t]/wind_period)**2
+     #print'Time:',time_days[t]
+     temp_cos = 1 #np.cos(np.pi*time_days[t]/temp_period)**2
+     wind_cos = 1 #np.cos(np.pi*time_days[t]/wind_period)**2
+     season_cos = np.cos(np.pi*time_days[t]/365.)**2
+     season_sin = np.sin(np.pi*time_days[t]/365.)**2
+     # temperatures, start with summer 
+     t1 = t1min + season_cos*dt1
+     t2 = t2min + season_cos*dt2
+     t3 = t3min + season_cos*dt3
 
-     if temp_cos==0.0: temp_cos=0.1
-     if wind_cos==0.0: wind_cos=0.1
- 
-     # x-dir
+     # wind x-dir
      tmp1 = ISL + 200.
-     Lasf = Ly - tmp1 - 200.
+     Lasf = Ly - tmp1 #- 200.
      for j in range(ny):
        if y[j] < tmp1:
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
        elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
           tmp = np.pi*(y[j]-tmp1)/(Lasf)
-	  tau_x[t,j,:] = tau_asf * np.sin(tmp) 
-	  wind_x[t,j,:] = wind_x_max * np.sin(tmp) 
+	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
+	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp)) 
        else:
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
 
-     # heat, northward wind, liq
-     # wind has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
-     #W_v10 = 50000. # km
-     #dummy = ISL + args.cshelf_lenght + args.slope_lenght + 200.
-     #dummy = Ly - ISL
      # heat
      # Follow http://onlinelibrary.wiley.com/doi/10.1002/wea.436/pdf
      # Q is ~ linear
@@ -862,64 +958,43 @@ def make_forcing(x,y,args):
 
      delta_tauy = tauy_max - tauy_min
      delta_wind_y = wind_y_max - wind_y_min
-     delta_temp = Tmax - Tmin
-     delta_Q = Qmax - Qmin
-     if args.linear_forcing:
-       # tauy
-       for j in range(ny):
-          if y[j] < ISL:
-	      tau_y[t,j,:] = tauy_max 
-              wind_y[t,j,:] = wind_y_max 
-          elif y[j] >= ISL and y[j] <= (Ly - 800.): 
-              wind_y[t,j,:] = ((-delta_wind_y * tmp1_inv * (y[j]-ISL) + wind_y_max) * wind_cos)\
-                              + wind_y_min
-              tau_y[t,j,:] = ((-delta_tauy * tmp1_inv * (y[j]-ISL) + tauy_max) * wind_cos) \
-                              + tauy_min
-          else:
-              tau_y[t,j,:] = 0.0
-              wind_y[t,j,:] = 0.0
 
-       # heat
-       for j in range(ny):
-          if y[j] < ISL:
-              heat[t,j,:] = Qmax 
-              t_bot[t,j,:] = Tmin 
-          elif y[j] >= ISL and y[j] <= (Ly - 800.):
-              heat[t,j,:] = (delta_Q * tmp_inv * (y[j]-ISL) * temp_cos) + Qmax
-              t_bot[t,j,:] = (delta_temp * tmp_inv * (y[j]-ISL) * temp_cos ) + Tmin
-          else:
-              heat[t,j,:] = Qmin
-              t_bot[t,j,:] = Tmax
+     efold = 50. # km
+     for j in range(ny):
+	 if y[j] < ISL+efold:
+	    t_bot[t,j,:] = t1
+	    wind_y[t,j,:] = (delta_wind_y * wind_cos) + wind_y_min
+	 elif y[j] >= ISL+efold and y[j] <= 500.:
+	    t_bot[t,j,:] = (t1 - t2) * np.exp(-(y[j]-ISL-efold)/(efold)) + t2 
+            if args.tauy_confined:
+               # NOT TIME DEPENDENT YET
+               for i in range(nx):
+                   tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
+                   tau_y[t,j,i] = (((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                            * tmp1) * wind_cos) + tauy_min
+                   wind_y[t,j,i] = (((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                            * tmp1) * wind_cos) + wind_y_min
+            else:
+               #tau_y[t,j,:] = ((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+               #               * wind_cos) + tauy_min
+               wind_y[t,j,:] = ((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                              * wind_cos) + wind_y_min
 
-     else: # exponential
-       efold = 20. # km
-       for i in range(nx):
-         for j in range(ny):
-	   if y[j] < ISL+efold:
-	      t_bot[t,j,i] = (-delta_temp * temp_cos) + Tmax
-	      wind_y[t,j,i] = (delta_wind_y * wind_cos) + wind_y_min
-	      tau_y[t,j,i] = (delta_tauy * wind_cos) + tauy_min
-	      heat[t,j,i] = (delta_Q * temp_cos) + Qmin
-	   else:
-	      t_bot[t,j,i] = (-delta_temp * np.exp(-(y[j]-ISL-efold)/(efold)) * temp_cos) + Tmax
-	      heat[t,j,i] = (delta_Q * np.exp(-(y[j]-ISL-efold)/(efold)) * temp_cos) + Qmin
-              if args.tauy_confined:
-                 tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
-              else:
-                 tmp1 = 1.0
-              tau_y[t,j,i] = (((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
-                              * tmp1) * wind_cos) + tauy_min
-              wind_y[t,j,i] = (((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
-                              * tmp1) * wind_cos) + wind_y_min
-     tmp = 500.
-     # lprec
+         else: # linear
+            t2_tmp = (t1 - t2) * np.exp(-(500.-ISL-efold)/(efold)) + t2
+            t_bot[t,j,:] =  ((t3-t2_tmp)/(Ly-500))*(y[j]-500.)+ t2_tmp
+            wind_y[t,j,:] = 0.0
+
+     # lprec, fprec
+     allprec = 5.0e-5
      for j in range(ny):
 	if y[j] < tmp:
-	   liq[t,j,:] = 0.0
+	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
 	elif y[j]>= tmp and y[j]< (Ly-sponge):
-	   liq[t,j,:] = liq_prec
+	   liq[t,j,:] = season_cos * allprec
+           snow[t,j,:] = season_sin * allprec
 	else:
-	   liq[t,j,:] = 0.0
+	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
 
    #
    # End of time loop
@@ -930,26 +1005,6 @@ def make_forcing(x,y,args):
    #power = np.sum(heat*grid_area)
    #print 'Power due to sensible heat (J/s, negative means loss):', power
 
-   # evap, proxy for brine formation in polynyas
-   #if t10_polynya > 0.:
-   #  for i in range(nx):
-   #    for j in range(ny):
-   #	 if (x[i] - W/2. >= -major and x[i] - W/2. <= major):
-   #	    if (y[j]-ISL >= 0.) and (y[j]-ISL <= (minor * np.abs((1-(x[i]-W/2.)**2/major**2)**(1/2.)))):
-   #	      evaporation[0,j,i] = salt_flux
-   #	      salt[0,j,i] = salt_flux
-   #  	      heat[0,j,i] = heat_flux
-   #	      latent[0,j,i] = latent_flux
-   #	      t10[0,j,i] = t10_polynya
-
-   # set salt flux such that net buoynacy flux is zero
-   # B_heat = B_salt
-   #cp = 3974.0 # J/(K kg)
-   #rho0 = 1028.0; alpha = 0.11069/rho0; beta = 0.7906/rho0; g = 9.8
-   #B_heat = heat[0,:,:] * g * alpha/ (rho0 * cp)
-   #salt[0,:,:] = B_heat * rho0 / (beta * g)
-   #print 'B_heat',B_heat.min(),B_heat.max()
-   #print 'salt',salt.min(),salt.max()
    # plots
    if args.debug:
 
@@ -998,21 +1053,6 @@ def make_forcing(x,y,args):
       plt.contourf(x,y,tau_y[0,:,:]); plt.colorbar()
       plt.xlabel('x [km]'); plt.ylabel('y [km]')
       plt.savefig('PNG/tauy.png') 
-
-      plt.figure()
-      plt.subplot(211)
-      plt.plot(y,heat[0,:,1])
-      plt.title('Sensible Heat'); plt.xlabel('y [km]'); plt.ylabel('W/m^2')
-      plt.subplot(212)
-      plt.contourf(x,y,heat[0,:,:]); plt.colorbar()
-      plt.xlabel('x [km]'); plt.ylabel('y [km]')
-      plt.savefig('PNG/sensible_heat.png')
-
-      plt.figure()
-      plt.title('Salt flux kg/(m^2 s)')
-      plt.contourf(x,y,heat[0,:,:]); plt.colorbar()
-      plt.xlabel('x [km]'); plt.ylabel('y [km]')
-      plt.savefig('PNG/salt_flux.png')
 
    # create ncfile
    # open a new netCDF file for writing.
@@ -1139,7 +1179,7 @@ def make_forcing(x,y,args):
      t_flux.units = 'Watt meter-2'
      t_flux.missing_value = 1.e+20
      t_flux.long_name = 'Sensible heat flux'
-     t_flux[:] = -heat[:] # change sign in ice
+     t_flux[:] = 0.0 # -heat[:] # change sign in ice
 
      # latent heat
      lt = ncfile.createVariable('latent',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
@@ -1159,6 +1199,12 @@ def make_forcing(x,y,args):
      lprec.missing_value = 1.e+20
      lprec.long_name = 'liquid precipitation'
      lprec[:] = liq[:] # positive is adding water into the ocean
+
+     fprec = ncfile.createVariable('fprec',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
+     fprec.units = 'kg/(m^2 s)'
+     fprec.missing_value = 1.e+20
+     fprec.long_name = 'froze precipitation'
+     fprec[:] = snow[:] # positive is adding water into the ocean
 
    else:
      SW = ncfile.createVariable('SW',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
@@ -1250,8 +1296,9 @@ def make_topo(x,y,args):
      H1 = 300. # # depth increase under ice shelf
      ISL = args.ISL  # lenght of ice shelf cavity in m
      ymask = ISL 
-     ymask2 = ISL + 100.
-     L1 = (ISL * 1.0e3) 
+     ymask2 = ISL #+ 100.
+     L1 = (ISL * 1.0e3)*2.0 
+     L1 = 300.0e3
      minor = 2*ISL
      major = 200.0
      Wl = args.land_width # widht of land region next to ice shelf in km
@@ -1266,13 +1313,16 @@ def make_topo(x,y,args):
 
      for j in range(ny):
 	for i in range(nx):
+            if Y[j,i]<= 400.:
+                D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1)/(50.e3)) - 1.0)
+
 	    if Y[j,i]<= ymask2: # depth under ice shelf or land
                 #if X[j,i]<= major*0.5 or X[j,i]>= (W-major*0.5): # add land mask
                 if Y[j,i]<= land[i]: # add land mask
                    D[j,i] = 0.0
-                else:
-                   if Y[j,i]<= ISL:
-                      D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1*0.5)/(50.e3)) - 1.0) 
+           #     else:
+           #        if Y[j,i]<= L1:
+           #           D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1*0.5)/(100.e3)) - 1.0) 
 
    # add trough(s)
    trough = np.zeros((ny,nx))
