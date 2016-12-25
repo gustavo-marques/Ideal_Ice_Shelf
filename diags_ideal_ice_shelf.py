@@ -45,7 +45,8 @@ def driver(args):
    files that are needed.
    """
    # load a few variables
-   time = Dataset(args.ice_file).variables['time'][:]/365. # in years
+   time = Dataset(args.prog_file).variables['time'][:]/365. # in years
+   #time = Dataset(args.ice_file).variables['time'][:]/365. # in years
    x = Dataset(args.prog_file).variables['xh'][:] # in km
    y = Dataset(args.prog_file).variables['yh'][:]
    HI = Dataset('ice_month.nc').variables['HI'][0,:]
@@ -57,6 +58,7 @@ def driver(args):
    polynya_area = np.zeros(len(time))
    ice_area = np.zeros(len(time))
    HI_max = np.zeros(len(time))
+   AABW_transp = np.zeros(len(time))
 
    # loop in time
    for t in range(len(time)):
@@ -65,12 +67,17 @@ def driver(args):
 	   saltf = mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
 	   CI_tot = mask_bad_values(Dataset(args.ice_file).variables['CI_tot'][t,:])
 	   HI = mask_bad_values(Dataset(args.ice_file).variables['HI'][t,:])
+	   h = mask_bad_values(Dataset(args.prog_file).variables['h'][t,:])
+	   v = mask_bad_values(Dataset(args.prog_file).variables['v'][t,:])
+	   rhopot2 = mask_bad_values(Dataset(args.prog_file).variables['rhopot2'][t,:])
+	   tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
            # diags
 	   salt_flux[t] = get_saltf(x,y,saltf,CI_tot,args)
 	   polynya_area[t] = get_polynya_area(x,y,CI_tot,args)
 	   ice_area[t] = get_ice_area(x,y,CI_tot)
 	   HI_max[t] = HI.max()
-   
+           AABW_transp[t] = get_transport(x,y,v,h,tr2,rhopot2,args)
+
    if args.energy:
       print("Plotting total energy...")
       plot_energy(args)
@@ -104,7 +111,6 @@ def driver(args):
            plt.grid()
            plt.savefig(args.exp_name+'_total_ice_area.png')
 
- 
            plt.figure()
            plt.plot(time,HI_max,'r',lw=2.5)
            plt.xlabel('Time [years]')
@@ -112,10 +118,32 @@ def driver(args):
            plt.grid()
            plt.savefig(args.exp_name+'_max_hice.png')
 
+           plt.figure()
+           plt.plot(time,AABW_transp,'k',lw=2.5)
+           plt.xlabel('Time [years]')
+           plt.ylabel('AABW Transport [sv]')
+           plt.grid()
+           plt.savefig(args.exp_name+'_AABW_transport.png')
+
    print 'Done!'
 
 def mask_bad_values(data,value = -1.30856803e+26):
          return np.ma.masked_where(data == value, data)
+
+def get_transport(x,y,v,h,tr2,rhopot2,args):
+	 '''
+         Compute the volume flux....
+	 '''
+	 dx = np.ones((h[:,0,:].shape)) * (x[1]-x[0]) * 1.0e3 # in m
+         # end of cont. shelf
+	 tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
+	 # mask h below 1.0e-12 m
+	 hnew = np.ma.masked_where(h[:,tmp,:]<=1.0e-12, h[:,tmp,:])
+         # mask vel. <= 0.
+	 vnew = np.ma.masked_where(v[:,tmp,:]<=0.0, v[:,tmp,:])
+	 # mask tr1 <= min_val
+	 tr2 = np.ma.masked_where(tr2[:,tmp,:]<=0.001, tr2[:,tmp,:])
+         return (vnew * hnew * dx * tr2 / tr2).sum() # in m^3/s
 
 def get_saltf(x,y,saltf,CI_tot,args):
 	'''
