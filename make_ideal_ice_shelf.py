@@ -63,6 +63,9 @@ def parseCommandLine():
   parser.add_argument('-wind_x_max', type=float, default=-5.0,
       help='''Max. wind vel in x (m/s). Default is -5.0''')
 
+  parser.add_argument('-wind_x_pos', type=float, default=500.0,
+      help='''Start position of x-wind (km). Default is 500.0''')
+
   parser.add_argument('-tauy_max', type=float, default=0.05,
       help='''Max. (katabatic) wind stress in y (Pa). Default is 0.05''')
 
@@ -119,6 +122,8 @@ def parseCommandLine():
       help='''Period of the near coast atm. temp (days). Default is 1. which means constant temp.''')
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
+  
+  parser.add_argument('-add_seasonal_cycle', help='''Adds a seosonal cycle in  the forcing.''', action="store_true")
   
   parser.add_argument('-tauy_confined', help='''If true, tauy varies in x using a gaussian function.''', action="store_true")
   
@@ -891,7 +896,8 @@ def make_forcing(x,y,args):
    wind_period = args.wind_period
    temp_period = args.temp_period
    nx = len(x); ny = len(y)
-   if wind_period>1 or temp_period>1.:
+   #if wind_period>1 or temp_period>1.:
+   if args.add_seasonal_cycle:
      nt = 365*4 # one year every 6 hours
      print('About to create forcing file with',nt, ' records...')
    else:
@@ -930,14 +936,14 @@ def make_forcing(x,y,args):
      t3 = t3min + season_cos*dt3
 
      # wind x-dir
-     tmp1 = ISL + 200.
+     tmp1 = args.wind_x_pos - (season_cos * 200.) # x wind moves with season
      Lasf = Ly - tmp1 #- 200.
      for j in range(ny):
        if y[j] < tmp1:
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
        elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
-          tmp = np.pi*(y[j]-tmp1)/(Lasf)
+          tmp = 2*np.pi*(y[j]-tmp1)/(Lasf)
 	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
 	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp)) 
        else:
@@ -958,7 +964,7 @@ def make_forcing(x,y,args):
 
      delta_tauy = tauy_max - tauy_min
      delta_wind_y = wind_y_max - wind_y_min
-
+     delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.25) # gets weaker in summer by 25%
      efold = 50. # km
      for j in range(ny):
 	 if y[j] < ISL+efold:
@@ -986,7 +992,7 @@ def make_forcing(x,y,args):
             wind_y[t,j,:] = 0.0
 
      # lprec, fprec
-     allprec = 5.0e-5
+     allprec = args.liq_prec # lprec + fprec
      for j in range(ny):
 	if y[j] < tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
@@ -1009,7 +1015,7 @@ def make_forcing(x,y,args):
    if args.debug:
 
       plt.figure()
-      u=tau_x[0,::5,::5]; v=tau_y[0,::5,::5]; mag = np.sqrt(u**2 + v**2)
+      u=wind_x[0,::5,::5]; v=wind_y[0,::5,::5]; mag = np.sqrt(u**2 + v**2)
       plt.quiver(x[::5],y[::5],u, v, mag, cmap = plt.cm.seismic)
       plt.colorbar()
       plt.plot(x,np.ones(nx)*ISL,'k')
@@ -1083,7 +1089,7 @@ def make_forcing(x,y,args):
    time.calendar_type = 'NOLEAP'
    time.calendar = 'NOLEAP'
    time.bounds = 'time_bounds'
-   if wind_period>1 or temp_period>1.:
+   if args.add_seasonal_cycle:
       time.modulo = '' # make it cyclic
       time[:] = time_days[:] + (time_days[1] - time_days[0])
    else:
@@ -1150,7 +1156,7 @@ def make_forcing(x,y,args):
    time.calendar_type = 'NOLEAP'
    time.calendar = 'NOLEAP'
    time.bounds = 'time_bounds'
-   if wind_period>1 or temp_period>1.:
+   if args.add_seasonal_cycle:
       time.modulo = '' # make it cyclic
       time[:] = time_days[:] + (time_days[1] - time_days[0])
    else:
@@ -1299,8 +1305,8 @@ def make_topo(x,y,args):
      ymask2 = ISL #+ 100.
      L1 = (ISL * 1.0e3)*2.0 
      L1 = 300.0e3
-     minor = 2*ISL
-     major = 200.0
+     #minor = 2*ISL
+     #major = 200.0
      Wl = args.land_width # widht of land region next to ice shelf in km
      # land mask
      land = np.zeros(nx)
@@ -1336,7 +1342,7 @@ def make_topo(x,y,args):
    if args.trough:
       for j in range(ny):
         for i in range(nx):
-           if X[j,i]> major*0.5 and X[j,i]< (W-major*0.5):
+           if (Y[j,i]>land[i]):
               if (trough[j,i] > D[j,i]): D[j,i] = trough[j,i]
  
    ##if args.trough:
