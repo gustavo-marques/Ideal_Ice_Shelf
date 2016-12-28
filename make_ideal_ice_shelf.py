@@ -129,10 +129,15 @@ def parseCommandLine():
   
   parser.add_argument('-debug', help='''Adds prints and plots to help debug.''', action="store_true")
   
+  parser.add_argument('-linear_forcing', help='''If true, t_10 varies linearly. By default t_10 varies by a combination of exponential and linear functions.''', action="store_true")
+  
   parser.add_argument('-ice_shelf', help='''Generate ice shelf ncfile.''', action="store_true")
 
   parser.add_argument('-trough', help='''Adds a trough cutting the continental shelf.''', action="store_true")
   
+  parser.add_argument('-num_trough', type=float, default=1.0,
+      help='''Number of troughs to be added when -trough is used. . Default is 1.''')
+
   parser.add_argument('-homogeneous_ts', help='''Make the initial T/S homogeneous in the horizontal.''', action="store_true")
   
   parser.add_argument('-mean_profile', help='''The initial T/S profiles is contructed using time-averages.''', action="store_true")
@@ -936,14 +941,14 @@ def make_forcing(x,y,args):
      t3 = t3min + season_cos*dt3
 
      # wind x-dir
-     tmp1 = args.wind_x_pos - (season_cos * 200.) # x wind moves with season
+     tmp1 = args.wind_x_pos - (season_cos * 300.) # x wind moves with season
      Lasf = Ly - tmp1 #- 200.
      for j in range(ny):
        if y[j] < tmp1:
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
        elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
-          tmp = 2*np.pi*(y[j]-tmp1)/(Lasf)
+          tmp = 2* np.pi*(y[j]-tmp1)/(Lasf)
 	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
 	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp)) 
        else:
@@ -964,8 +969,10 @@ def make_forcing(x,y,args):
 
      delta_tauy = tauy_max - tauy_min
      delta_wind_y = wind_y_max - wind_y_min
-     delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.25) # gets weaker in summer by 25%
+     delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.5) # gets weaker in summer by 50%
      efold = 50. # km
+
+     # exp decay forcing
      for j in range(ny):
 	 if y[j] < ISL+efold:
 	    t_bot[t,j,:] = t1
@@ -991,8 +998,18 @@ def make_forcing(x,y,args):
             t_bot[t,j,:] =  ((t3-t2_tmp)/(Ly-500))*(y[j]-500.)+ t2_tmp
             wind_y[t,j,:] = 0.0
 
+     # linear temp
+     if args.linear_forcing:
+       for j in range(ny):
+         if y[j] < ISL+efold:
+            t_bot[t,j,:] = t1
+         else:
+            t_bot[t,j,:] = (t3 - t1)*((y[j]-(ISL+efold))/(Ly-(ISL+efold))) + t1
+
+
      # lprec, fprec
      allprec = args.liq_prec # lprec + fprec
+     tmp = args.cshelf_lenght
      for j in range(ny):
 	if y[j] < tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
