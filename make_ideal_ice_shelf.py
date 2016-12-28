@@ -135,8 +135,15 @@ def parseCommandLine():
 
   parser.add_argument('-trough', help='''Adds a trough cutting the continental shelf.''', action="store_true")
   
-  parser.add_argument('-num_trough', type=float, default=1.0,
-      help='''Number of troughs to be added when -trough is used. . Default is 1.''')
+  parser.add_argument('-trough_setup', type=int, default=1,
+      help='''1 (default): trough in the center
+              2: trough in the right 
+              3: trough in the left 
+              4: troughs center/right 
+              5: troughs center/left
+              6: troughs left/right 
+              7: troughs left/center/right 
+          ''')
 
   parser.add_argument('-homogeneous_ts', help='''Make the initial T/S homogeneous in the horizontal.''', action="store_true")
   
@@ -1349,13 +1356,50 @@ def make_topo(x,y,args):
 
    # add trough(s)
    trough = np.zeros((ny,nx))
-   xx = x - args.W*0.5
+   if args.trough_setup == 2 or args.trough_setup == 6:
+      # right
+      x_t = args.W*0.8 
+      xx = x - x_t
+   elif args.trough_setup == 3:
+      # left
+      x_t = args.W*0.2
+      xx = x - x_t
+   else:
+      # center (default)
+      x_t = args.W*0.5
+      xx = x - x_t
+
    for i in range(nx):
-       if x[i]<= (args.W*0.5):
-          trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+30.)/10.))
+       if x[i]<= (x_t):
+          trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+25.)/10.))
        else:
-          trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-30.)/10.))
-  
+          trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-25.)/10.))
+    
+   tmp = np.nonzero(trough[0,:] > args.min_depth+0.5)[-1]
+   if args.trough_setup == 4:
+      # center/right
+      tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
+      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+      trough[:,tmp1] = trough[:,tmp] 
+   elif args.trough_setup == 5:
+      # center/left
+      tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+      trough[:,tmp1] = trough[:,tmp]
+   elif args.trough_setup == 6:
+      # left/right
+      tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+      trough[:,tmp1] = trough[:,tmp]
+   elif args.trough_setup == 7:
+      # left/center/right
+      tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+      trough[:,tmp1] = trough[:,tmp] 
+      tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
+      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+      trough[:,tmp1] = trough[:,tmp]
+
    if args.trough:
       for j in range(ny):
         for i in range(nx):
