@@ -955,7 +955,7 @@ def make_forcing(x,y,args):
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
        elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
-          tmp = 2* np.pi*(y[j]-tmp1)/(Lasf)
+          tmp = 1* np.pi*(y[j]-tmp1)/(Lasf)
 	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
 	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp)) 
        else:
@@ -977,7 +977,7 @@ def make_forcing(x,y,args):
      delta_tauy = tauy_max - tauy_min
      delta_wind_y = wind_y_max - wind_y_min
      delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.5) # gets weaker in summer by 50%
-     efold = 50. # km
+     efold = 25. # km
 
      # exp decay forcing
      for j in range(ny):
@@ -1016,7 +1016,8 @@ def make_forcing(x,y,args):
 
      # lprec, fprec
      allprec = args.liq_prec # lprec + fprec
-     tmp = args.cshelf_lenght
+     #tmp = args.cshelf_lenght
+     tmp = args.wind_x_pos - (season_cos * 200.)
      for j in range(ny):
 	if y[j] < tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
