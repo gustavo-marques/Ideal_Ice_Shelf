@@ -49,7 +49,7 @@ def driver(args):
    #time = Dataset(args.ice_file).variables['time'][:]/365. # in years
    x = Dataset(args.prog_file).variables['xh'][:] # in km
    y = Dataset(args.prog_file).variables['yh'][:]
-   HI = Dataset('ice_month.nc').variables['HI'][0,:]
+   HI = Dataset(args.ice_file).variables['HI'][0,:]
    # ice shelf lenth
    args.ISL = y[HI[:,0].mask == True][-1]
 
@@ -59,6 +59,8 @@ def driver(args):
    ice_area = np.zeros(len(time))
    HI_max = np.zeros(len(time))
    AABW_transp = np.zeros(len(time))
+   AABW_transp_x = np.zeros((len(time),len(x)))
+   AABW_h = np.zeros((len(time),len(x)))
 
    # loop in time
    for t in range(len(time)):
@@ -68,7 +70,7 @@ def driver(args):
 	   CI_tot = mask_bad_values(Dataset(args.ice_file).variables['CI_tot'][t,:])
 	   HI = mask_bad_values(Dataset(args.ice_file).variables['HI'][t,:])
 	   h = mask_bad_values(Dataset(args.prog_file).variables['h'][t,:])
-	   v = mask_bad_values(Dataset(args.prog_file).variables['v'][t,:])
+	   vh = mask_bad_values(Dataset(args.prog_file).variables['vh'][t,:])
 	   rhopot2 = mask_bad_values(Dataset(args.prog_file).variables['rhopot2'][t,:])
 	   tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
            # diags
@@ -76,7 +78,7 @@ def driver(args):
 	   polynya_area[t] = get_polynya_area(x,y,CI_tot,args)
 	   ice_area[t] = get_ice_area(x,y,CI_tot)
 	   HI_max[t] = HI.max()
-           AABW_transp[t] = get_transport(x,y,v,h,tr2,rhopot2,args)
+           AABW_transp[t],AABW_transp_x[t,:], AABW_h[t,:] = get_transport(x,y,vh,h,tr2,rhopot2,args)
 
    if args.energy:
       print("Plotting total energy...")
@@ -125,26 +127,51 @@ def driver(args):
            plt.grid()
            plt.savefig(args.exp_name+'_AABW_transport.png')
 
+           [X,T] = np.meshgrid(x,time)
+           plt.figure()
+           plt.contourf(X,T,AABW_transp_x/1.0e6)
+           plt.colorbar()
+           plt.title('Transport [sv]')
+           plt.xlabel('x [km]')
+           plt.ylabel('Time [years]')
+           plt.grid()
+           plt.savefig(args.exp_name+'_AABW_transport_x.png')
+
+           plt.figure()
+           plt.contourf(X,T,AABW_h)
+           plt.colorbar()
+           plt.title('AABW thickness [m]')
+           plt.xlabel('x [km]')
+           plt.ylabel('Time [years]')
+           plt.grid()
+           plt.savefig(args.exp_name+'_AABW_thickness.png')
    print 'Done!'
 
 def mask_bad_values(data,value = -1.30856803e+26):
          return np.ma.masked_where(data == value, data)
 
-def get_transport(x,y,v,h,tr2,rhopot2,args):
+def get_transport(x,y,vh,h,tr2,rhopot2,args):
 	 '''
-         Compute the volume flux....
+         Compute the total volume transport, outflow thickness.
 	 '''
-	 dx = np.ones((h[:,0,:].shape)) * (x[1]-x[0]) * 1.0e3 # in m
+	 #dx = np.ones((h[:,0,:].shape)) * (x[1]-x[0]) * 1.0e3 # in m
          # end of cont. shelf
 	 tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
 	 # mask h below 1.0e-12 m
 	 hnew = np.ma.masked_where(h[:,tmp,:]<=1.0e-12, h[:,tmp,:])
          # mask vel. <= 0.
-	 vnew = np.ma.masked_where(v[:,tmp,:]<=0.0, v[:,tmp,:])
+	 vhnew = np.ma.masked_where(vh[:,tmp,:]<=0.0, vh[:,tmp,:])
 	 # mask tr1 <= min_val
-	 tr2 = np.ma.masked_where(tr2[:,tmp,:]<=0.001, tr2[:,tmp,:])
-         return (vnew * hnew * dx * tr2 / tr2).sum() # in m^3/s
-
+	 tr2 = np.ma.masked_where(tr2[:,tmp,:]<=0.0001, tr2[:,tmp,:])
+         total_transp = (vhnew * tr2 / tr2).sum() # in m^3/s
+         transp_x = (vhnew * tr2 / tr2).sum() # in m^3/s
+         thickness = (hnew * tr2 *vhnew / (vhnew*tr2)).sum(axis=0) # in m^3/s
+         #if not total_transp.shape:
+         #   total_transp = np.zeros(1)
+         #   transp_x = np.zeros(len(x))
+         #   print 'shapes',len(total_transp), len(transp_x), len(thickness)
+            
+         return total_transp, transp_x, thickness
 def get_saltf(x,y,saltf,CI_tot,args):
 	'''
         Compute the total salt flux into (+) the ocean in the cont. shelf 
