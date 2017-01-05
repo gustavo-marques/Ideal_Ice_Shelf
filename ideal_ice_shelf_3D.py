@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# generate 3D ISOMIP + diagnostics 
+# generate 3D diagnostics 
 # Gustavo Marques, Sep. 2016
 
 import argparse
@@ -24,26 +24,20 @@ def parseCommandLine():
       ''',
   epilog='Written by Gustavo Marques, Sep. 2016.')
 
-  parser.add_argument('-type', type=str, default='ocean0',
-      help='''The type pf experiment that will computed (ocean0, ocean1 etc). Default is ocean0.''')
-
   parser.add_argument('-n', type=str, default='Ocean0_COM_MOM6',
       help='''The name of the experiment following the ISOMIP+ definition (expt_COM_model). This name is used to save the VTK files. Default is Ocean0_COM_MOM6.''')
 
   parser.add_argument('-time', type=int, default=0,
-      help='''The time indice to save the VTK files. Default value is 0, which saves the entire
-              dataset. If --time > 0, only one time instance will be saved.''')
+      help='''The time indice to save the VTK files. Default value is 0, which saves the entire dataset. If --time > 0, only one time instance will be saved.''')
+
   parser.add_argument('-dt', type=int, default=1,
-      help='''The time indice interval to save the VTK files. Default value is 1, which saves the entire
-              dataset.''') 
+      help='''The time indice interval to save the VTK files. Default value is 1, which saves the entire dataset.''') 
 
   parser.add_argument('--oceanfile', type=str, default='prog.nc',
       help='''Name of the netCDF file with the ocean variables. Default is prog.nc.''')
 
   parser.add_argument('--bergs', help='''Generates 3D VTK data using icebergs.''', action="store_true")
 
-  parser.add_argument('--tracer', help='''Write passive tracer (tr1) data into the VTK file (default is false).''', action="store_true")
- 
   optCmdLineArgs = parser.parse_args()
   global name
   name = optCmdLineArgs.n
@@ -57,13 +51,15 @@ def driver3D(args):
     lonq=Dataset('ocean_geometry.nc').variables['lonq'][:]
     lath=Dataset('ocean_geometry.nc').variables['lath'][:]
     latq=Dataset('ocean_geometry.nc').variables['latq'][:]
+    dx = (lonh[1] - lonh[0]) * 1.0e3 # in m
+    dy = (lath[1] - lath[0]) * 1.0e3 # in m
     lonqs, latqs = np.meshgrid(lonq,latq)
     lons, lats = np.meshgrid(lonh,lath)
     D=np.ma.masked_where(D <= 1, D)
     D.mask = np.ma.array(D); D.mask[:,:]=False
 
     # ice shelf base
-    ssh = Dataset('ISOMIP_IC.nc').variables['ave_ssh'][0,:,:]
+    ssh = Dataset('IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,:]
 
     # load time
     print('Time indice is:' + str(args.time))
@@ -94,69 +90,75 @@ def driver3D(args):
     # create VTK bathymetry
     VTKgen(lats,lons,D.mask,depth=D,h=h,fname=name)
     
-    if not tind>1:
+    #if not tind>1:
         # create VTK ice-shelf
-        VTKgen(lats,lons,D.mask,h=h,shelf_base=ssh,shelf_thick=IS,fname=name)
+    print 'Saving ice shelf...'
+    VTKgen(lats,lons,D.mask,h=h,shelf_base=ssh,shelf_thick=IS,fname=name)
 
     time_list=[] # list for time 
-    #tm=2 # number of nc files
-    ind=0
 
+    print 'len(tind)',len(tind)
     # loop through time and plot surface fields
     for t in range(0,len(tind),args.dt):
-        print 'Time is:',time[t]
+        print 'Time is:',t
+        #print 'Time is:',time[t]
         # save data in the lists
         #time_list.append(date)
         # check if data has been saved
-        path_to_file = str('VTK/%s-%05d.vtk' % (name,ind))
+        path_to_file = str('VTK/%s-%05d.vtk' % (name,tind[t]))
         if os.path.isfile(path_to_file):
            print ' \n' + '==> ' + 'FILE EXISTS, MOVING TO THE NEXT ONE ...\n' + ''
-           ind=ind+1
         else:
            print 'Saving time indice:', t 
            # ocean
            # structure
            # layer thickness
            e=Dataset(ocean_file).variables['e'][tind[t],:,:,:]
+           h=Dataset(ocean_file).variables['h'][tind[t],:,:,:]
            h_dum=np.abs(np.diff(e,axis=0))
-           h=0.5*(e[0:-1,:,:]+e[1::,:,:])
-           # correct top and bottom, for vis pourposes
-           h[0,:,:]=e[0,:,:]; h[-1,:,:]=e[-1,:,:]
-           #h=Dataset(ocean_file).variables['h'][t,:,:,:]
-           # correct top and bottom, for vis pourposes
-           h[0,:,:]=e[0,:,:]; h[-1,:,:]=e[-1,:,:]
+           hz=0.5*(e[0:-1,:,:]+e[1::,:,:])# cell depth
            temp=Dataset(ocean_file).variables['temp'][tind[t],:,:,:]
            salt=Dataset(ocean_file).variables['salt'][tind[t],:,:,:]
+	   tr1=Dataset(ocean_file).variables['tr1'][tind[t],:,:,:]
+	   tr2=Dataset(ocean_file).variables['tr2'][tind[t],:,:,:]
+	   tr3=Dataset(ocean_file).variables['tr3'][tind[t],:,:,:]
            # for isopycnal models
            # temp, mark values where h_dum<10 cm with Nan
-           temp[h_dum<0.001]=np.nan; salt[h_dum<0.001]=np.nan
+           temp[h_dum<0.01]=np.nan; salt[h_dum<0.01]=np.nan
+	   tr1[h_dum<0.01] = np.nan; tr2[h_dum<0.01] = np.nan; tr3[h_dum<0.01] = np.nan
            # same for salt, u and v
-           v=Dataset(ocean_file).variables['v'][tind[t],:,:,:]
-           u=Dataset(ocean_file).variables['u'][tind[t],:,:,:]
-	   u=np.ma.masked_where(u>1000,u)
-	   v=np.ma.masked_where(v>1000,v)
+           v=Dataset(ocean_file).variables['vh'][tind[t],:,:,:]/(h*dx)
+           u=Dataset(ocean_file).variables['uh'][tind[t],:,:,:]/(h*dy)
+	   u=np.ma.masked_where(np.abs(u)>5,u)
+	   v=np.ma.masked_where(np.abs(v)>5,v)
+	   v.fill_value=np.nan
+	   u.fill_value=np.nan
            u[h_dum<0.01]=np.nan
 	   v[h_dum<0.01]=np.nan
-           v.fill_value=0.0
-	   u.fill_value=0.0
-           v=v.filled()
-	   u=u.filled()
+	   v=v.filled(); u=u.filled()
+	   # interpolate nan values
+	   for j in range(NY):
+		 for i in range(NX):
+			 nans, tmp = nan_helper(temp[:,j,i])
+			 if nans.mask.any() == False:
+		            if h_dum[:,j,i].sum() > 0.0:
+			       temp[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], temp[~nans,j,i])
+			       salt[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], salt[~nans,j,i])
+			       tr1[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr1[~nans,j,i])
+			       tr2[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr2[~nans,j,i])
+			       tr3[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr3[~nans,j,i])
+			       u[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], u[~nans,j,i])
+			       v[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], v[~nans,j,i])
 
            # write just bottom values
            #VTKgen(lats,lons,D.mask,depth=D,h=h,temp=tt,salt=ss,rho=gamma,u=uu,v=vv,writebottom=True,fname=reg,t=ind)
 
            print 'Saving ocean data... \n'
-           if args.tracer:
-              tr1=Dataset(ocean_file).variables['tr1'][tind[t],:,:,:]
-              tr1[h_dum<0.001]=np.nan
-              VTKgen(lats,lons,D.mask,h=h,temp=temp,salt=salt,dye=tr1,u=u,v=v,fname=name,t=tind[t])
-           else:
-              VTKgen(lats,lons,D.mask,h=h,temp=temp,salt=salt,u=u,v=v,fname=name,t=tind[t])
-
+           VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,dye1=tr1,dye2=tr2,dye3=tr3,u=u,v=v,fname=name,t=tind[t])
            if args.bergs:
               print 'Saving bergs data... \n'
               # save ice shelf made of icebergs
-              VTKgen(lats,lons,D.mask,h=h,shelf_base=e[0,:,:],shelf_thick=IS[t,:,:],fname=name,t=tind[t])
+              VTKgen(lats,lons,D.mask,h=hz,shelf_base=e[0,:,:],shelf_thick=IS[t,:,:],fname=name,t=tind[t])
 
     print ' \n' + '==> ' + ' Done saving vtk files!\n' + ''
     # the following is for displaying the time in the PNG figures generated by Visit
@@ -170,7 +172,7 @@ def driver3D(args):
 
     print ' \n' + '==> ' + '  DONE!\n' + ''
 
-def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye=None,rho=None,u=None,v=None,w=None,seaice=None,shelf_base=None,shelf_thick=None,writebottom=False,fname='test',dirname='VTK',date=None, t=0):
+def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye1=None,dye2=None,dye3=None,rho=None,u=None,v=None,w=None,seaice=None,shelf_base=None,shelf_thick=None,writebottom=False,fname='test',dirname='VTK',date=None, t=0):
     """ Writes ocean and ice shelf geometry and data (e.g., tracer, vel., sea-ice) into VTK files."""
 
     NY,NX=lat.shape
@@ -198,7 +200,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye=None,rho=None,
           vtk.tofile(dirname+'/'+fname+'-bathymetry','binary')
 
        if writebottom == True:
-          print ' \n' + '==> ' + 'Writting tracers/vel. just at the bottom layer ...\n' + ''
+          print ' \n' + '==> ' + 'Writing tracers/vel. just at the bottom layer ...\n' + ''
           data=[]
           if temp is not None:
              tmp=np.zeros((2,NY,NX)) 
@@ -220,15 +222,35 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye=None,rho=None,
              salt=f1(tmp)
              data.append("Scalars(salt,name='Salt')")
 
-          if dye is not None:
+          if dye1 is not None:
              tmp=np.zeros((2,NY,NX))
-             if len(dye.shape)==2:
-                 tmp[:,:,:]=dye[:,:]
+             if len(dye1.shape)==2:
+                 tmp[:,:,:]=dye1[:,:]
              else:
-                tmp[:,:,:]=dye[-1,:,:]
+                tmp[:,:,:]=dye1[-1,:,:]
 
-             dye=f1(tmp)
-             data.append("Scalars(dye,name='Dye')") 
+             dye1=f1(tmp)
+             data.append("Scalars(dye1,name='Dye1')") 
+
+          if dye2 is not None:
+             tmp=np.zeros((2,NY,NX))
+             if len(dye2.shape)==2:
+                 tmp[:,:,:]=dye2[:,:]
+             else:
+                tmp[:,:,:]=dye2[-1,:,:]
+
+             dye2=f1(tmp)
+             data.append("Scalars(dye2,name='Dye2')")
+
+          if dye3 is not None:
+             tmp=np.zeros((2,NY,NX))
+             if len(dye3.shape)==2:
+                 tmp[:,:,:]=dye3[:,:]
+             else:
+                tmp[:,:,:]=dye3[-1,:,:]
+
+             dye3=f1(tmp)
+             data.append("Scalars(dye3,name='Dye3')")
 
           if rho is not None:
              tmp=np.zeros((2,NY,NX))
@@ -307,9 +329,17 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye=None,rho=None,
          rho=f1(rho)
          data.append("Scalars(rho,name='Rhoinsitu')")
 
-       if dye is not None:
-         dye=f1(dye)
-         data.append("Scalars(dye,name='PassiveTracer')")
+       if dye1 is not None:
+         dye1=f1(dye1)
+         data.append("Scalars(dye1,name='Dye1')")
+
+       if dye2 is not None:
+         dye2=f1(dye2)
+         data.append("Scalars(dye2,name='Dye2')")
+
+       if dye3 is not None:
+         dye3=f1(dye3)
+         data.append("Scalars(dye3,name='Dye3')")
 
        if u is not None and v is not None:
          if w is not None:
@@ -366,26 +396,31 @@ def get_iceshelf(bottom,thick,NZ):
     tmp=np.resize(thick,(NZ,NY,NX))
     ice_shelf=np.zeros((NZ,NY,NX))
     z_shelf=np.zeros((NZ,NY,NX))
-    z_shelf[0,:,:]=bottom[:,:]  
-    z_shelf[1,:,:]=bottom[:,:] + thick[:,:]
+    z_shelf[0,:,:]=bottom[:,:]+0.1 
+    for i in range(NX):
+	    z_shelf[1,:,i]=(bottom[:,0] + thick[0,:,0]) + 0.1
+
     z_shelf = np.ma.masked_where(tmp==0,z_shelf)
     z_shelf.fill_value=np.nan
     ice_shelf[:]=9999
     ice_shelf = np.ma.masked_where(tmp==0,ice_shelf)
     ice_shelf.fill_value=np.nan
-    return ice_shelf,z_shelf
+    #return ice_shelf,z_shelf
+    return z_shelf,z_shelf
 
 def get_depth(h,D,mask):
     NZ,NY,NX=h.shape
     dep=np.zeros((2,NY,NX))
     bot=np.zeros((2,NY,NX))
     bot[0,:,:]=9999
+    # start at min(D)
+    dep[0,:,:]=-D.max()
     for i in range(NX):
       for j in range(NY):
          if mask[j,i]==False:
-                 dep[:,j,i]=-D[j,i] # ocean/ice-shelf
+                 dep[1,j,i]=-D[j,i] # ocean/ice-shelf
          else:
-                 dep[:,j,i]=0 # land
+                 dep[1,j,i]=0 # land
 
     return dep,bot
 
