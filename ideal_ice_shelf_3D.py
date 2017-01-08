@@ -10,6 +10,10 @@ import matplotlib.pyplot as plt
 import warnings
 from pyvtk import *
 import os,sys
+#import pymp
+
+#pymp.config.thread_limit = 3
+#pymp.config.nested = True
 
 def parseCommandLine():
   """
@@ -109,7 +113,7 @@ def driver3D(args):
         if os.path.isfile(path_to_file):
            print ' \n' + '==> ' + 'FILE EXISTS, MOVING TO THE NEXT ONE ...\n' + ''
         else:
-           print 'Saving time indice:', t 
+           print 'Saving time indice:', tind[t] 
            # ocean
            # structure
            # layer thickness
