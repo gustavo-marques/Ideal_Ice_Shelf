@@ -63,8 +63,8 @@ def parseCommandLine():
   parser.add_argument('-wind_x_max', type=float, default=-5.0,
       help='''Max. wind vel in x (m/s). Default is -5.0''')
 
-  parser.add_argument('-wind_x_pos', type=float, default=500.0,
-      help='''Start position of x-wind (km). Default is 500.0''')
+  parser.add_argument('-wind_x_pos', type=float, default=400.0,
+      help='''Start position of x-wind (km). Default is 400.0''')
 
   parser.add_argument('-tauy_max', type=float, default=0.05,
       help='''Max. (katabatic) wind stress in y (Pa). Default is 0.05''')
@@ -115,16 +115,13 @@ def parseCommandLine():
   parser.add_argument('-sponge_width', type=float, default=100.0,
       help='''Widht of sponge layer (km). Default is 100.''')
 
-  parser.add_argument('-wind_period', type=float, default=1.0,
-      help='''Period of katabatic winds (days). Default is 1. which means constant wind.''')
-
-  parser.add_argument('-temp_period', type=float, default=1.0,
-      help='''Period of the near coast atm. temp (days). Default is 1. which means constant temp.''')
-
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
   
   parser.add_argument('-add_seasonal_cycle', help='''Adds a seosonal cycle in  the forcing.''', action="store_true")
-  
+ 
+  parser.add_argument('-forcing_period', type=float, default=60.83332,
+      help='''When -add_seasonal_cycle is used, this sets the forcing period (days). Default is 60.83332 (i.e., 365/12.).''')
+ 
   parser.add_argument('-tauy_confined', help='''If true, tauy varies in x using a gaussian function.''', action="store_true")
   
   parser.add_argument('-debug', help='''Adds prints and plots to help debug.''', action="store_true")
@@ -905,10 +902,7 @@ def make_forcing(x,y,args):
    wind_y_min = args.wind_y_min
    sponge = args.sponge_width # 100 km
    ISL = args.ISL
-   wind_period = args.wind_period
-   temp_period = args.temp_period
    nx = len(x); ny = len(y)
-   #if wind_period>1 or temp_period>1.:
    if args.add_seasonal_cycle:
      nt = 365*4 # one year every 6 hours
      print('About to create forcing file with',nt, ' records...')
@@ -937,25 +931,30 @@ def make_forcing(x,y,args):
    for t in range(nt):
      # wind and heat
      time_days[t] = t * 0.25
+     period = args.forcing_period # in days
      #print'Time:',time_days[t]
      temp_cos = 1 #np.cos(np.pi*time_days[t]/temp_period)**2
      wind_cos = 1 #np.cos(np.pi*time_days[t]/wind_period)**2
-     season_cos = np.cos(np.pi*time_days[t]/365.)**2
-     season_sin = np.sin(np.pi*time_days[t]/365.)**2
+     season_cos = np.cos(np.pi*time_days[t]/period)**2
+     season_sin = np.sin(np.pi*time_days[t]/period)**2
      # temperatures, start with summer 
      t1 = t1min + season_cos*dt1
      t2 = t2min + season_cos*dt2
      t3 = t3min + season_cos*dt3
 
      # wind x-dir
-     tmp1 = args.wind_x_pos - (season_cos * 300.) # x wind moves with season
-     Lasf = Ly - tmp1 #- 200.
+     if args.add_seasonal_cycle:
+        wind_x_pos = args.wind_x_pos #- (season_cos * 200.) # x wind moves with season
+     else:
+        wind_x_pos = args.wind_x_pos
+
+     Lasf = Ly - wind_x_pos #- 200.
      for j in range(ny):
-       if y[j] < tmp1:
+       if y[j] < wind_x_pos:
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
-       elif y[j] >= tmp1 and y[j] <= tmp1 + Lasf:
-          tmp = 1* np.pi*(y[j]-tmp1)/(Lasf)
+       elif y[j] >= wind_x_pos and y[j] <= wind_x_pos + Lasf:
+          tmp = 1* np.pi*(y[j]-wind_x_pos)/(Lasf)
 	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
 	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp)) 
        else:
@@ -969,29 +968,36 @@ def make_forcing(x,y,args):
      # katabatic
      # follow ~ http://journals.ametsoc.org/doi/pdf/10.1175/1520-0493(1994)122%3C0671%3ADOATDM%3E2.0.CO%3B2
      # # has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
-     W_v10 = 50000. # km
+     W_v10 = 8000. # km
      # tau_y and heat are zero at y = 300 and 400 km, respect.
      tmp = 400.0 - ISL; tmp1 = 400.0 - ISL
      tmp_inv = 1.0/tmp; tmp1_inv = 1.0/tmp1
 
      delta_tauy = tauy_max - tauy_min
      delta_wind_y = wind_y_max - wind_y_min
-     delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.5) # gets weaker in summer by 50%
-     efold = 25. # km
+     # uncomment below to add variations in tauy
+     #delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.5) # gets weaker in summer by 50%
+     efold = 20. # km
 
      # exp decay forcing
      for j in range(ny):
 	 if y[j] < ISL+efold:
 	    t_bot[t,j,:] = t1
-	    wind_y[t,j,:] = (delta_wind_y * wind_cos) + wind_y_min
-	 elif y[j] >= ISL+efold and y[j] <= 500.:
+            if args.tauy_confined:
+                for i in range(nx):
+                   tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
+                   wind_y[t,j,i] = (delta_wind_y * wind_cos * tmp1) + wind_y_min
+            else:
+	        wind_y[t,j,:] = (delta_wind_y * wind_cos) + wind_y_min
+	 #elif y[j] >= ISL+efold and y[j] <= wind_x_pos:
+	 else:
 	    t_bot[t,j,:] = (t1 - t2) * np.exp(-(y[j]-ISL-efold)/(efold)) + t2 
             if args.tauy_confined:
                # NOT TIME DEPENDENT YET
                for i in range(nx):
                    tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
-                   tau_y[t,j,i] = (((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
-                            * tmp1) * wind_cos) + tauy_min
+                   #tau_y[t,j,i] = (((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                   #         * tmp1) * wind_cos) + tauy_min
                    wind_y[t,j,i] = (((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
                             * tmp1) * wind_cos) + wind_y_min
             else:
@@ -1000,10 +1006,10 @@ def make_forcing(x,y,args):
                wind_y[t,j,:] = ((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
                               * wind_cos) + wind_y_min
 
-         else: # linear
-            t2_tmp = (t1 - t2) * np.exp(-(500.-ISL-efold)/(efold)) + t2
-            t_bot[t,j,:] =  ((t3-t2_tmp)/(Ly-500))*(y[j]-500.)+ t2_tmp
-            wind_y[t,j,:] = 0.0
+         #else: # linear
+         #   t2_tmp = (t1 - t2) * np.exp(-(500.-ISL-efold)/(efold)) + t2
+         #   t_bot[t,j,:] =  ((t3-t2_tmp)/(Ly-500))*(y[j]-500.)+ t2_tmp
+         #   wind_y[t,j,:] = 0.0
 
      # linear temp
      if args.linear_forcing:
@@ -1017,13 +1023,14 @@ def make_forcing(x,y,args):
      # lprec, fprec
      allprec = args.liq_prec # lprec + fprec
      #tmp = args.cshelf_lenght
-     tmp = args.wind_x_pos - (season_cos * 200.)
+     tmp = args.wind_x_pos  #- (season_cos * 200.)
      for j in range(ny):
-	if y[j] < tmp:
+	if y[j] < wind_x_pos:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-	elif y[j]>= tmp and y[j]< (Ly-sponge):
-	   liq[t,j,:] = season_cos * allprec
-           snow[t,j,:] = season_sin * allprec
+	elif y[j]>= wind_x_pos and y[j]< (Ly-sponge):
+           tmp = (Ly-sponge) - wind_x_pos
+	   liq[t,j,:] = season_cos * allprec * np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
+           snow[t,j,:] = season_sin * allprec * np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
 	else:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
 
