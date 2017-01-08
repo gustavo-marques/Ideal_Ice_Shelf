@@ -123,13 +123,13 @@ def driver3D(args):
            hz=0.5*(e[0:-1,:,:]+e[1::,:,:])# cell depth
            temp=Dataset(ocean_file).variables['temp'][tind[t],:,:,:]
            salt=Dataset(ocean_file).variables['salt'][tind[t],:,:,:]
-	   tr1=Dataset(ocean_file).variables['tr1'][tind[t],:,:,:]
+	   sig2=Dataset(ocean_file).variables['rhopot2'][tind[t],:,:,:] - 1000.
 	   tr2=Dataset(ocean_file).variables['tr2'][tind[t],:,:,:]
 	   tr3=Dataset(ocean_file).variables['tr3'][tind[t],:,:,:]
            # for isopycnal models
            # temp, mark values where h_dum<10 cm with Nan
            temp[h_dum<0.01]=np.nan; salt[h_dum<0.01]=np.nan
-	   tr1[h_dum<0.01] = np.nan; tr2[h_dum<0.01] = np.nan; tr3[h_dum<0.01] = np.nan
+	   sig2[h_dum<0.01] = np.nan; tr2[h_dum<0.01] = np.nan; tr3[h_dum<0.01] = np.nan
            # same for salt, u and v
            v=Dataset(ocean_file).variables['vh'][tind[t],:,:,:]/(h*dx)
            u=Dataset(ocean_file).variables['uh'][tind[t],:,:,:]/(h*dy)
@@ -148,7 +148,7 @@ def driver3D(args):
 		            if h_dum[:,j,i].sum() > 0.0:
 			       temp[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], temp[~nans,j,i])
 			       salt[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], salt[~nans,j,i])
-			       tr1[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr1[~nans,j,i])
+			       sig2[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], sig2[~nans,j,i])
 			       tr2[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr2[~nans,j,i])
 			       tr3[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr3[~nans,j,i])
 			       u[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], u[~nans,j,i])
@@ -158,7 +158,7 @@ def driver3D(args):
            #VTKgen(lats,lons,D.mask,depth=D,h=h,temp=tt,salt=ss,rho=gamma,u=uu,v=vv,writebottom=True,fname=reg,t=ind)
 
            print 'Saving ocean data... \n'
-           VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,dye1=tr1,dye2=tr2,dye3=tr3,u=u,v=v,fname=name,t=tind[t])
+           VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,rho=sig2,dye2=tr2,dye3=tr3,u=u,v=v,fname=name,t=tind[t])
            if args.bergs:
               print 'Saving bergs data... \n'
               # save ice shelf made of icebergs
@@ -176,7 +176,7 @@ def driver3D(args):
 
     print ' \n' + '==> ' + '  DONE!\n' + ''
 
-def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye1=None,dye2=None,dye3=None,rho=None,u=None,v=None,w=None,seaice=None,shelf_base=None,shelf_thick=None,writebottom=False,fname='test',dirname='VTK',date=None, t=0):
+def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None,dye2=None,dye3=None,u=None,v=None,w=None,seaice=None,shelf_base=None,shelf_thick=None,writebottom=False,fname='test',dirname='VTK',date=None, t=0):
     """ Writes ocean and ice shelf geometry and data (e.g., tracer, vel., sea-ice) into VTK files."""
 
     NY,NX=lat.shape
@@ -226,6 +226,16 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye1=None,dye2=Non
              salt=f1(tmp)
              data.append("Scalars(salt,name='Salt')")
 
+          if rho is not None:
+             tmp=np.zeros((2,NY,NX))
+             if len(rho.shape)==2:
+                 tmp[:,:,:]=rho[:,:]
+             else:
+                tmp[:,:,:]=rho[-1,:,:]
+
+             rho=f1(tmp)
+             data.append("Scalars(rho,name='Rho')")
+
           if dye1 is not None:
              tmp=np.zeros((2,NY,NX))
              if len(dye1.shape)==2:
@@ -256,16 +266,6 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye1=None,dye2=Non
              dye3=f1(tmp)
              data.append("Scalars(dye3,name='Dye3')")
 
-          if rho is not None:
-             tmp=np.zeros((2,NY,NX))
-             if len(rho.shape)==2:
-                 tmp[:,:,:]=rho[:,:]
-             else:
-                tmp[:,:,:]=rho[-1,:,:]
-
-             rho=f1(tmp)
-             data.append("Scalars(rho,name='Neutral_density')")
- 
           if u is not None and v is not None:
                 w=np.zeros((2,NY,NX)) # no w vel for now
                 tmpu=np.zeros((2,NY,NX))
@@ -331,7 +331,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,dye1=None,dye2=Non
 
        if rho is not None:
          rho=f1(rho)
-         data.append("Scalars(rho,name='Rhoinsitu')")
+         data.append("Scalars(rho,name='Rho')")
 
        if dye1 is not None:
          dye1=f1(dye1)
