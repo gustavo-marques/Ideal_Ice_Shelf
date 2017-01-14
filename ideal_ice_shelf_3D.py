@@ -4,16 +4,13 @@
 # Gustavo Marques, Sep. 2016
 
 import argparse
-from netCDF4 import MFDataset, Dataset
+import netCDF4 
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-from pyvtk import *
+import pyvtk
 import os,sys
-#import pymp
-
-#pymp.config.thread_limit = 3
-#pymp.config.nested = True
+import pp
 
 def parseCommandLine():
   """
@@ -37,6 +34,9 @@ def parseCommandLine():
   parser.add_argument('-dt', type=int, default=1,
       help='''The time indice interval to save the VTK files. Default value is 1, which saves the entire dataset.''') 
 
+  parser.add_argument('-ncpus', type=int, default=1,
+      help='''The number of cpus to use when time = 0 (i.e., the entire dataset will be saved). Default value is 1.''')
+
   parser.add_argument('--oceanfile', type=str, default='prog.nc',
       help='''Name of the netCDF file with the ocean variables. Default is prog.nc.''')
 
@@ -48,13 +48,29 @@ def parseCommandLine():
   driver3D(optCmdLineArgs)
 
 def driver3D(args):
-    ocean_file = args.oceanfile 
+    if args.time != 0 and args.ncpus > 1:
+       print 'Error! Parameter -ncpus cannot be > 1 when time =! 0.'
+       quit()
+
+    # tuple of all parallel python servers to connect with
+    ppservers = ()
+
+    if args.ncpus > 1: # run in parallel
+       # Creates jobserver with ncpus workers
+       job_server = pp.Server(args.ncpus, ppservers=ppservers)
+    else:
+       # Creates jobserver with automatically detected number of workers
+       job_server = pp.Server(ppservers=ppservers)          
+   
+    print "Starting pp with", job_server.get_ncpus(), "workers"
+    
+    args.oceanfile = args.oceanfile 
     # ocean grid
-    D=Dataset('ocean_geometry.nc').variables['D'][:]
-    lonh=Dataset('ocean_geometry.nc').variables['lonh'][:]
-    lonq=Dataset('ocean_geometry.nc').variables['lonq'][:]
-    lath=Dataset('ocean_geometry.nc').variables['lath'][:]
-    latq=Dataset('ocean_geometry.nc').variables['latq'][:]
+    D=netCDF4.Dataset('ocean_geometry.nc').variables['D'][:]
+    lonh=netCDF4.Dataset('ocean_geometry.nc').variables['lonh'][:]
+    lonq=netCDF4.Dataset('ocean_geometry.nc').variables['lonq'][:]
+    lath=netCDF4.Dataset('ocean_geometry.nc').variables['lath'][:]
+    latq=netCDF4.Dataset('ocean_geometry.nc').variables['latq'][:]
     dx = (lonh[1] - lonh[0]) * 1.0e3 # in m
     dy = (lath[1] - lath[0]) * 1.0e3 # in m
     lonqs, latqs = np.meshgrid(lonq,latq)
@@ -63,31 +79,30 @@ def driver3D(args):
     D.mask = np.ma.array(D); D.mask[:,:]=False
 
     # ice shelf base
-    ssh = Dataset('IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,:]
+    ssh = netCDF4.Dataset('IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,:]
 
     # load time
-    print('Time indice is:' + str(args.time))
     if args.time > 0 :
-        time = np.array(Dataset(ocean_file).variables['time'][args.time])
+        time = np.array(netCDF4.Dataset(args.oceanfile).variables['time'][args.time])
         tind = [args.time]
     else:
-        time = Dataset(ocean_file).variables['time'][:]
-        tind = range(len(time))
+        time = netCDF4.Dataset(args.oceanfile).variables['time'][:]
+        tind = range(0,len(time),args.dt)
 
     if args.bergs:
        rho_berg = 918.0
        rho = 1030.
        # mass of bergs can time dependent
-       mass_berg = Dataset(ocean_file).variables['mass_berg'][tind,:,:]
+       mass_berg = netCDF4.Dataset(args.oceanfile).variables['mass_berg'][tind,:,:]
        IS=(mass_berg/rho_berg)
 
     else:
        # ice shelf thickness, static for now
-       IS = Dataset('MOM_Shelf_IC.nc').variables['h_shelf'][:]
+       IS = netCDF4.Dataset('MOM_Shelf_IC.nc').variables['h_shelf'][:]
     
     # interface and layer thickness
-    e=Dataset(ocean_file).variables['e'][0,:,:,:]
-    h=Dataset(ocean_file).variables['h'][0,:,:,:]
+    e=netCDF4.Dataset(args.oceanfile).variables['e'][0,:,:,:]
+    h=netCDF4.Dataset(args.oceanfile).variables['h'][0,:,:,:]
     # correct top and bottom, for vis pourposes
     h[0,:,:]=e[0,:,:]; h[-1,:,:]=e[-1,:,:]
     NZ,NY,NX=h.shape
@@ -99,70 +114,20 @@ def driver3D(args):
     print 'Saving ice shelf...'
     VTKgen(lats,lons,D.mask,h=h,shelf_base=ssh,shelf_thick=IS,fname=name)
 
-    time_list=[] # list for time 
+    # list to tuple
+    time_ind = tuple(tind)
+    # Execution starts as soon as one of the workers will become available
+    jobs = [(t, job_server.submit(get_data, (t, lats, lons, D, dx, dy, NX, NY, args, ), 
+           (VTKgen,nan_helper,f1,f3,),
+           ("os","pyvtk","netCDF4","numpy",))) for t in time_ind]
 
-    print 'len(tind)',len(tind)
-    # loop through time and plot surface fields
-    for t in range(0,len(tind),args.dt):
-        print 'Time is:',t
-        #print 'Time is:',time[t]
-        # save data in the lists
-        #time_list.append(date)
-        # check if data has been saved
-        path_to_file = str('VTK/%s-%05d.vtk' % (name,tind[t]))
-        if os.path.isfile(path_to_file):
-           print ' \n' + '==> ' + 'FILE EXISTS, MOVING TO THE NEXT ONE ...\n' + ''
-        else:
-           print 'Saving time indice:', tind[t] 
-           # ocean
-           # structure
-           # layer thickness
-           e=Dataset(ocean_file).variables['e'][tind[t],:,:,:]
-           h=Dataset(ocean_file).variables['h'][tind[t],:,:,:]
-           h_dum=np.abs(np.diff(e,axis=0))
-           hz=0.5*(e[0:-1,:,:]+e[1::,:,:])# cell depth
-           temp=Dataset(ocean_file).variables['temp'][tind[t],:,:,:]
-           salt=Dataset(ocean_file).variables['salt'][tind[t],:,:,:]
-	   sig2=Dataset(ocean_file).variables['rhopot2'][tind[t],:,:,:] - 1000.
-	   tr2=Dataset(ocean_file).variables['tr2'][tind[t],:,:,:]
-	   tr3=Dataset(ocean_file).variables['tr3'][tind[t],:,:,:]
-           # for isopycnal models
-           # temp, mark values where h_dum<10 cm with Nan
-           temp[h_dum<0.01]=np.nan; salt[h_dum<0.01]=np.nan
-	   sig2[h_dum<0.01] = np.nan; tr2[h_dum<0.01] = np.nan; tr3[h_dum<0.01] = np.nan
-           # same for salt, u and v
-           v=Dataset(ocean_file).variables['vh'][tind[t],:,:,:]/(h*dx)
-           u=Dataset(ocean_file).variables['uh'][tind[t],:,:,:]/(h*dy)
-	   u=np.ma.masked_where(np.abs(u)>5,u)
-	   v=np.ma.masked_where(np.abs(v)>5,v)
-	   v.fill_value=np.nan
-	   u.fill_value=np.nan
-           u[h_dum<0.01]=np.nan
-	   v[h_dum<0.01]=np.nan
-	   v=v.filled(); u=u.filled()
-	   # interpolate nan values
-	   for j in range(NY):
-		 for i in range(NX):
-			 nans, tmp = nan_helper(temp[:,j,i])
-			 if nans.mask.any() == False:
-		            if h_dum[:,j,i].sum() > 0.0:
-			       temp[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], temp[~nans,j,i])
-			       salt[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], salt[~nans,j,i])
-			       sig2[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], sig2[~nans,j,i])
-			       tr2[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr2[~nans,j,i])
-			       tr3[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], tr3[~nans,j,i])
-			       u[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], u[~nans,j,i])
-			       v[nans,j,i]= np.interp(-hz[nans,j,i], -hz[~nans,j,i], v[~nans,j,i])
+#    jobs = [(t, job_server.submit(get_data1, (t,args, ), (VTKgen,),
+#        ("netCDF4",))) for t in tind]
 
-           # write just bottom values
-           #VTKgen(lats,lons,D.mask,depth=D,h=h,temp=tt,salt=ss,rho=gamma,u=uu,v=vv,writebottom=True,fname=reg,t=ind)
+    for input, job in jobs:
+       job()
 
-           print 'Saving ocean data... \n'
-           VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,rho=sig2,dye2=tr2,dye3=tr3,u=u,v=v,fname=name,t=tind[t])
-           if args.bergs:
-              print 'Saving bergs data... \n'
-              # save ice shelf made of icebergs
-              VTKgen(lats,lons,D.mask,h=hz,shelf_base=e[0,:,:],shelf_thick=IS[t,:,:],fname=name,t=tind[t])
+    job_server.print_stats()
 
     print ' \n' + '==> ' + ' Done saving vtk files!\n' + ''
     # the following is for displaying the time in the PNG figures generated by Visit
@@ -170,27 +135,90 @@ def driver3D(args):
        print ' \n' + '==> ' + ' Writting time to asn ascii file... \n' + ''
        f = open('VTK/time.txt', 'wb')
        for i in range(len(time)):
-            f.write('%8.4f \n'.format(time[i])) 
+            f.write('%8.4f \n' % (time[i]))
        f.close()
 
 
     print ' \n' + '==> ' + '  DONE!\n' + ''
 
+def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
+    """
+    Reads data from netcdf at time indice t and writes a VTK file.
+    """
+    # check if data has been saved
+    path_to_file = str('VTK/%s-%05d.vtk' % (args.n,t))
+    if os.path.isfile(path_to_file):
+       print ' \n' + '==> ' + 'FILE EXISTS, MOVING TO THE NEXT ONE ...\n' + ''
+    else:
+       print 'Saving time indice:', t
+       # ocean
+       # structure
+       # layer thickness
+       e=netCDF4.Dataset(args.oceanfile).variables['e'][t,:,:,:]
+       h=netCDF4.Dataset(args.oceanfile).variables['h'][t,:,:,:]
+       h_dum=numpy.abs(numpy.diff(e,axis=0))
+       hz=0.5*(e[0:-1,:,:]+e[1::,:,:])# cell depth
+       temp=netCDF4.Dataset(args.oceanfile).variables['temp'][t,:,:,:]
+       salt=netCDF4.Dataset(args.oceanfile).variables['salt'][t,:,:,:]
+       sig2=netCDF4.Dataset(args.oceanfile).variables['rhopot2'][t,:,:,:] - 1000.
+       tr2=netCDF4.Dataset(args.oceanfile).variables['tr2'][t,:,:,:]
+       tr3=netCDF4.Dataset(args.oceanfile).variables['tr3'][t,:,:,:]
+       # for isopycnal models
+       # temp, mark values where h_dum<10 cm with Nan
+       temp[h_dum<0.01]=numpy.nan; salt[h_dum<0.01]=numpy.nan
+       sig2[h_dum<0.01] = numpy.nan; tr2[h_dum<0.01] = numpy.nan; tr3[h_dum<0.01] = numpy.nan
+       # same for salt, u and v
+       v=netCDF4.Dataset(args.oceanfile).variables['vh'][t,:,:,:]/(h*dx)
+       u=netCDF4.Dataset(args.oceanfile).variables['uh'][t,:,:,:]/(h*dy)
+       u=numpy.ma.masked_where(numpy.abs(u)>5,u)
+       v=numpy.ma.masked_where(numpy.abs(v)>5,v)
+       v.fill_value=numpy.nan
+       u.fill_value=numpy.nan
+       u[h_dum<0.01]=numpy.nan
+       v[h_dum<0.01]=numpy.nan
+       v=v.filled(); u=u.filled()
+       # interpolate nan values
+       for j in range(NY):
+	     for i in range(NX):
+		 nans, tmp = nan_helper(temp[:,j,i])
+		 if nans.mask.any() == False:
+			if h_dum[:,j,i].sum() > 0.0:
+			   temp[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], temp[~nans,j,i])
+			   salt[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], salt[~nans,j,i])
+			   sig2[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], sig2[~nans,j,i])
+			   tr2[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], tr2[~nans,j,i])
+			   tr3[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], tr3[~nans,j,i])
+			   u[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], u[~nans,j,i])
+			   v[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], v[~nans,j,i])
+
+       # write just bottom values
+       #VTKgen(lats,lons,D.mask,depth=D,h=h,temp=tt,salt=ss,rho=gamma,u=uu,v=vv,writebottom=True,fname=reg,t=ind)
+
+       print 'Saving ocean data... \n'
+       VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,rho=sig2,dye2=tr2,dye3=tr3,u=u,v=v,fname=args.n,t=t)
+       if args.bergs:
+           print 'Saving bergs data... \n'
+           # save ice shelf made of icebergs
+           VTKgen(lats,lons,D.mask,h=hz,shelf_base=e[0,:,:],shelf_thick=IS[t,:,:],fname=args.n,t=t)
+
+    return
+
 def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None,dye2=None,dye3=None,u=None,v=None,w=None,seaice=None,shelf_base=None,shelf_thick=None,writebottom=False,fname='test',dirname='VTK',date=None, t=0):
     """ Writes ocean and ice shelf geometry and data (e.g., tracer, vel., sea-ice) into VTK files."""
+
+    import numpy as np
 
     NY,NX=lat.shape
     if not os.path.isdir(dirname):
         os.system('mkdir ' + dirname)
 
     NY,NX=lat.shape
-
     if depth is not None:
        newlat=np.resize(lat,(2,NY,NX))
        newlon=np.resize(lon,(2,NY,NX))
        newdepth,bottom=get_depth(h,depth,mask)
        pp = f3(newlon,newlat,newdepth)
-       structure=StructuredGrid([2,NY,NX],pp)
+       structure=pyvtk.StructuredGrid([2,NY,NX],pp)
        path_to_file = str('%s/%s-bathymetry.vtk' % (dirname,fname))
        if os.path.isfile(path_to_file):
            print ' \n' + '==> ' + 'Bathymetry has already been written, moving on ...\n' + ''
@@ -198,9 +226,9 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
           # create bottom/shape and depths
           newdepth=f1(newdepth)
           bottom=f1(bottom)
-          pointdata = PointData(Scalars(newdepth,name='Depth'), Scalars(bottom,name='Bottom9999'))
+          pointdata = pyvtk.PointData(pyvtk.Scalars(newdepth,name='Depth'), pyvtk.Scalars(bottom,name='Bottom9999'))
           # saving the data
-          vtk = VtkData(structure,pointdata)
+          vtk = pyvtk.VtkData(structure,pointdata)
           vtk.tofile(dirname+'/'+fname+'-bathymetry','binary')
 
        if writebottom == True:
@@ -214,7 +242,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                  tmp[:,:,:]=temp[-1,:,:]
                  
              temp=f1(tmp)
-             data.append("Scalars(temp,name='Temp')")
+             data.append("pyvtk.Scalars(temp,name='Temp')")
 
           if salt is not None:
              tmp=np.zeros((2,NY,NX))
@@ -224,7 +252,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                 tmp[:,:,:]=salt[-1,:,:]
 
              salt=f1(tmp)
-             data.append("Scalars(salt,name='Salt')")
+             data.append("pyvtk.Scalars(salt,name='Salt')")
 
           if rho is not None:
              tmp=np.zeros((2,NY,NX))
@@ -234,7 +262,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                 tmp[:,:,:]=rho[-1,:,:]
 
              rho=f1(tmp)
-             data.append("Scalars(rho,name='Rho')")
+             data.append("pyvtk.Scalars(rho,name='Rho')")
 
           if dye1 is not None:
              tmp=np.zeros((2,NY,NX))
@@ -244,7 +272,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                 tmp[:,:,:]=dye1[-1,:,:]
 
              dye1=f1(tmp)
-             data.append("Scalars(dye1,name='Dye1')") 
+             data.append("pyvtk.Scalars(dye1,name='Dye1')") 
 
           if dye2 is not None:
              tmp=np.zeros((2,NY,NX))
@@ -254,7 +282,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                 tmp[:,:,:]=dye2[-1,:,:]
 
              dye2=f1(tmp)
-             data.append("Scalars(dye2,name='Dye2')")
+             data.append("pyvtk.Scalars(dye2,name='Dye2')")
 
           if dye3 is not None:
              tmp=np.zeros((2,NY,NX))
@@ -264,7 +292,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                 tmp[:,:,:]=dye3[-1,:,:]
 
              dye3=f1(tmp)
-             data.append("Scalars(dye3,name='Dye3')")
+             data.append("pyvtk.Scalars(dye3,name='Dye3')")
 
           if u is not None and v is not None:
                 w=np.zeros((2,NY,NX)) # no w vel for now
@@ -278,7 +306,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                     tmpv[:,:,:]=v[-1,:,:]
 
                 vel=f3(tmpu,tmpv,w)
-                data.append("Vectors(vel,name='Velocity')")
+                data.append("pyvtk.Vectors(vel,name='Velocity')")
 
           if temp is not None or salt is not None or rho is not None or u is not None:
 
@@ -288,10 +316,10 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                  else:
                     tmp=tmp+','+data[d]
 
-              s = str("PointData(%s)" % (tmp))
+              s = str("pyvtk.PointData(%s)" % (tmp))
               pointdata = eval(s)
               # saving the data
-              vtk = VtkData(structure,pointdata)
+              vtk = pyvtk.VtkData(structure,pointdata)
               if date is not None:
                  s = str("vtk.tofile('%s/%s-%s-bottom-%05d','binary')" % (dirname,fname,date,t))
                  eval(s)
@@ -309,9 +337,9 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
        dum,z = get_iceshelf(shelf_base,shelf_thick,NZ_IS)
        iceshelf = f1(dum)
        pp = f3(newlon,newlat,z)
-       structure=StructuredGrid([NZ_IS,NY,NX],pp)
-       pointdata = PointData(Scalars(iceshelf,name='IceShelf9999'))
-       vtk = VtkData(structure,pointdata)
+       structure=pyvtk.StructuredGrid([NZ_IS,NY,NX],pp)
+       pointdata = pyvtk.PointData(pyvtk.Scalars(iceshelf,name='IceShelf9999'))
+       vtk = pyvtk.VtkData(structure,pointdata)
        if t>0:
            s = str("vtk.tofile('%s/%s-ice-shelf-%05d','binary')" % (dirname,fname,t))
            eval(s)
@@ -323,27 +351,27 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
        data=[]
        if temp is not None:
          temp=f1(temp)
-         data.append("Scalars(temp,name='Temp')")
+         data.append("pyvtk.Scalars(temp,name='Temp')")
          
        if salt is not None:
          salt=f1(salt)
-         data.append("Scalars(salt,name='Salt')")
+         data.append("pyvtk.Scalars(salt,name='Salt')")
 
        if rho is not None:
          rho=f1(rho)
-         data.append("Scalars(rho,name='Rho')")
+         data.append("pyvtk.Scalars(rho,name='Rho')")
 
        if dye1 is not None:
          dye1=f1(dye1)
-         data.append("Scalars(dye1,name='Dye1')")
+         data.append("pyvtk.Scalars(dye1,name='Dye1')")
 
        if dye2 is not None:
          dye2=f1(dye2)
-         data.append("Scalars(dye2,name='Dye2')")
+         data.append("pyvtk.Scalars(dye2,name='Dye2')")
 
        if dye3 is not None:
          dye3=f1(dye3)
-         data.append("Scalars(dye3,name='Dye3')")
+         data.append("pyvtk.Scalars(dye3,name='Dye3')")
 
        if u is not None and v is not None:
          if w is not None:
@@ -352,7 +380,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
             w=np.zeros(u.shape)
             vel=f3(u,v,w)
 
-         data.append("Vectors(vel,name='Velocity')")
+         data.append("pyvtk.Vectors(vel,name='Velocity')")
     
        if seaice is not None:
          NZ,NY,NX=h.shape
@@ -363,8 +391,8 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
          sice2[0,:,:]=seaice[:,:]
          seaice1=f1(sice1) 
          seaice2=f1(sice2) 
-         data.append("Scalars(seaice1,name='Sea-ice')")
-         data.append("Scalars(seaice2,name='Sea-ice-binary')")
+         data.append("pyvtk.Scalars(seaice1,name='Sea-ice')")
+         data.append("pyvtk.Scalars(seaice2,name='Sea-ice-binary')")
        
 
        if temp is not None or salt is not None or rho is not None or u is not None or seaice is not None:
@@ -373,7 +401,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
          newlat=np.resize(lat,(NZ,NY,NX))
          newlon=np.resize(lon,(NZ,NY,NX))
          pp = f3(newlon,newlat,h)
-         structure=StructuredGrid([NZ,NY,NX],pp)
+         structure=pyvtk.StructuredGrid([NZ,NY,NX],pp)
 
          for d in range(len(data)):
             if d==0:
@@ -381,10 +409,10 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
             else:
                tmp=tmp+','+data[d]
 
-         s = str("PointData(%s)" % (tmp))
+         s = str("pyvtk.PointData(%s)" % (tmp))
          pointdata = eval(s)
          # saving the data
-         vtk = VtkData(structure,pointdata)
+         vtk = pyvtk.VtkData(structure,pointdata)
          if date is not None:
              s = str("vtk.tofile('%s/%s-%s-%05d','binary')" % (dirname,fname,date,t))
              eval(s)
@@ -455,6 +483,6 @@ def nan_helper(y):
         >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
     """
 
-    return np.isnan(y), lambda z: z.nonzero()[0]
+    return numpy.isnan(y), lambda z: z.nonzero()[0]
 # Invoke parseCommandLine(), the top-level prodedure
 if __name__ == '__main__': parseCommandLine()
