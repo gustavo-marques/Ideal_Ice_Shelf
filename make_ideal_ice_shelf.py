@@ -68,6 +68,9 @@ def parseCommandLine():
 
   parser.add_argument('-tauy_max', type=float, default=0.05,
       help='''Max. (katabatic) wind stress in y (Pa). Default is 0.05''')
+ 
+  parser.add_argument('-tauy_efold', type=float, default=20.,
+      help='''E-folding lenght for the katabatic wind (km). Default is 20.0''')
 
   parser.add_argument('-tauy_min', type=float, default=0.001,
       help='''Min. (katabatic) wind stress in y (Pa). Default is 0.001''')
@@ -226,7 +229,7 @@ def make_ice_shelf(x,y,args):
    # smooth
    h_smooth = gaussian_filter(h,4)
    h_smooth[y<gp] = H0
-   h_smooth[h_smooth<50.0] = 0.0
+   h_smooth[h_smooth<1.0] = 0.0
    # find meridional lenght of ice shelf
    tmp = np.nonzero(h_smooth==0.0)[0][0]
    args.ISL = x[tmp] / 1.0e3
@@ -615,15 +618,15 @@ def make_ts_restart(x,y,args):
    print 'Processing ', args.ts_file + ', this might take a while...'
    xh = Dataset(args.ts_file).variables['xh'][:]
    yh = Dataset(args.ts_file).variables['yh'][:]
-   zt = Dataset(args.ts_file).variables['zt'][:]
+   zl = Dataset(args.ts_file).variables['z_l'][:]
    temp = Dataset(args.ts_file).variables['temp'][-1,:]
    salt = Dataset(args.ts_file).variables['salt'][-1,:]
 
    XH,YH = np.meshgrid(xh,yh)
    # 3D fields where data will be interpolated 
-   # x,y, are high-res and zt is from month_z
-   temp3D = np.zeros((len(zt),len(y),len(x)))
-   salt3D = np.zeros((len(zt),len(y),len(x)))
+   # x,y, are high-res and zl is from month_z
+   temp3D = np.zeros((len(zl),len(y),len(x)))
+   salt3D = np.zeros((len(zl),len(y),len(x)))
    temp3D_new = np.zeros((1,args.nz,len(y),len(x)))
    salt3D_new = np.zeros((1,args.nz,len(y),len(x)))
 
@@ -637,12 +640,12 @@ def make_ts_restart(x,y,args):
          tmp = np.nonzero(temp.mask[:,j,i]==False)[0]
          if len(tmp)>0:
             tmp = tmp[-1]
-            if tmp < (len(zt)-1):
+            if tmp < (len(zl)-1):
                temp[tmp+1::,j,i] = temp[tmp,j,i]
                salt[tmp+1::,j,i] = salt[tmp,j,i]
 
-   for k in range(len(zt)):
-       print 'level', str(k) + ' out of ' + str(len(zt))
+   for k in range(len(zl)):
+       print 'level', str(k) + ' out of ' + str(len(zl))
        # replace mask value with last good value
        # in the x dir
        for i in range(len(xh)):
@@ -659,8 +662,8 @@ def make_ts_restart(x,y,args):
    # now interpolate on final grid
    for i in range(len(x)):
       for j in range(len(y)):
-          ftemp = interp1d(zt,temp3D[:,j,i])
-          fsalt = interp1d(zt,salt3D[:,j,i])
+          ftemp = interp1d(zl,temp3D[:,j,i])
+          fsalt = interp1d(zl,salt3D[:,j,i])
           temp3D_new[0,:,j,i] = ftemp(z)
           salt3D_new[0,:,j,i] = fsalt(z)
 
@@ -977,7 +980,7 @@ def make_forcing(x,y,args):
      delta_wind_y = wind_y_max - wind_y_min
      # uncomment below to add variations in tauy
      #delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.5) # gets weaker in summer by 50%
-     efold = 20. # km
+     efold = args.tauy_efold  # km
 
      # exp decay forcing
      for j in range(ny):
