@@ -73,7 +73,10 @@ def driver(args):
    HI_max = np.zeros(len(time)); var.append('HI_max'); varname.append('maxSeaiceThick')
    AABW_transp = np.zeros(len(time)); var.append('AABW_transp'); varname.append('AABW')
    CDW_transp = np.zeros(len(time)); var.append('CDW_transp'); varname.append('CDW')
-   total_transp = np.zeros(len(time)); var.append('total_transp'); varname.append('TotalTransp')
+   NHT_shelf = np.zeros(len(time)); var.append('NHT_shelf'); varname.append('NorthwardTranspShelf')
+   SHT_shelf = np.zeros(len(time)); var.append('SHT_shelf'); varname.append('SouthwardTranspShelf')
+   NHT_ice_shelf = np.zeros(len(time)); var.append('NHT_ice_shelf'); varname.append('NorthwardTranspIceShelf')
+   SHT_ice_shelf = np.zeros(len(time)); var.append('SHT_ice_shelf'); varname.append('SouthwardTranspIceShelf')
    oht1 = np.zeros(len(time)); var.append('oht1'); varname.append('OHT_shelf')
    oht2 = np.zeros(len(time)); var.append('oht2'); varname.append('OHT_ice_shelf')
    AABW_transp_x = np.zeros((len(time),len(x)))
@@ -106,12 +109,16 @@ def driver(args):
 	   HI_max[t] = HI.max()
            AABW_transp[t],AABW_transp_x[t,:], AABW_h[t,:] = get_transport(x,y,vh,h,rhopot2,args)
            CDW_transp[t] = get_CDW(x,y,vh,salt,temp,args) 
-           total_transp[t] = get_total_transp(y,vh,args) 
+           NHT_shelf[t] = get_total_transp(y,vh,args.cshelf_lenght,0) # northward
+           SHT_shelf[t] = get_total_transp(y,vh,args.cshelf_lenght,1) # southward
+           NHT_ice_shelf[t] = get_total_transp(y,vh,args.ISL,0) # northward
+           SHT_ice_shelf[t] = get_total_transp(y,vh,args.ISL,1) # southward
            oht1[t] = get_oht(temp,salt,depth,vh,y,y_loc = 460.)
            oht2[t] = get_oht(temp,salt,depth,vh,y,y_loc = args.ISL)
 
            # optional diags
            if args.MO_lenght:
+
               MO_lenght[t,:,:] = compute_MO_lenght(temp[0,:],salt[0,:],depth[0,:],t,args)
 
 
@@ -151,13 +158,14 @@ def compute_MO_lenght(temp,salt,depth,t,args):
     ustar = mask_bad_values(Dataset(args.prog_file).variables['ustar_shelf'][t,:])    
     lprec = mask_bad_values(Dataset(args.sfc_file).variables['lprec'][t,:])    
     sensible = mask_bad_values(Dataset(args.sfc_file).variables['sensible'][t,:])    
-    shelf_area = Dataset(args.ice_shelf_file).variables['shelf_area'][:]
+    shelf_area = Dataset(args.ice_shelf_file).variables['shelf_area'][0,:]
     # Monin-Obukhov Length
     B0 = -g * (alpha*(-sensible/(rho_0 * Cp)) - beta*(lprec*salt/rho_0))
     l = ustar**3/(vonKar * B0)
     # mask values outside cavity
-    l = np.ma.masked_where(depth == depth.max(), l)
-    l = np.ma.masked_where(shelf_area == 0.0, l)
+    l[l==0.0] = -1e+34
+#    l = np.ma.masked_where(depth == depth.max(), l)
+#    l = np.ma.masked_where(shelf_area == 0.0, l)
     
     print 'Monin-Obukhov Length min/max',l.min(), l.max()
 
@@ -196,13 +204,18 @@ def get_oht(t,s,d,vh,y,y_loc):
          oht = - (vhnew*cp*rho0*dt).sum() # watts
          return oht
 
-def get_total_transp(y,vh,args):
+def get_total_transp(y,vh,loc_y,opt):
          '''
          Compute the total cross-shelf vol. transport at the shelf break.
          '''
-         tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
-         vhnew = vh[:,tmp,:].sum()
-         return vhnew/1.0e6 # in sv
+         tmp = np.nonzero(y<=loc_y)[0][-1]
+         if opt == 0: # mask southward flow
+            vhnew = np.ma.masked_where(vh[:,tmp,:]<0.0, vh[:,tmp,:]) 
+         else: # mask northward flow
+            vhnew = np.ma.masked_where(vh[:,tmp,:]>0.0, vh[:,tmp,:])
+
+         print 'loc,opt,transp',loc_y,opt,vhnew.sum()/1.0e6
+         return vhnew.sum()/1.0e6 # in sv
 
 def get_CDW(x,y,vh,s,t,args):
          '''
@@ -384,9 +397,21 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    CDW = ncfile.createVariable('CDW',np.dtype('float32').char,('time'))
    CDW.units = 'sv'; CDW.description = 'Onshore transport of CDW computed at the shelf break'
 
-   TotalTransp = ncfile.createVariable('TotalTransp',np.dtype('float32').char,('time'))
-   TotalTransp.units = 'sv' 
-   TotalTransp.description = 'Total cross-shelf volume transport computed at the shelf break'
+   NorthwardTranspShelf = ncfile.createVariable('NorthwardTranspShelf',np.dtype('float32').char,('time'))
+   NorthwardTranspShelf.units = 'sv' 
+   NorthwardTranspShelf.description = 'Northward cross-shelf volume transport computed at the shelf break'
+
+   SouthwardTranspShelf = ncfile.createVariable('SouthwardTranspShelf',np.dtype('float32').char,('time'))
+   SouthwardTranspShelf.units = 'sv'
+   SouthwardTranspShelf.description = 'Southward cross-shelf volume transport computed at the shelf break'
+
+   NorthwardTranspIceShelf = ncfile.createVariable('NorthwardTranspIceShelf',np.dtype('float32').char,('time'))
+   NorthwardTranspIceShelf.units = 'sv'
+   NorthwardTranspIceShelf.description = 'Northward cross-shelf volume transport computed at the ice shelf front'
+
+   SouthwardTranspIceShelf = ncfile.createVariable('SouthwardTranspIceShelf',np.dtype('float32').char,('time'))
+   SouthwardTranspIceShelf.units = 'sv'
+   SouthwardTranspIceShelf.description = 'Southward cross-shelf volume transport computed at the ice shelf front '
 
    OHT_shelf = ncfile.createVariable('OHT_shelf',np.dtype('float32').char,('time'))
    OHT_shelf.units = 'Watts'; OHT_shelf.description = 'Onshore heat transport at shelf break'
