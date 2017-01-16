@@ -78,8 +78,8 @@ def parseCommandLine():
   parser.add_argument('-wind_y_max', type=float, default=7.5,
       help='''Max. (katabatic) wind vel. in y (m/s). Default is 7.5''')
 
-  parser.add_argument('-wind_y_min', type=float, default=0.15,
-      help='''Min. (katabatic) wind vel. in y (m/s). Default is 0.15''')
+  parser.add_argument('-wind_y_min', type=float, default=0.0,
+      help='''Min. (katabatic) wind vel. in y (m/s). Default is 0.0''')
 
   parser.add_argument('-L', type=float, default=1200.,
       help='''Domain lenght in the y direction (km). Default is 1.2E3''')
@@ -108,8 +108,8 @@ def parseCommandLine():
   parser.add_argument('-dt3', type=float, default=10,
       help='''Change in temp (Celcius) at northern boundary. Default is 10''')
 
-  parser.add_argument('-liq_prec', type=float, default=5.0e-5,
-      help='''Max. liquid precipitation (kg/(m^2 s)). Default is 5.0e-5.''')
+  parser.add_argument('-liq_prec', type=float, default=2.5e-5,
+      help='''Max. liquid precipitation (kg/(m^2 s)). Default is 2.5e-5.''')
 
   parser.add_argument('-land_width', type=float, default=100.0,
       help='''Widht of land region next to ice shelf (km)- this also controls the shape
@@ -946,9 +946,9 @@ def make_forcing(x,y,args):
      t3 = t3min + season_cos*dt3
 
      # wind x-dir
-     if args.add_seasonal_cycle:
-        wind_x_pos = args.wind_x_pos #- (season_cos * 200.) # x wind moves with season
-     else:
+     if wind_y_max == 0.0: # mode 2 and mode 3
+        wind_x_pos = args.ISL #- (season_cos * 200.) # x wind moves with season
+     else: # mode1
         wind_x_pos = args.wind_x_pos
 
      Lasf = Ly - wind_x_pos #- 200.
@@ -1030,12 +1030,11 @@ def make_forcing(x,y,args):
      for j in range(ny):
 	if y[j] < wind_x_pos:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-	elif y[j]>= wind_x_pos and y[j]< (Ly-sponge):
-           tmp = (Ly-sponge) - wind_x_pos
-	   liq[t,j,:] = season_cos * allprec * np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
-           snow[t,j,:] = season_sin * allprec * np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
-	else:
-	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
+	#elif y[j]>= wind_x_pos and y[j]< (Ly-sponge):
+        else:
+           #tmp = (Ly-sponge) - wind_x_pos
+	   liq[t,j,:] = season_cos * allprec + 1.0e-6#* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
+           snow[t,j,:] = season_sin * allprec * 0.5 + allprec * 0.5 #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
 
    #
    # End of time loop
