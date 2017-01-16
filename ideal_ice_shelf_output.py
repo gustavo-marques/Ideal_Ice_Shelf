@@ -130,6 +130,9 @@ def driver(args):
    # compute total volume
    total_volume(ocean_area,h)
 
+   # compute mean sea level
+   mean_sea_level(ocean_area, h, args)
+
    # compute mean melt rate
    mean_melt_rate(melt,shelf_area)
    
@@ -232,11 +235,12 @@ def driver(args):
    saveXY(psi2D,'barotropicStreamfunction')
  
    # overturningStreamfunction
-   uh = Dataset(args.month_file).variables['uh'][:]
-   e = Dataset(args.month_file).variables['e'][:]
-   osf = get_OSF(uh,e,h,x[0,:],y[:,0])
-   osf = np.ma.masked_where(osf==0.0, osf)
-   saveXY(osf,'overturningStreamfunction')
+   
+   #uh = Dataset(args.month_file).variables['uh'][:]
+   #e = Dataset(args.month_file).variables['e'][:]
+   #osf = get_OSF(uh,e,h,x[0,:],y[:,0])
+   #osf = np.ma.masked_where(osf==0.0, osf)
+   #saveXY(osf,'overturningStreamfunction')
 
    print('Done!')
    return
@@ -404,6 +408,25 @@ def total_volume(area,h):
     ncwrite(name,'totalOceanVolume',vol)
     return
 
+def mean_sea_level(area,h,args):
+    '''
+    Compute mean sea level with respect to initial condition
+    '''
+    area = area=np.resize(area,h.shape)
+    h0 = Dataset(args.icfile).variables['h'][0,:]
+    vol0 = (area[0,:] * h0).sum()
+    print('Domain area (m^2) is: '+str(area[0,:].sum()))
+    print('Initial total volume (m^3) is: '+str(vol0))
+    vol = np.zeros(h.shape[0])
+    sl = np.zeros(h.shape[0])
+    for t in range(len(vol)):
+        vol[t] = (area[t,:] * h[t,:]).sum()
+        sl[t] = (vol[t] - vol0) / area[0,:].sum()
+        print('Mean sea level (m) at t='+str(t)+' is:'+str(sl[t]))
+
+    ncwrite(name,'meanSeaLevel',sl)
+    return
+
 def ncwrite(name,var_name,data):
     '''
     Write data (with var_name) into netCDF file (name.nc).
@@ -484,8 +507,8 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    # dimensions
    nx = args.nx ; ny = args.ny ; nz = args.nz
    # create dimensions.
-   #ncfile.createDimension('nTime', None)
-   ncfile.createDimension('nTime', len(ocean_time))
+   #ncfile.createDimension('time', None)
+   ncfile.createDimension('time', len(ocean_time))
    ncfile.createDimension('nx',nx)
    ncfile.createDimension('ny',ny)
    ncfile.createDimension('nz',nz)
@@ -504,64 +527,69 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    z.description = 'z location of cell centers'
    z.long_name = 'z location of cell centers'
 
-   time = ncfile.createVariable('time',np.dtype('float32').char,('nTime'))
+   time = ncfile.createVariable('time',np.dtype('float32').char,('time'))
    time.units = 's'
    time.description = 'time since start of simulation'
    time.long_name = 'time since start of simulation'
 
-   meanMeltRate = ncfile.createVariable('meanMeltRate',np.dtype('float32').char,('nTime'))
+   meanMeltRate = ncfile.createVariable('meanMeltRate',np.dtype('float32').char,('time'))
    meanMeltRate.units = 'm/s'; meanMeltRate.description = 'mean melt rate averaged over area of floating ice, positive for melting'
-   totalMeltFlux = ncfile.createVariable('totalMeltFlux',np.dtype('float32').char,('nTime'))
+   totalMeltFlux = ncfile.createVariable('totalMeltFlux',np.dtype('float32').char,('time'))
    totalMeltFlux.units = 'kg/s'; totalMeltFlux.description = 'total flux of melt water summed over area of floating ice, positive for melting'
-   totalOceanVolume = ncfile.createVariable('totalOceanVolume',np.dtype('float32').char,('nTime'))   
+   
+   totalOceanVolume = ncfile.createVariable('totalOceanVolume',np.dtype('float32').char,('time'))   
    totalOceanVolume.units = 'm^3'; totalOceanVolume.description = 'total volume of ocean'
-   meanTemperature = ncfile.createVariable('meanTemperature',np.dtype('float32').char,('nTime'))
+
+   meanSeaLevel = ncfile.createVariable('meanSeaLevel',np.dtype('float32').char,('time'))
+   meanSeaLevel.units = 'm'; meanSeaLevel.description = 'mean sea level wrt IC'
+
+   meanTemperature = ncfile.createVariable('meanTemperature',np.dtype('float32').char,('time'))
    meanTemperature.units = 'deg C'; meanTemperature.description = 'the potential temperature averaged over the ocean volume'
-   meanSalinity = ncfile.createVariable('meanSalinity',np.dtype('float32').char,('nTime'))
+   meanSalinity = ncfile.createVariable('meanSalinity',np.dtype('float32').char,('time'))
    meanSalinity.units = 'PSU'; meanSalinity.description = 'the salinity averaged over the ocean volume'
    if (type == 'ocean3' or type == 'ocean4'):
-     iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('nTime','ny','nx'))  
-     bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('nTime','ny','nx'))
+     iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('time','ny','nx'))  
+     bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('time','ny','nx'))
    else:
      iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('ny','nx')) 
      bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('ny','nx'))  
    iceDraft.units = 'm'; iceDraft.description = 'elevation of the ice-ocean interface'
    bathymetry.units = 'm'; bathymetry.description = 'elevation of the bathymetry'
-   meltRate = ncfile.createVariable('meltRate',np.dtype('float32').char,('nTime','ny','nx'))
+   meltRate = ncfile.createVariable('meltRate',np.dtype('float32').char,('time','ny','nx'))
    meltRate.units = 'm/s'; meltRate.description = 'melt rate, positive for melting'
-   frictionVelocity = ncfile.createVariable('frictionVelocity',np.dtype('float32').char,('nTime','ny','nx'))
+   frictionVelocity = ncfile.createVariable('frictionVelocity',np.dtype('float32').char,('time','ny','nx'))
    frictionVelocity.units = 'm/s'; frictionVelocity.description = 'friction velocity u* used in melt calculations'
-   thermalDriving = ncfile.createVariable('thermalDriving',np.dtype('float32').char,('nTime','ny','nx'))
+   thermalDriving = ncfile.createVariable('thermalDriving',np.dtype('float32').char,('time','ny','nx'))
    thermalDriving.units = 'deg C'; thermalDriving.description = 'thermal driving used in the melt calculation'
-   halineDriving = ncfile.createVariable('halineDriving',np.dtype('float32').char,('nTime','ny','nx'))
+   halineDriving = ncfile.createVariable('halineDriving',np.dtype('float32').char,('time','ny','nx'))
    halineDriving.units = 'PSU';  halineDriving.description = 'haline driving used in the melt calculation'
-   uBoundaryLayer = ncfile.createVariable('uBoundaryLayer',np.dtype('float32').char,('nTime','ny','nx'))
+   uBoundaryLayer = ncfile.createVariable('uBoundaryLayer',np.dtype('float32').char,('time','ny','nx'))
    uBoundaryLayer.units = 'm/s'; uBoundaryLayer.description = 'x-velocity in the boundary layer used to compute u*'
-   vBoundaryLayer = ncfile.createVariable('vBoundaryLayer',np.dtype('float32').char,('nTime','ny','nx'))
+   vBoundaryLayer = ncfile.createVariable('vBoundaryLayer',np.dtype('float32').char,('time','ny','nx'))
    vBoundaryLayer.units = 'm/s'; vBoundaryLayer.description = 'y-velocity in the boundary layer used to compute u*'
-   barotropicStreamfunction = ncfile.createVariable('barotropicStreamfunction',np.dtype('float32').char,('nTime','ny','nx'))
+   barotropicStreamfunction = ncfile.createVariable('barotropicStreamfunction',np.dtype('float32').char,('time','ny','nx'))
    barotropicStreamfunction.units = 'm^3/s'; barotropicStreamfunction.description = 'barotropic streamfunction'
    
    # As of now we need to compute overturningStreamfunction in the native grid
-   overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('nTime','nz','nx'))
+   overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('time','nz','nx'))
    
    overturningStreamfunction.units = 'm^3/s'
    overturningStreamfunction.description = 'overturning (meridional) streamfunction'
    overturningStreamfunction.long_name = 'overturning (meridional) streamfunction'
-   #overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('nTime','nz','nx'))
+   #overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('time','nz','nx'))
    #overturningStreamfunction.units = 'm^3/s'; overturningStreamfunction.description = 'overturning (meridional) streamfunction'
 
-   bottomTemperature = ncfile.createVariable('bottomTemperature',np.dtype('float32').char,('nTime','ny','nx'))   
+   bottomTemperature = ncfile.createVariable('bottomTemperature',np.dtype('float32').char,('time','ny','nx'))   
    bottomTemperature.units = 'deg C'; bottomTemperature.description = 'temperature in the bottom grid cell of each ocean column'
-   bottomSalinity = ncfile.createVariable('bottomSalinity',np.dtype('float32').char,('nTime','ny','nx'))   
+   bottomSalinity = ncfile.createVariable('bottomSalinity',np.dtype('float32').char,('time','ny','nx'))   
    bottomSalinity.units = 'PSU'; bottomSalinity.description = 'salinity in the bottom grid cell of each ocean column'
-   #temperatureXZ = ncfile.createVariable('temperatureXZ',np.dtype('float32').char,('nTime','nz','nx'))
+   #temperatureXZ = ncfile.createVariable('temperatureXZ',np.dtype('float32').char,('time','nz','nx'))
    #temperatureXZ.units = 'deg C'; temperatureXZ.description = 'temperature slice in x-z plane through the center of the domain (y = 40 km)'
-   #salinityXZ = ncfile.createVariable('salinityXZ',np.dtype('float32').char,('nTime','nz','nx'))
+   #salinityXZ = ncfile.createVariable('salinityXZ',np.dtype('float32').char,('time','nz','nx'))
    #salinityXZ.units = 'PSU'; salinityXZ.description = 'salinity slice in x-z plane through the center of the domain (y = 40 km)'
-   #temperatureYZ = ncfile.createVariable('temperatureYZ',np.dtype('float32').char,('nTime','nz','ny'))
+   #temperatureYZ = ncfile.createVariable('temperatureYZ',np.dtype('float32').char,('time','nz','ny'))
    #temperatureYZ.units = 'deg C'; temperatureYZ.description = 'temperature slice in y-z plane through x = 500 km'
-   #salinityYZ = ncfile.createVariable('salinityYZ',np.dtype('float32').char,('nTime','nz','ny'))
+   #salinityYZ = ncfile.createVariable('salinityYZ',np.dtype('float32').char,('time','nz','ny'))
    #salinityYZ.units = 'PSU'; salinityYZ.description = 'salinity slice in y-z plane through x = 500 km'
 
    # write data to coordinate vars.
@@ -578,13 +606,8 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    y[:] = np.arange((lat[0]-(lat[1]-lat[0])*0.5)+dy*0.5,L,dy)*1.0e3
    z[:] = -np.arange(0.5*dz,max_depth,dz) 
    # time since start of simulation
-   time[0] = 0.
-   time[1::] = ocean_time[0:-1] * 3600 * 24 # in secs
-   #time[:] = np.array([0, 2678400, 5097600, 7776000, 1.0368e+07, 1.30464e+07, 1.56384e+07,1.83168e+07, 2.09952e+07, 2.35872e+07, 2.62656e+07, 2.88576e+07])
+   time[:] = ocean_time[:]/365.# in years
 
-   # assign zero to variables 
-   #meanMeltRate[:] = np.zeros(len(time))
-   #totalMeltFlux[:] = np.zeros(len(time))
    # close the file.
    ncfile.close()
    print ('*** SUCCESS creating '+exp_name+'.nc!')
