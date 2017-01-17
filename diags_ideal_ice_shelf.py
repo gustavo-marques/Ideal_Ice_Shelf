@@ -40,8 +40,6 @@ def parseCommandLine():
   parser.add_argument('-cshelf_lenght', type=float, default=470.,
      help='''Continental shelf lenght in the y direction (km). Default is 470.''')
 
-  parser.add_argument('-MO_lenght', help='''If true, compute the Monin-Obukhov lenght scake.''', action="store_true")
-
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
@@ -67,6 +65,8 @@ def driver(args):
 
    # create arrays
    salt_flux = np.zeros(len(time)); var.append('salt_flux'); varname.append('totalSaltFlux')
+   FW_IS = np.zeros(len(time)); var.append('FW_IS'); varname.append('FwIS')
+   FW = np.zeros(len(time)); var.append('FW'); varname.append('totalFw')
    polynya_area = np.zeros(len(time)); var.append('polynya_area'); varname.append('polynyaArea')
    ice_area = np.zeros(len(time)); var.append('ice_area'); varname.append('seaiceArea')
    ice_volume = np.zeros(len(time)); var.append('ice_volume'); varname.append('seaiceVolume')
@@ -81,10 +81,14 @@ def driver(args):
    oht2 = np.zeros(len(time)); var.append('oht2'); varname.append('OHT_ice_shelf')
    AABW_transp_x = np.zeros((len(time),len(x)))
    AABW_h = np.zeros((len(time),len(x)))
-   # optional diags
-   if args.MO_lenght:
-      MO_lenght = np.zeros((len(time),len(y),len(x)))
-      var.append('MO_lenght'); varname.append('Monin_Obukhov_lenght')
+   MO_lenght = np.zeros((len(time),len(y),len(x)))
+   var.append('MO_lenght'); varname.append('Monin_Obukhov_lenght')
+   B0 = np.zeros((len(time),len(y),len(x)))
+   var.append('B0'); varname.append('B0')
+   B0_mean = np.zeros(len(time)); var.append('B0_mean'); varname.append('B0_mean')
+   B0_shelf_mean = np.zeros(len(time)); var.append('B0_shelf_mean'); varname.append('B0_shelf_mean')
+   B0_IS_mean = np.zeros(len(time))
+   var.append('B0_IS_mean'); varname.append('B0_iceshelf_mean')
 
    # loop in time
    for t in range(len(time)):
@@ -99,6 +103,9 @@ def driver(args):
 	   temp = mask_bad_values(Dataset(args.prog_file).variables['temp'][t,:])
 	   salt = mask_bad_values(Dataset(args.prog_file).variables['salt'][t,:])
 	   e = Dataset(args.prog_file).variables['e'][t,:]
+	   mass_flux = mask_bad_values(Dataset(args.prog_file).variables['mass_flux'][t,:])
+           # PRCmE: net surface water flux (lprec + melt + lrunoff - evap + calcing)
+	   PRCmE = mask_bad_values(Dataset(args.sfc_file).variables['PRCmE'][t,:])
            depth = 0.5*(e[0:-1,:,:]+e[1::,:,:]) # vertical pos. of cell
 	   #tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
 
@@ -115,11 +122,10 @@ def driver(args):
            SHT_ice_shelf[t] = get_total_transp(y,vh,args.ISL,1) # southward
            oht1[t] = get_oht(temp,salt,depth,vh,y,y_loc = 460.)
            oht2[t] = get_oht(temp,salt,depth,vh,y,y_loc = args.ISL)
+           FW_IS[t], FW[t] = get_fw(PRCmE,mass_flux,x,y)
 
-           # optional diags
-           if args.MO_lenght:
-
-              MO_lenght[t,:,:] = compute_MO_lenght(temp[0,:],salt[0,:],depth[0,:],t,args)
+           #return l, B0, B0.mean(), B0_shelf, B0_IS
+           MO_lenght[t,:], B0[t,:], B0_mean[t], B0_shelf_mean[t], B0_IS_mean[t] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
 
 
    if args.energy:
@@ -140,10 +146,21 @@ def driver(args):
 
    print 'Done!'
 
-def compute_MO_lenght(temp,salt,depth,t,args):
+def get_fw(PRCmE,mass_flux,x,y):
     '''
-    Compute the Monin-Obukhov lenght scale
+    Compute diags. related to freshwater/melt fluxes.
     '''
+    area = np.ones(PRCmE.shape) * (x[1]-x[0]) * (y[1]-y[0]) * 1.0e3 # in m^2
+    net = (area * PRCmE).sum()
+    fw_is = mass_flux.sum()
+    return fw_is, net
+
+def compute_B0_MO_lenght(temp,salt,PRCmE,depth,t,y,args):
+    '''
+    Compute net surface buoyancy flux and Monin-Obukhov lenght scale
+    '''
+    tmp1 = np.nonzero(y<=args.ISL)[0][-1]
+    tmp2 = np.nonzero(y<=args.cshelf_lenght)[0][-1]
     # constants
     rho_0 = 1028.0
     vonKar = 0.41
@@ -155,21 +172,22 @@ def compute_MO_lenght(temp,salt,depth,t,args):
     alpha = eos.alpha_wright_eos(temp,salt,p)/rho_0
     print 'depth, beta, alpha',depth.min(), depth.max(), beta.min(), beta.max(), alpha.min(), alpha.max()
     # load local data
-    ustar = mask_bad_values(Dataset(args.prog_file).variables['ustar_shelf'][t,:])    
-    lprec = mask_bad_values(Dataset(args.sfc_file).variables['lprec'][t,:])    
+    ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])    
     sensible = mask_bad_values(Dataset(args.sfc_file).variables['sensible'][t,:])    
+    latent = mask_bad_values(Dataset(args.sfc_file).variables['latent'][t,:])    
     shelf_area = Dataset(args.ice_shelf_file).variables['shelf_area'][0,:]
+    # buoyancy flux
+    B0 = -g * (alpha*(-(sensible + latent)/(rho_0 * Cp)) - beta*(PRCmE*salt/rho_0))
+    B0_shelf = B0[tmp1:tmp2,:].mean()
+    B0_IS = B0[0:tmp1,:].mean()
     # Monin-Obukhov Length
-    B0 = -g * (alpha*(-sensible/(rho_0 * Cp)) - beta*(lprec*salt/rho_0))
     l = ustar**3/(vonKar * B0)
     # mask values outside cavity
     l[l==0.0] = -1e+34
 #    l = np.ma.masked_where(depth == depth.max(), l)
-#    l = np.ma.masked_where(shelf_area == 0.0, l)
-    
-    print 'Monin-Obukhov Length min/max',l.min(), l.max()
+#    print 'Monin-Obukhov Length min/max',l.min(), l.max()
 
-    return l
+    return l, B0, B0.mean(), B0_shelf, B0_IS
 
 def ncwrite(name,var_name,data):
     '''
@@ -397,6 +415,11 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    CDW = ncfile.createVariable('CDW',np.dtype('float32').char,('time'))
    CDW.units = 'sv'; CDW.description = 'Onshore transport of CDW computed at the shelf break'
 
+   FwIS = ncfile.createVariable('FwIS',np.dtype('float32').char,('time'))
+   FwIS.units = 'kg/s'; FwIS.description = 'Total mass flux of freshwater across the ice-ocean interface.'
+   totalFw = ncfile.createVariable('totalFw',np.dtype('float32').char,('time'))
+   totalFw.units = 'kg/s'; totalFw.description = 'Total net mass flux of freshwater across the entire domain (lprec+melt).'
+
    NorthwardTranspShelf = ncfile.createVariable('NorthwardTranspShelf',np.dtype('float32').char,('time'))
    NorthwardTranspShelf.units = 'sv' 
    NorthwardTranspShelf.description = 'Northward cross-shelf volume transport computed at the shelf break'
@@ -434,11 +457,26 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    maxSeaiceThick = ncfile.createVariable('maxSeaiceThick',np.dtype('float32').char,('time'))
    maxSeaiceThick.units = 'm'; maxSeaiceThick.description = 'maximum sea ice thickness'
 
-   # optional diags
-   if args.MO_lenght:
-      Monin_Obukhov_lenght = ncfile.createVariable('Monin_Obukhov_lenght',np.dtype('float32').char,('time','ny','nx'))
-      Monin_Obukhov_lenght.units = 'm'
-      Monin_Obukhov_lenght.description = 'Monin-Obukhov lenght scale'
+   Monin_Obukhov_lenght = ncfile.createVariable('Monin_Obukhov_lenght',np.dtype('float32').char,('time','ny','nx'))
+   Monin_Obukhov_lenght.units = 'm'
+   Monin_Obukhov_lenght.description = 'Monin-Obukhov lenght scale'
+
+   B0 = ncfile.createVariable('B0',np.dtype('float32').char,('time','ny','nx'))
+   B0.units = 'm2/s3'
+   B0.description = 'Net surface buoyancy flux'
+
+   B0_mean = ncfile.createVariable('B0_mean',np.dtype('float32').char,('time'))
+   B0_mean.units = 'm2/s3'
+   B0_mean.description = 'Domain ave. net surface buoyancy flux'
+
+   B0_shelf_mean = ncfile.createVariable('B0_shelf_mean',np.dtype('float32').char,('time'))
+   B0_shelf_mean.units = 'm2/s3'
+   B0_shelf_mean.description = 'Net surface buoyancy flux ave. within the shelf region'
+
+   B0_iceshelf_mean = ncfile.createVariable('B0_iceshelf_mean',np.dtype('float32').char,('time'))
+   B0_iceshelf_mean.units = 'm2/s3'
+   B0_iceshelf_mean.description = 'Net surface buoyancy flux ave. within the ice shelf region'
+
       
    # write data to coordinate vars.
    x[:] = xx[:]
