@@ -108,8 +108,11 @@ def parseCommandLine():
   parser.add_argument('-dt3', type=float, default=10,
       help='''Change in temp (Celcius) at northern boundary. Default is 10''')
 
-  parser.add_argument('-liq_prec', type=float, default=2.5e-5,
-      help='''Max. liquid precipitation (kg/(m^2 s)). Default is 2.5e-5.''')
+  parser.add_argument('-liq_prec', type=float, default=1.0e-5,
+      help='''Max. liquid precipitation (kg/(m^2 s)). Default is 1e-5.''')
+
+  parser.add_argument('-frozen_prec', type=float, default=5.0e-6,
+      help='''Max. frozen precipitation (kg/(m^2 s)). Default is 5e-6.''')
 
   parser.add_argument('-land_width', type=float, default=100.0,
       help='''Widht of land region next to ice shelf (km)- this also controls the shape
@@ -122,8 +125,11 @@ def parseCommandLine():
   
   parser.add_argument('-add_seasonal_cycle', help='''Adds a seosonal cycle in  the forcing.''', action="store_true")
  
-  parser.add_argument('-forcing_period', type=float, default=60.83332,
-      help='''When -add_seasonal_cycle is used, this sets the forcing period (days). Default is 60.83332 (i.e., 365/12.).''')
+  parser.add_argument('-temp_forcing_period', type=float, default=60.83332,
+      help='''When -add_seasonal_cycle is used, this sets the surface temp. forcing period (days). Default is 60.83332 (i.e., 365/12.).''')
+
+  parser.add_argument('-wind_forcing_period', type=float, default=60.83332,
+      help='''When -add_seasonal_cycle is used, this sets the surface katabatic wind forcing period (days). Default is 60.83332 (i.e., 365/12.).''')
  
   parser.add_argument('-tauy_confined', help='''If true, tauy varies in x using a gaussian function.''', action="store_true")
   
@@ -896,7 +902,6 @@ def make_forcing(x,y,args):
    Ly = args.L # domain size km
    W = args.W # domain width km
    CSL = args.cshelf_lenght  # km
-   liq_prec = args.liq_prec # kg/(m^2 s)
    tau_asf = args.taux # default is 0.075 # N/m^2
    wind_x_max = args.wind_x_max
    tauy_max = args.tauy_max # def is 0.05 N/m2
@@ -934,16 +939,20 @@ def make_forcing(x,y,args):
    for t in range(nt):
      # wind and heat
      time_days[t] = t * 0.25
-     period = args.forcing_period # in days
+     temp_period = args.temp_forcing_period # in days
+     wind_period = args.wind_forcing_period # in days
      #print'Time:',time_days[t]
      temp_cos = 1 #np.cos(np.pi*time_days[t]/temp_period)**2
      wind_cos = 1 #np.cos(np.pi*time_days[t]/wind_period)**2
-     season_cos = np.cos(np.pi*time_days[t]/period)**2
-     season_sin = np.sin(np.pi*time_days[t]/period)**2
+     temp_season_cos = np.cos(np.pi*time_days[t]/temp_period)**2
+     temp_season_sin = np.sin(np.pi*time_days[t]/temp_period)**2
+     wind_season_cos = np.cos(np.pi*time_days[t]/wind_period)**2
+     wind_season_sin = np.sin(np.pi*time_days[t]/wind_period)**2
+   
      # temperatures, start with summer 
-     t1 = t1min + season_cos*dt1
-     t2 = t2min + season_cos*dt2
-     t3 = t3min + season_cos*dt3
+     t1 = t1min + temp_season_cos*dt1
+     t2 = t2min + temp_season_cos*dt2
+     t3 = t3min + temp_season_cos*dt3
 
      # wind x-dir
      if wind_y_max == 0.0: # mode 2 and mode 3
@@ -953,9 +962,10 @@ def make_forcing(x,y,args):
 
      Lasf = Ly - wind_x_pos #- 200.
      for j in range(ny):
-       if y[j] < wind_x_pos:
-	  tau_x[t,j,:] = 0.0
-	  wind_x[t,j,:] = 0.0
+       if y[j] > ISL and y[j] < wind_x_pos:
+          tmp = 1* np.pi*(y[j]-ISL)/(wind_x_pos - ISL)
+	  tau_x[t,j,:] = (tau_asf * np.sin(tmp))
+	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp))
        elif y[j] >= wind_x_pos and y[j] <= wind_x_pos + Lasf:
           tmp = 1* np.pi*(y[j]-wind_x_pos)/(Lasf)
 	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
@@ -971,7 +981,7 @@ def make_forcing(x,y,args):
      # katabatic
      # follow ~ http://journals.ametsoc.org/doi/pdf/10.1175/1520-0493(1994)122%3C0671%3ADOATDM%3E2.0.CO%3B2
      # # has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
-     W_v10 = 8000. # km
+     W_v10 = 20000. # km
      # tau_y and heat are zero at y = 300 and 400 km, respect.
      tmp = 400.0 - ISL; tmp1 = 400.0 - ISL
      tmp_inv = 1.0/tmp; tmp1_inv = 1.0/tmp1
@@ -979,7 +989,7 @@ def make_forcing(x,y,args):
      delta_tauy = tauy_max - tauy_min
      delta_wind_y = wind_y_max - wind_y_min
      # uncomment below to add variations in tauy
-     #delta_wind_y = delta_wind_y - (season_cos * delta_wind_y*0.5) # gets weaker in summer by 50%
+     #delta_wind_y = delta_wind_y - (wind_season_cos * delta_wind_y*0.75) # gets weaker in summer by 75%
      efold = args.tauy_efold  # km
 
      # exp decay forcing
@@ -1024,18 +1034,22 @@ def make_forcing(x,y,args):
 
 
      # lprec, fprec
-     allprec = args.liq_prec # lprec + fprec
+     lprec = args.liq_prec # lprec 
+     fprec = args.frozen_prec # lprec 
      #tmp = args.cshelf_lenght
      tmp = args.wind_x_pos  #- (season_cos * 200.)
      for j in range(ny):
 	if y[j] < wind_x_pos:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-	#elif y[j]>= wind_x_pos and y[j]< (Ly-sponge):
-        else:
+	elif y[j]>= wind_x_pos and y[j]< (Ly-sponge):
            #tmp = (Ly-sponge) - wind_x_pos
-	   liq[t,j,:] = season_cos * allprec + 1.0e-6#* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
-           snow[t,j,:] = season_sin * allprec * 0.5 + allprec * 0.5 #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
-
+	   #liq[t,j,:] = season_cos * lprec *2./3. + lprec * 1./3. #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
+	   liq[t,j,:] = lprec 
+           #snow[t,j,:] = season_sin * fprec  #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
+           snow[t,j,:] = fprec  
+        else:
+           liq[t,j,:] = 0.0
+           snow[t,j,:] = 0.0
    #
    # End of time loop
    #
@@ -1333,7 +1347,7 @@ def make_topo(x,y,args):
 
 
    if args.ice_shelf:
-     H1 = 300. # # depth increase under ice shelf
+     H1 = 200. # # depth increase under ice shelf
      ISL = args.ISL  # lenght of ice shelf cavity in m
      ymask = ISL 
      ymask2 = ISL #+ 100.
