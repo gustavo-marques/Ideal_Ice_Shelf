@@ -60,9 +60,6 @@ def parseCommandLine():
   parser.add_argument('-taux', type=float, default=-0.075,
       help='''Max. wind stress in x (Pa). Default is -0.075''')
 
-  parser.add_argument('-wind_x_max', type=float, default=-5.0,
-      help='''Max. wind vel in x (m/s). Default is -5.0''')
-
   parser.add_argument('-wind_x_pos', type=float, default=400.0,
       help='''Start position of x-wind (km). Default is 400.0''')
 
@@ -75,11 +72,23 @@ def parseCommandLine():
   parser.add_argument('-tauy_min', type=float, default=0.001,
       help='''Min. (katabatic) wind stress in y (Pa). Default is 0.001''')
   
-  parser.add_argument('-wind_y_max', type=float, default=7.5,
-      help='''Max. (katabatic) wind vel. in y (m/s). Default is 7.5''')
+  parser.add_argument('-w1min', type=float, default=7.5,
+      help='''Min. (katabatic) wind mag. in y (m/s). Default is 7.5''')
 
-  parser.add_argument('-wind_y_min', type=float, default=0.0,
-      help='''Min. (katabatic) wind vel. in y (m/s). Default is 0.0''')
+  parser.add_argument('-dw1', type=float, default=0.0,
+      help='''Change in the katabatic wind mag. in y (m/s). Default is 0.0''')
+
+  parser.add_argument('-w2min', type=float, default=-5.0,
+      help='''Min. along-shore wind mag., south of shelf break (m/s). Default is -5.0''')
+
+  parser.add_argument('-dw2', type=float, default=0.0,
+      help='''Change in the along-shore wind mag., south of shelf break (m/s). Default is 0.0''')
+
+  parser.add_argument('-w3min', type=float, default=-5.0,
+      help='''Min. ASF along-shore wind mag. (m/s). Default is -5.0''')
+
+  parser.add_argument('-dw3', type=float, default=0.0,
+      help='''Change in the ASF along-shore wind mag. (m/s). Default is 0.0''')
 
   parser.add_argument('-L', type=float, default=1200.,
       help='''Domain lenght in the y direction (km). Default is 1.2E3''')
@@ -156,6 +165,8 @@ def parseCommandLine():
   parser.add_argument('-mean_profile', help='''The initial T/S profiles is contructed using time-averages.''', action="store_true")
   
   parser.add_argument('-ts_restart', help='''The initial T/S profiles is contructed from a file a given file (-ts_file).''', action="store_true")
+  
+  parser.add_argument('-restart_time_indice', type=int, default=-1, help='''The time indice for temp/salt in the restart file (-ts_file). Default is -1.''')
 
   parser.add_argument('-ts_file', type=str, default='',
       help='''Path and name of ocean_month_z file that will be used to generate the initial T/S. Default is empty.''')
@@ -624,9 +635,10 @@ def make_ts_restart(x,y,args):
    print 'Processing ', args.ts_file + ', this might take a while...'
    xh = Dataset(args.ts_file).variables['xh'][:]
    yh = Dataset(args.ts_file).variables['yh'][:]
-   zl = Dataset(args.ts_file).variables['z_l'][:]
-   temp = Dataset(args.ts_file).variables['temp'][-1,:]
-   salt = Dataset(args.ts_file).variables['salt'][-1,:]
+   zl = Dataset(args.ts_file).variables['zt'][:]
+   t = args.restart_time_indice
+   temp = Dataset(args.ts_file).variables['temp'][t,:]
+   salt = Dataset(args.ts_file).variables['salt'][t,:]
 
    XH,YH = np.meshgrid(xh,yh)
    # 3D fields where data will be interpolated 
@@ -903,11 +915,8 @@ def make_forcing(x,y,args):
    W = args.W # domain width km
    CSL = args.cshelf_lenght  # km
    tau_asf = args.taux # default is 0.075 # N/m^2
-   wind_x_max = args.wind_x_max
    tauy_max = args.tauy_max # def is 0.05 N/m2
    tauy_min = args.tauy_min  # min northward wind
-   wind_y_max = args.wind_y_max
-   wind_y_min = args.wind_y_min
    sponge = args.sponge_width # 100 km
    ISL = args.ISL
    nx = len(x); ny = len(y)
@@ -926,6 +935,7 @@ def make_forcing(x,y,args):
    tau_y = np.zeros((nt,ny,nx))
    liq = np.zeros((nt,ny,nx))
    snow = np.zeros((nt,ny,nx))
+   salt = np.zeros((nt,ny,nx))
 
    # atm params
    t1min = celcius_to_kelvin(args.t1min) # -40
@@ -934,6 +944,13 @@ def make_forcing(x,y,args):
    dt2 = args.dt2 # 20
    t3min = celcius_to_kelvin(args.t3min) # 0
    dt3 = args.dt3 # 10
+
+   w1min = args.w1min
+   dw1 = args.dw1
+   w2min = args.w2min
+   dw2 = args.dw2
+   w3min = args.w3min
+   dw3 = args.dw3
 
    # loop in time
    for t in range(nt):
@@ -954,9 +971,15 @@ def make_forcing(x,y,args):
      t2 = t2min + temp_season_cos*dt2
      t3 = t3min + temp_season_cos*dt3
 
+     # winds
+     w1 = w1min + wind_season_cos*dw1 # katabatic
+     w2 = w2min + wind_season_cos*dw2 # along-slope south of CS break
+     w3 = w3min + wind_season_cos*dw3 # ASF
+
      # wind x-dir
-     if wind_y_max == 0.0: # mode 2 and mode 3
+     if w1 == 0.0: # mode 2 and mode 3
         wind_x_pos = args.ISL #- (season_cos * 200.) # x wind moves with season
+        wind_x_pos = args.wind_x_pos
      else: # mode1
         wind_x_pos = args.wind_x_pos
 
@@ -964,12 +987,12 @@ def make_forcing(x,y,args):
      for j in range(ny):
        if y[j] > ISL and y[j] < wind_x_pos:
           tmp = 1* np.pi*(y[j]-ISL)/(wind_x_pos - ISL)
-	  tau_x[t,j,:] = (tau_asf * np.sin(tmp))
-	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp))
+	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) # not time dependent
+	  wind_x[t,j,:] = (w2 * np.sin(tmp))
        elif y[j] >= wind_x_pos and y[j] <= wind_x_pos + Lasf:
           tmp = 1* np.pi*(y[j]-wind_x_pos)/(Lasf)
-	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) 
-	  wind_x[t,j,:] = (wind_x_max * np.sin(tmp)) 
+	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) # not time dependent
+	  wind_x[t,j,:] = (w3 * np.sin(tmp)) 
        else:
 	  tau_x[t,j,:] = 0.0
 	  wind_x[t,j,:] = 0.0
@@ -986,8 +1009,8 @@ def make_forcing(x,y,args):
      tmp = 400.0 - ISL; tmp1 = 400.0 - ISL
      tmp_inv = 1.0/tmp; tmp1_inv = 1.0/tmp1
 
-     delta_tauy = tauy_max - tauy_min
-     delta_wind_y = wind_y_max - wind_y_min
+     #delta_tauy = tauy_max - tauy_min
+     #delta_wind_y = wind_y_max - wind_y_min
      # uncomment below to add variations in tauy
      #delta_wind_y = delta_wind_y - (wind_season_cos * delta_wind_y*0.75) # gets weaker in summer by 75%
      efold = args.tauy_efold  # km
@@ -999,26 +1022,26 @@ def make_forcing(x,y,args):
             if args.tauy_confined:
                 for i in range(nx):
                    tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
-                   wind_y[t,j,i] = (delta_wind_y * wind_cos * tmp1) + wind_y_min
+                   wind_y[t,j,i] = (w1 * tmp1) 
             else:
-	        wind_y[t,j,:] = (delta_wind_y * wind_cos) + wind_y_min
+	        wind_y[t,j,:] = w1 #(delta_wind_y * wind_cos) + wind_y_min
 	 #elif y[j] >= ISL+efold and y[j] <= wind_x_pos:
 	 else:
 	    t_bot[t,j,:] = (t1 - t2) * np.exp(-(y[j]-ISL-efold)/(efold)) + t2 
             if args.tauy_confined:
-               # NOT TIME DEPENDENT YET
                for i in range(nx):
                    tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
                    #tau_y[t,j,i] = (((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
                    #         * tmp1) * wind_cos) + tauy_min
-                   wind_y[t,j,i] = (((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
-                            * tmp1) * wind_cos) + wind_y_min
+                   #wind_y[t,j,i] = (((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+                   #         * tmp1) * wind_cos) + wind_y_min
+                   wind_y[t,j,i] = w1 * np.exp(-(y[j]-ISL-efold)/(2*efold)) * tmp1
             else:
                #tau_y[t,j,:] = ((delta_tauy * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
                #               * wind_cos) + tauy_min
-               wind_y[t,j,:] = ((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
-                              * wind_cos) + wind_y_min
-
+               #wind_y[t,j,:] = ((delta_wind_y * np.exp(-(y[j]-ISL-efold)/(2*efold))) \
+               #               * wind_cos) + wind_y_min
+               wind_y[t,j,:] = w1 * np.exp(-(y[j]-ISL-efold)/(2*efold))
          #else: # linear
          #   t2_tmp = (t1 - t2) * np.exp(-(500.-ISL-efold)/(efold)) + t2
          #   t_bot[t,j,:] =  ((t3-t2_tmp)/(Ly-500))*(y[j]-500.)+ t2_tmp
@@ -1050,6 +1073,10 @@ def make_forcing(x,y,args):
         else:
            liq[t,j,:] = 0.0
            snow[t,j,:] = 0.0
+
+     for j in range(ny):
+        if y[j] > ISL and y[j] <= ISL + 50.:
+           salt[t,j,:] = 5.0e-6
    #
    # End of time loop
    #
@@ -1157,7 +1184,12 @@ def make_forcing(x,y,args):
    v_10.long_name = 'V wind'
    v_10.units = 'm/s'
    v_10[:] = wind_y[:]
-   
+  
+   salt_flux = ncfile.createVariable('salt_flux',np.dtype('float32').char,('TIME', 'LAT', 'LON'))
+   salt_flux.units = 'kg/(m^2 s)'
+   salt_flux.long_name = 'salt flux'
+   salt_flux[:] = salt # + adds salt from ocean
+ 
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
@@ -1246,7 +1278,7 @@ def make_forcing(x,y,args):
      salt_flux.units = 'kg/(m^2 s)'
      salt_flux.missing_value = 1.e+20
      salt_flux.long_name = 'salt flux'
-     salt_flux[:] = 0.0 # + adds salt from ocean
+     salt_flux[:] = 1.0e-5 # + adds salt from ocean
 
      lprec = ncfile.createVariable('lprec',np.dtype('float32').char,('time', 'yh', 'xh'), fill_value = 1.e+20)
      lprec.units = 'kg/(m^2 s)'
