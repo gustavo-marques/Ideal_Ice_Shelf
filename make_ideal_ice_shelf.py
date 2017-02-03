@@ -60,9 +60,6 @@ def parseCommandLine():
   parser.add_argument('-taux', type=float, default=-0.075,
       help='''Max. wind stress in x (Pa). Default is -0.075''')
 
-  parser.add_argument('-wind_x_pos', type=float, default=400.0,
-      help='''Start position of x-wind (km). Default is 400.0''')
-
   parser.add_argument('-tauy_max', type=float, default=0.05,
       help='''Max. (katabatic) wind stress in y (Pa). Default is 0.05''')
  
@@ -84,11 +81,23 @@ def parseCommandLine():
   parser.add_argument('-dw2', type=float, default=0.0,
       help='''Change in the along-shore wind mag., south of shelf break (m/s). Default is 0.0''')
 
+  parser.add_argument('-w2_y_lim', type=float, default=400.0,
+      help='''Location where w2 ends (km). Default is 400.0''')
+
   parser.add_argument('-w3min', type=float, default=-5.0,
-      help='''Min. ASF along-shore wind mag. (m/s). Default is -5.0''')
+      help='''Min. along-shore wind mag. at shelf break -> ASF (m/s). Default is -5.0''')
 
   parser.add_argument('-dw3', type=float, default=0.0,
-      help='''Change in the ASF along-shore wind mag. (m/s). Default is 0.0''')
+      help='''Change in the along-shore wind mag. at shelf break -> ASF (m/s). Default is 0.0''')
+
+  parser.add_argument('-w3_y_lim', type=float, default=650.0,
+      help='''Location where w3 ends (km). Default is 650.0''')
+
+  parser.add_argument('-w4min', type=float, default=5.0,
+      help='''Min. along-shore wind mag. at the ACC region (m/s). Default is 5.0''')
+
+  parser.add_argument('-dw4', type=float, default=0.0,
+      help='''Change in the along-shore wind mag. at the ACC region (m/s). Default is 0.0''')
 
   parser.add_argument('-L', type=float, default=1200.,
       help='''Domain lenght in the y direction (km). Default is 1.2E3''')
@@ -949,8 +958,12 @@ def make_forcing(x,y,args):
    dw1 = args.dw1
    w2min = args.w2min
    dw2 = args.dw2
+   w2_y_lim = args.w2_y_lim
    w3min = args.w3min
    dw3 = args.dw3
+   w3_y_lim = args.w3_y_lim
+   w4min = args.w4min
+   dw4 = args.dw4
 
    # loop in time
    for t in range(nt):
@@ -975,27 +988,33 @@ def make_forcing(x,y,args):
      w1 = w1min + wind_season_cos*dw1 # katabatic
      w2 = w2min + wind_season_cos*dw2 # along-slope south of CS break
      w3 = w3min + wind_season_cos*dw3 # ASF
+     w4 = w4min + wind_season_cos*dw4 # ACC
 
      # wind x-dir
-     if w1 == 0.0: # mode 2 and mode 3
-        wind_x_pos = args.ISL #- (season_cos * 200.) # x wind moves with season
-        wind_x_pos = args.wind_x_pos
-     else: # mode1
-        wind_x_pos = args.wind_x_pos
+     #if w1 == 0.0: # mode 2 and mode 3
+     #   wind_x_pos = args.ISL #- (season_cos * 200.) # x wind moves with season
+     #   wind_x_pos = args.wind_x_pos
+     #else: # mode1
+     #   wind_x_pos = args.wind_x_pos
 
-     Lasf = Ly - wind_x_pos #- 200.
+     Lw2 = w2_y_lim - ISL
+     Lw3 = w3_y_lim - w2_y_lim 
+     Lw4 = Ly - w3_y_lim 
      for j in range(ny):
-       if y[j] > ISL and y[j] < wind_x_pos:
-          tmp = 1* np.pi*(y[j]-ISL)/(wind_x_pos - ISL)
-	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) # not time dependent
-	  wind_x[t,j,:] = (w2 * np.sin(tmp))
-       elif y[j] >= wind_x_pos and y[j] <= wind_x_pos + Lasf:
-          tmp = 1* np.pi*(y[j]-wind_x_pos)/(Lasf)
-	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)) # not time dependent
-	  wind_x[t,j,:] = (w3 * np.sin(tmp)) 
-       else:
+       if y[j] <= ISL:
+          tau_x[t,j,:] = 0.0; wind_x[t,j,:] = 0.0
+       elif y[j] > ISL and y[j] <= w2_y_lim: # shelf wind
+          tmp = 1* np.pi*(y[j]-ISL)/(Lw2)
+	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)**2) # not time dependent
+	  wind_x[t,j,:] = (w2 * np.sin(tmp)**2)
+       elif y[j] > w2_y_lim and y[j] <= w3_y_lim: # shelf break wind (ASF)
+          tmp = 1* np.pi*(y[j]-w2_y_lim)/(Lw3)
+	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)**2) # not time dependent
+	  wind_x[t,j,:] = (w3 * np.sin(tmp)**2) 
+       else: # ACC
+          tmp = 1* np.pi*(y[j]-w3_y_lim)/(Lw4)
 	  tau_x[t,j,:] = 0.0
-	  wind_x[t,j,:] = 0.0
+	  wind_x[t,j,:] = (w4 * np.sin(tmp)**2)
 
      # heat
      # Follow http://onlinelibrary.wiley.com/doi/10.1002/wea.436/pdf
@@ -1060,11 +1079,10 @@ def make_forcing(x,y,args):
      lprec = args.liq_prec # lprec 
      fprec = args.frozen_prec # lprec 
      #tmp = args.cshelf_lenght
-     tmp = args.wind_x_pos  #- (season_cos * 200.)
      for j in range(ny):
-	if y[j] < wind_x_pos:
+	if y[j] < w2_y_lim:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-	elif y[j]>= wind_x_pos and y[j]< (Ly-sponge):
+	elif y[j]>= w2_y_lim and y[j]< (Ly-sponge):
            #tmp = (Ly-sponge) - wind_x_pos
 	   #liq[t,j,:] = season_cos * lprec *2./3. + lprec * 1./3. #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
 	   liq[t,j,:] = lprec 
@@ -1426,10 +1444,17 @@ def make_topo(x,y,args):
       xx = x - x_t
 
    for i in range(nx):
-       if x[i]<= (x_t):
-          trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+25.)/10.))
-       else:
-          trough[:,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-25.)/10.))
+     for j in range(ny):
+       if y[j]>(ISL + 100): # outside cavity
+         if x[i]<= (x_t):
+            trough[j,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+25.)/10.))
+         else:
+            trough[j,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-25.)/10.))
+       else: # under cavity
+         if x[i]<= (x_t):
+            trough[j,i] = D[j,i] + 0.5 * (200) * (1+np.tanh((xx[i]+25.)/10.))
+         else:
+            trough[j,i] = D[j,i] + 0.5 * (200) * (1-np.tanh((xx[i]-25.)/10.))
     
    tmp = np.nonzero(trough[0,:] > args.min_depth+0.5)[-1]
    if args.trough_setup == 4:
