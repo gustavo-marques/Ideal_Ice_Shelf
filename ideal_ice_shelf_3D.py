@@ -154,6 +154,7 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        # ocean
        # structure
        # layer thickness
+       file = netCDF4.Dataset(args.oceanfile)
        e=netCDF4.Dataset(args.oceanfile).variables['e'][t,:,:,:]
        h=netCDF4.Dataset(args.oceanfile).variables['h'][t,:,:,:]
        h_dum=numpy.abs(numpy.diff(e,axis=0))
@@ -161,8 +162,16 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        temp=netCDF4.Dataset(args.oceanfile).variables['temp'][t,:,:,:]
        salt=netCDF4.Dataset(args.oceanfile).variables['salt'][t,:,:,:]
        sig2=netCDF4.Dataset(args.oceanfile).variables['rhopot2'][t,:,:,:] - 1000.
-       tr2=netCDF4.Dataset(args.oceanfile).variables['tr2'][t,:,:,:]
-       tr3=netCDF4.Dataset(args.oceanfile).variables['tr3'][t,:,:,:]
+       if 'tr2' in file.variables:
+          tr2=netCDF4.Dataset(args.oceanfile).variables['tr2'][t,:,:,:]
+       else:
+          tr2=numpy.zeros(salt.shape)
+
+       if 'tr3' in file.variables:
+          tr3=netCDF4.Dataset(args.oceanfile).variables['tr3'][t,:,:,:]
+       else:
+          tr3=numpy.zeros(salt.shape)
+
        # for isopycnal models
        # temp, mark values where h_dum<10 cm with Nan
        temp[h_dum<0.01]=numpy.nan; salt[h_dum<0.01]=numpy.nan
