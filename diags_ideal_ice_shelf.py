@@ -170,7 +170,7 @@ def compute_B0_MO_lenght(temp,salt,PRCmE,depth,t,y,args):
     p = gsw.p_from_z(depth,-70.0) * 1.0e4 # in Pascal
     beta = eos.beta_wright_eos(temp,salt,p)/rho_0 
     alpha = eos.alpha_wright_eos(temp,salt,p)/rho_0
-    print 'depth, beta, alpha',depth.min(), depth.max(), beta.min(), beta.max(), alpha.min(), alpha.max()
+    #print 'depth, beta, alpha',depth.min(), depth.max(), beta.min(), beta.max(), alpha.min(), alpha.max()
     # load local data
     ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])    
     sensible = mask_bad_values(Dataset(args.sfc_file).variables['sensible'][t,:])    
@@ -232,7 +232,6 @@ def get_total_transp(y,vh,loc_y,opt):
          else: # mask northward flow
             vhnew = np.ma.masked_where(vh[:,tmp,:]>0.0, vh[:,tmp,:])
 
-         print 'loc,opt,transp',loc_y,opt,vhnew.sum()/1.0e6
          return vhnew.sum()/1.0e6 # in sv
 
 def get_CDW(x,y,vh,s,t,args):
@@ -258,9 +257,8 @@ def get_transport(x,y,vh,h,rhopot2,args):
          T = -0.75; S = 34.7
          rho_min = eos.wright_eos(T,S,2.0e7)-1000.
          rho_min = 37.18
-         print 'rho_min',rho_min
          rhopot2 = rhopot2 - 1000.0
-         print 'rhopot2',rhopot2.min(), rhopot2.max()
+         print 'rho_AABW, rhopot2 min/max',rho_min, rhopot2.min(), rhopot2.max()
 	 #dx = np.ones((h[:,0,:].shape)) * (x[1]-x[0]) * 1.0e3 # in m
          # end of cont. shelf
 	 tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
