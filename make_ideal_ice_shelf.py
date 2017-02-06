@@ -1455,31 +1455,33 @@ def make_topo(x,y,args):
             trough[j,i] = D[j,i] + 0.5 * (200) * (1+np.tanh((xx[i]+25.)/10.))
          else:
             trough[j,i] = D[j,i] + 0.5 * (200) * (1-np.tanh((xx[i]-25.)/10.))
-    
-   tmp = np.nonzero(trough[0,:] > args.min_depth+0.5)[-1]
-   if args.trough_setup == 4:
-      # center/right
-      tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
-      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-      trough[:,tmp1] = trough[:,tmp] 
-   elif args.trough_setup == 5:
-      # center/left
-      tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
-      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-      trough[:,tmp1] = trough[:,tmp]
-   elif args.trough_setup == 6:
-      # left/right
-      tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
-      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-      trough[:,tmp1] = trough[:,tmp]
-   elif args.trough_setup == 7:
-      # left/center/right
-      tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
-      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-      trough[:,tmp1] = trough[:,tmp] 
-      tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
-      tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-      trough[:,tmp1] = trough[:,tmp]
+   
+   for j in range(ny): 
+     #tmp = np.nonzero(trough[0,:] > args.min_depth+0.5)[-1]
+     tmp = np.nonzero(trough[j,:] > D[j,:].min()+0.5)[-1]
+     if args.trough_setup == 4:
+	# center/right
+	tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
+	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+	trough[j,tmp1] = trough[j,tmp] 
+     elif args.trough_setup == 5:
+	# center/left
+	tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+	trough[j,tmp1] = trough[j,tmp]
+     elif args.trough_setup == 6:
+	# left/right
+	tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+	trough[j,tmp1] = trough[j,tmp]
+     elif args.trough_setup == 7:
+	# left/center/right
+	tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+        trough[j,tmp1] = trough[j,tmp] 
+        tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
+        tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
+        trough[j,tmp1] = trough[j,tmp]
 
    if args.trough:
       for j in range(ny):
