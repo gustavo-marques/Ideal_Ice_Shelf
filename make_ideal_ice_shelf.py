@@ -1432,11 +1432,11 @@ def make_topo(x,y,args):
    trough = np.zeros((ny,nx))
    if args.trough_setup == 2 or args.trough_setup == 6:
       # right
-      x_t = args.W*0.8 
+      x_t = args.W*0.7 
       xx = x - x_t
    elif args.trough_setup == 3:
       # left
-      x_t = args.W*0.2
+      x_t = args.W*0.3
       xx = x - x_t
    else:
       # center (default)
@@ -1461,25 +1461,25 @@ def make_topo(x,y,args):
      tmp = np.nonzero(trough[j,:] > D[j,:].min()+0.5)[-1]
      if args.trough_setup == 4:
 	# center/right
-	tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
+	tmp1 = np.nonzero(x<=args.W*0.7)[0][-1]
 	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
 	trough[j,tmp1] = trough[j,tmp] 
      elif args.trough_setup == 5:
 	# center/left
-	tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+	tmp1 = np.nonzero(x<=args.W*0.3)[0][-1]
 	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
 	trough[j,tmp1] = trough[j,tmp]
      elif args.trough_setup == 6:
 	# left/right
-	tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+	tmp1 = np.nonzero(x<=args.W*0.3)[0][-1]
 	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
 	trough[j,tmp1] = trough[j,tmp]
      elif args.trough_setup == 7:
 	# left/center/right
-	tmp1 = np.nonzero(x<=args.W*0.2)[0][-1]
+	tmp1 = np.nonzero(x<=args.W*0.3)[0][-1]
 	tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
         trough[j,tmp1] = trough[j,tmp] 
-        tmp1 = np.nonzero(x<=args.W*0.8)[0][-1]
+        tmp1 = np.nonzero(x<=args.W*0.7)[0][-1]
         tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
         trough[j,tmp1] = trough[j,tmp]
 
