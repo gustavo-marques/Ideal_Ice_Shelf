@@ -33,10 +33,6 @@ def parseCommandLine():
 
   parser.add_argument('-ice_shelf_file', type=str, default='MOM_Shelf_IC.nc', help='''Name of the file that has the initial conditions for the ice shelf (default is MOM_Shelf_IC.nc).''')
 
-  parser.add_argument('-energy', type=str, default='', help='''Extract the total energy (KE + PE) per unit mass (m2 s-2) from the given file and plot it as a function of time.''')
-  
-  parser.add_argument('-total_tke', type=str, default='', help='''Plot the total domain turbulent kinetic energy per unit mass (m2 s-2) from the given file.''')
-
   parser.add_argument('-cshelf_lenght', type=float, default=470.,
      help='''Continental shelf lenght in the y direction (km). Default is 470.''')
 
@@ -127,14 +123,6 @@ def driver(args):
            #return l, B0, B0.mean(), B0_shelf, B0_IS
            MO_lenght[t,:], B0[t,:], B0_mean[t], B0_shelf_mean[t], B0_IS_mean[t] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
 
-
-   if args.energy:
-      print("Computing total energy...")
-      compute_energy(args)
-
-   if args.total_tke:
-      print("Computing turbulent kinetic energy...")
-      compute_total_tke(args)
 
    print 'Saving netcdf data...'
 
@@ -323,61 +311,6 @@ def get_ice_diags(x,y,CI_tot,HI):
         if ice_area is np.ma.masked: ice_area = 0.0
 
 	return ice_area,ice_volume
-
-def compute_total_tke(args):
-    file = args.total_tke
-    time = Dataset(file).variables['time'][:]
-    TKEu = np.zeros(len(time))
-    TKEv = np.zeros(len(time))
-    ubar = Dataset(file).variables['u'][0] * 0.; ubar2=0*ubar;
-    vbar = Dataset(file).variables['v'][0] * 0.; vbar2=0*vbar;
-    # using the following identity
-    # <u'^2> = <(u - ubar)^2>, where <> = domain ave; u' = u-ubar
-    #        = <u^2> - <ubar^2>
-    for t in range(len(time)):
-        print 'Time is (days):', time[t]
-        u = Dataset(file).variables['u'][t,:]
-        v = Dataset(file).variables['v'][t,:]
-        ubar = ubar + u
-        ubar2 = ubar2 + u*u
-        vbar = vbar + v
-        vbar2 = vbar2 + v*v
-   
-    ubar, vbar = ubar/len(time), vbar/len(time)
-    print 'Finish computing mean, now tke...'
-    for t in range(len(time)):
-        print 'Time is (days):', time[t]
-        u = Dataset(file).variables['u'][t,:]
-        v = Dataset(file).variables['v'][t,:]
-        up = (u - ubar)**2; vp = (v - vbar)**2
-        TKEu[t] = up.sum() 
-        TKEv[t] = vp.sum() 
-
-    if args.savefig:
-       # plot
-       plt.figure()
-       plt.plot(time/365.,TKEu,'r',lw=2.5)
-       plt.plot(time/365.,TKEv,'b',lw=2.5)
-       plt.xlabel('Time [years]')
-       plt.ylabel('Total TKE (red = u, blue = v) [m2 s-2]')
-       plt.grid()
-       plt.savefig(args.exp_name+'_total_tke.png')
-
-def compute_energy(args):
-    file = args.energy
-    os.system("awk '/MOM Day/{print $3}' " + file + " > tmp0" ) 
-    os.system("awk '/MOM Day/{print $6}' " + file + " > tmp1" ) 
-    os.system("awk -F',' '{print $1}' tmp1 > tmp2")
-    time = np.loadtxt('tmp0')/365. # in yr.
-    energy = np.loadtxt('tmp2')
-    os.system('rm tmp?')
-    if args.savefig:
-       plt.figure()
-       plt.plot(time,energy,lw=2.5)
-       plt.xlabel('Time [years]')
-       plt.ylabel('Total energy [m2 s-2]')
-       plt.grid()
-       plt.show()
 
 def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    """
