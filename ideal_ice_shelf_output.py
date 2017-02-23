@@ -120,6 +120,7 @@ def driver(args):
    mass_flux = Dataset(args.month_file).variables['mass_flux'][:]
    # mask open ocean and grounded ice
    ocean_area = mask_grounded_ice(ocean_area,depth,ice_base)
+   ocean_area = np.ma.masked_where(depth<10.,ocean_area)
    melt = mask_grounded_ice(melt,depth,ice_base)
    melt = mask_ocean(melt,shelf_area)
    # tracers
@@ -399,7 +400,7 @@ def mean_melt_rate(melt,area):
     return
 
 def total_volume(area,h):
-    area = area=np.resize(area,h.shape) 
+    area = np.resize(area,h.shape) 
     vol = np.zeros(h.shape[0])
     for t in range(len(vol)):
         vol[t] = (area[t,:] * h[t,:]).sum()
@@ -412,16 +413,16 @@ def mean_sea_level(area,h,args):
     '''
     Compute mean sea level with respect to initial condition
     '''
-    area = area=np.resize(area,h.shape)
+    #area = np.resize(area,h.shape)
     h0 = Dataset(args.icfile).variables['h'][0,:]
-    vol0 = (area[0,:] * h0).sum()
-    print('Domain area (m^2) is: '+str(area[0,:].sum()))
+    vol0 = (area * h0).sum()
+    print('Domain area (m^2) is: '+str(area.sum()))
     print('Initial total volume (m^3) is: '+str(vol0))
     vol = np.zeros(h.shape[0])
     sl = np.zeros(h.shape[0])
     for t in range(len(vol)):
-        vol[t] = (area[t,:] * h[t,:]).sum()
-        sl[t] = (vol[t] - vol0) / area[0,:].sum()
+        vol[t] = (area * h[t,:]).sum()
+        sl[t] = (vol[t] - vol0) / area.sum()
         print('Mean sea level (m) at t='+str(t)+' is:'+str(sl[t]))
 
     ncwrite(name,'meanSeaLevel',sl)
