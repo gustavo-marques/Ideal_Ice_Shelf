@@ -243,18 +243,25 @@ def make_ice_shelf(x,y,args):
    x = x * 1.0e3 # im m
    y = y * 1.0e3 # im m
    C = 1.4440e-06
-   H0 = 2000.0 #m
+   H0 = 3000.0 #m
    Q0 = 0.03327 #m^2/s
    gp = 20.e3 # grouding line position
    dy = y[1]-y[0]
    dx = x[1]-x[0]
-   Lice = 200.0e3
-   h =  H0 *(Q0)**(1./4.) / (Q0+100*H0**4*C**3*(y-gp))**(1./4.)
+   Lice = 190.0e3 # ~ location of ice shelf front. It will change because of smoothing
+   h =  H0 *(Q0)**(1./4.) / (Q0+25*H0**4*C**3*(y-gp))**(1./4.)
    h[y<gp] = H0
-   h[y>Lice] = 0.0 
+   h[y>Lice] = 0.0
+   h_smooth = h.copy() 
    # smooth
-   h_smooth = gaussian_filter(h,4)
-   h_smooth[y<gp] = H0
+   if dx > 2.0e3:
+      # Lice - 50.0e3 just smooth next to IS front
+      h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],2)
+      print 'h_smooth = gaussian_filter(h,2)'
+   else:
+      h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],4)
+      print 'h_smooth = gaussian_filter(h,4)'
+#   h_smooth[y<gp] = H0
    h_smooth[h_smooth<1.0] = 0.0
    # find meridional lenght of ice shelf
    tmp = np.nonzero(h_smooth==0.0)[0][0]
@@ -1397,12 +1404,13 @@ def make_topo(x,y,args):
 
 
    if args.ice_shelf:
-     H1 = 200. # # depth increase under ice shelf
+     H1 = 500. # # depth increase under ice shelf
      ISL = args.ISL  # lenght of ice shelf cavity in m
      ymask = ISL 
      ymask2 = ISL #+ 100.
      L1 = (ISL * 1.0e3)*2.0 
-     L1 = 300.0e3
+     L1 = 200.0e3 # location where shelf gets deeper under IS
+     Ld = 100.0e3 # decay in the tanh under IS
      #minor = 2*ISL
      #major = 200.0
      Wl = args.land_width # widht of land region next to ice shelf in km
@@ -1415,10 +1423,11 @@ def make_topo(x,y,args):
            x_tmp = X[0,i] - W*0.5
            land[i] = (ymask2*0.5) + (ymask2*0.5) * (np.tanh(((x_tmp-(W*0.5-Wl))/20.) + 1.0))
 
+     # deepening under IS
      for j in range(ny):
 	for i in range(nx):
             if Y[j,i]<= 400.:
-                D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1)/(50.e3)) - 1.0)
+                D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1)/(Ld)) - 1.0)
 
 	    if Y[j,i]<= ymask2: # depth under ice shelf or land
                 #if X[j,i]<= major*0.5 or X[j,i]>= (W-major*0.5): # add land mask
@@ -1447,14 +1456,14 @@ def make_topo(x,y,args):
      for j in range(ny):
        if y[j]>(ISL + 100): # outside cavity
          if x[i]<= (x_t):
-            trough[j,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+25.)/10.))
+            trough[j,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1+np.tanh((xx[i]+20.)/5.))
          else:
-            trough[j,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-25.)/10.))
+            trough[j,i] = args.min_depth + 0.5 * (700 - args.min_depth) * (1-np.tanh((xx[i]-20.)/5.))
        else: # under cavity
          if x[i]<= (x_t):
-            trough[j,i] = D[j,i] + 0.5 * (200) * (1+np.tanh((xx[i]+25.)/10.))
+            trough[j,i] = D[j,i] + 0.5 * (200) * (1+np.tanh((xx[i]+20.)/5.))
          else:
-            trough[j,i] = D[j,i] + 0.5 * (200) * (1-np.tanh((xx[i]-25.)/10.))
+            trough[j,i] = D[j,i] + 0.5 * (200) * (1-np.tanh((xx[i]-20.)/5.))
    
    for j in range(ny): 
      tmp = np.nonzero(trough[j,:] > D[j,:].min()+0.5)[-1]
@@ -1497,13 +1506,22 @@ def make_topo(x,y,args):
               if (trough[j,i] > D[j,i]): D[j,i] = trough[j,i]
  
    ##if args.trough:
-   # remove corners or "right angles" in the topography   
+   # remove corners or "right angles" in the topography  
+   # meridional dir. 
    for i in range(nx):
       tmp = np.nonzero(Y[:,i]>land[i])[0]
       if len(tmp)>1:
          D[tmp[0]::,i] = gaussian_filter(D[tmp[0]::,i],2)
       else:
          D[:,i] = gaussian_filter(D[:,i],2)
+
+   # zonal dir.
+   for j in range(ny):
+      tmp = np.nonzero(D[j,:]<0.5)[0]
+      if len(tmp)>1:
+         D[j,D[j,:]!=0.0] = gaussian_filter(D[j,D[j,:]!=0.0],1)
+      else:
+         D[j,:] = gaussian_filter(D[j,:],1)
 
    # to avoid sea ice formation under ice shelves,
    # two topography files need to be constructed.
