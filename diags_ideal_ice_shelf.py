@@ -50,6 +50,7 @@ def driver(args):
    x = Dataset(args.prog_file).variables['xh'][:] # in km
    y = Dataset(args.prog_file).variables['yh'][:]
    HI = Dataset(args.ice_file).variables['HI'][0,:]
+   shelf_area = Dataset(args.ice_shelf_file).variables['shelf_area'][0,:,:]
    # ice shelf lenth
    args.ISL = y[HI[:,0].mask == True][-1]
    name = args.exp_name
@@ -85,6 +86,8 @@ def driver(args):
    B0_shelf_mean = np.zeros(len(time)); var.append('B0_shelf_mean'); varname.append('B0_shelf_mean')
    B0_IS_mean = np.zeros(len(time))
    var.append('B0_IS_mean'); varname.append('B0_iceshelf_mean')
+   melt = np.zeros(len(time))
+   var.append('Melt'); varname.append('Melt')
 
    # loop in time
    for t in range(len(time)):
@@ -100,6 +103,7 @@ def driver(args):
 	   salt = mask_bad_values(Dataset(args.prog_file).variables['salt'][t,:])
 	   e = Dataset(args.prog_file).variables['e'][t,:]
 	   mass_flux = mask_bad_values(Dataset(args.prog_file).variables['mass_flux'][t,:])
+	   melt_all = mask_bad_values(Dataset(args.prog_file).variables['melt'][t,:])
            # PRCmE: net surface water flux (lprec + melt + lrunoff - evap + calcing)
 	   PRCmE = mask_bad_values(Dataset(args.sfc_file).variables['PRCmE'][t,:])
            depth = 0.5*(e[0:-1,:,:]+e[1::,:,:]) # vertical pos. of cell
@@ -119,7 +123,7 @@ def driver(args):
            oht1[t] = get_oht(temp,salt,depth,vh,y,y_loc = 460.)
            oht2[t] = get_oht(temp,salt,depth,vh,y,y_loc = args.ISL)
            FW_IS[t], FW[t] = get_fw(PRCmE,mass_flux,x,y)
-
+           melt[t] = get_melt(melt_all,shelf_area)
            #return l, B0, B0.mean(), B0_shelf, B0_IS
            MO_lenght[t,:], B0[t,:], B0_mean[t], B0_shelf_mean[t], B0_IS_mean[t] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
 
@@ -133,6 +137,15 @@ def driver(args):
        #ncwrite(name,varname,var)
 
    print 'Done!'
+
+def get_melt(melt_all,shelf_area):
+    '''
+    Compute the spatial mean ice shelf melting/freezing.
+    '''
+    melt_all = np.ma.masked_where(shelf_area == 0, melt_all)
+    print 'mean melt', melt_all.mean()
+
+    return melt_all.mean()
 
 def get_fw(PRCmE,mass_flux,x,y):
     '''
