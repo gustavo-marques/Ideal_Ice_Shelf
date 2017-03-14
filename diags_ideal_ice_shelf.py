@@ -7,7 +7,7 @@ import argparse
 from netCDF4 import MFDataset, Dataset
 import numpy as np
 import wright_eos as eos
-import gsw 
+import gsw
 import matplotlib.pyplot as plt
 import warnings
 import os
@@ -23,18 +23,21 @@ def parseCommandLine():
       ''',
   epilog='Written by Gustavo Marques, Oct. 2016.')
 
-  parser.add_argument('-exp_name', type=str, default='test', help='''Name of the experiment (default is test).''')
-  
+  parser.add_argument('-n', type=str, default='test', help='''Name of the experiment (default is test).''')
+
   parser.add_argument('-prog_file', type=str, default='prog.nc', help='''Name of the prog. file (default is prog.nc).''')
-  
+
   parser.add_argument('-ice_file', type=str, default='ice_month.nc', help='''Name of the ice file (default is ice_month.nc).''')
-  
+
   parser.add_argument('-sfc_file', type=str, default='ocean_sfc.nc', help='''Name of the ocean surface fluxes file (default is ocean_sfc.nc).''')
 
   parser.add_argument('-ice_shelf_file', type=str, default='MOM_Shelf_IC.nc', help='''Name of the file that has the initial conditions for the ice shelf (default is MOM_Shelf_IC.nc).''')
 
   parser.add_argument('-cshelf_lenght', type=float, default=470.,
      help='''Continental shelf lenght in the y direction (km). Default is 470.''')
+
+  parser.add_argument('-t0', type=int, default=0,
+     help='''Initial time indice to start computations. Default is 0.''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
@@ -45,16 +48,17 @@ def driver(args):
    files that are needed.
    """
    # load a few variables
-   time = Dataset(args.prog_file).variables['time'][:]/365. # in years
+   time = Dataset(args.prog_file).variables['time'][args.t0::]/365. # in years
    #time = Dataset(args.ice_file).variables['time'][:]/365. # in years
    x = Dataset(args.prog_file).variables['xh'][:] # in km
    y = Dataset(args.prog_file).variables['yh'][:]
    HI = Dataset(args.ice_file).variables['HI'][0,:]
    shelf_area = Dataset(args.ice_shelf_file).variables['shelf_area'][0,:,:]
    # ice shelf lenth
-   args.ISL = y[HI[:,0].mask == True][-1]
-   name = args.exp_name
-   # create ncfile and zero fields. 
+   args.ISL = y[HI[:,0].mask == True][-1] - 10.0 # -10 km to make sure it is under cavity
+   print('Ice shelf lenght is (km):',args.ISL)
+   name = args.n
+   # create ncfile and zero fields.
    create_ncfile(name,x,y,time,args)
 
    # lists used to save ncdata
@@ -87,11 +91,16 @@ def driver(args):
    B0_IS_mean = np.zeros(len(time))
    var.append('B0_IS_mean'); varname.append('B0_iceshelf_mean')
    melt = np.zeros(len(time))
-   var.append('Melt'); varname.append('Melt')
+   var.append('melt'); varname.append('Melt')
+   total_mass_flux = np.zeros(len(time))
+   var.append('total_mass_flux'); varname.append('TotalMassFlux')
+   dyn_pump = np.zeros(len(time))
+   #var.append('dyn_pump'); varname.append('DynamicalPump')
 
    # loop in time
-   for t in range(len(time)):
-           print 'Time (years):', time[t]
+   for t in range(args.t0,len(time)+args.t0):
+           tt = t - args.t0 # time indice used in the arrays
+           print 'Time (years):', time[tt]
 	   # load data
 	   saltf = mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
 	   CI_tot = mask_bad_values(Dataset(args.ice_file).variables['CI_tot'][t,:])
@@ -107,26 +116,31 @@ def driver(args):
            # PRCmE: net surface water flux (lprec + melt + lrunoff - evap + calcing)
 	   PRCmE = mask_bad_values(Dataset(args.sfc_file).variables['PRCmE'][t,:])
            depth = 0.5*(e[0:-1,:,:]+e[1::,:,:]) # vertical pos. of cell
-	   #tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
+	   tr1 = mask_bad_values(Dataset(args.prog_file).variables['tr1'][t,:])
+	   tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
+           pressure = gsw.p_from_z(depth,-75.) * 1.0e4 # in Pa [1 db = 10e4 Pa]
+           rho = eos.wright_eos(temp,salt,pressure)
+           print 'rho.min(),rho.max()',rho.min(),rho.max()
 
            # diags functions
-	   salt_flux[t] = get_saltf(x,y,saltf,CI_tot,args)
-	   polynya_area[t] = get_polynya_area(x,y,CI_tot,args)
-	   ice_area[t],ice_volume[t] = get_ice_diags(x,y,CI_tot,HI)
-	   HI_max[t] = HI.max()
-           AABW_transp[t],AABW_transp_x[t,:], AABW_h[t,:] = get_transport(x,y,vh,h,rhopot2,args)
-           CDW_transp[t] = get_CDW(x,y,vh,salt,temp,args) 
-           NHT_shelf[t] = get_total_transp(y,vh,args.cshelf_lenght,0) # northward
-           SHT_shelf[t] = get_total_transp(y,vh,args.cshelf_lenght,1) # southward
-           NHT_ice_shelf[t] = get_total_transp(y,vh,args.ISL,0) # northward
-           SHT_ice_shelf[t] = get_total_transp(y,vh,args.ISL,1) # southward
-           oht1[t] = get_oht(temp,salt,depth,vh,y,y_loc = 460.)
-           oht2[t] = get_oht(temp,salt,depth,vh,y,y_loc = args.ISL)
-           FW_IS[t], FW[t] = get_fw(PRCmE,mass_flux,x,y)
-           melt[t] = get_melt(melt_all,shelf_area)
+	   salt_flux[tt] = get_saltf(x,y,saltf,CI_tot,args)
+	   polynya_area[tt] = get_polynya_area(x,y,CI_tot,args)
+	   ice_area[tt],ice_volume[tt] = get_ice_diags(x,y,CI_tot,HI)
+	   HI_max[tt] = HI.max()
+           AABW_transp[tt],AABW_transp_x[tt,:], AABW_h[tt,:] = get_transport(x,y,vh,h,rhopot2,args)
+           CDW_transp[tt] = get_CDW(x,y,vh,salt,temp,args)
+           NHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,0) # northward
+           SHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,1) # southward
+           NHT_ice_shelf[tt] = get_total_transp(y,vh,args.ISL,0) # northward
+           SHT_ice_shelf[tt] = get_total_transp(y,vh,args.ISL,1) # southward
+           oht1[tt] = get_oht(temp,salt,depth,vh,y,y_loc = 460.)
+           oht2[tt] = get_oht(temp,salt,depth,vh,y,y_loc = args.ISL)
+           FW_IS[tt], FW[tt] = get_fw(PRCmE,mass_flux,x,y)
+           melt[tt] = get_melt(melt_all,shelf_area)
+           total_mass_flux[tt] = get_total_mass_flux(mass_flux,shelf_area)
            #return l, B0, B0.mean(), B0_shelf, B0_IS
-           MO_lenght[t,:], B0[t,:], B0_mean[t], B0_shelf_mean[t], B0_IS_mean[t] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
-
+           MO_lenght[tt,:], B0[tt,:], B0_mean[tt], B0_shelf_mean[tt], B0_IS_mean[tt] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
+           #dyn_pump[tt] = get_dyn_pump(y,vh,tr1,tr2,rho,total_mass_flux[tt],np.abs(SHT_ice_shelf[tt]),args.ISL)
 
    print 'Saving netcdf data...'
 
@@ -138,14 +152,43 @@ def driver(args):
 
    print 'Done!'
 
+def get_dyn_pump(y,vh,dye1,dye2,rho,mass_flux,transp_in,loc_y):
+   '''
+   Compute the dynamical pump efficiency following Jourdan et al 2017 JGR
+   '''
+   tmp = np.nonzero(y<=loc_y)[0][-1]
+   #vh_in = np.ma.masked_where(dye1[:,tmp,:]<0.5, vh[:,tmp,:]) # CAUTION, they are in diff points
+                                                              # this needs to be changed
+   vh_in = np.ma.masked_where(dye2[:,tmp,:]>1.0, vh[:,tmp,:])
+   vh_in = np.ma.masked_where(vh[:,tmp,:]>0.0, vh_in[:,:])
+
+   vh_out = np.ma.masked_where(vh[:,tmp,:]<0.0, vh[:,tmp,:])
+   vh_out = np.ma.masked_where(dye2[:,tmp,:]<5., vh_out[:,:])
+   vh_out = np.ma.masked_where(dye1[:,tmp,:]>0.5, vh_out[:,:])
+
+   rho_melt = mass_flux/(vh_out.sum()-np.abs(vh_in.sum()))
+   print 'rho_melt,vh_in.sum(),vh_out.sum(),mass_flux',rho_melt,vh_in.sum(),vh_out.sum(),mass_flux
+   dyn_pump = np.abs(vh_in.sum())*rho_melt/mass_flux
+   print 'dyn_pump',dyn_pump
+
+   return dyn_pump
+
 def get_melt(melt_all,shelf_area):
     '''
     Compute the spatial mean ice shelf melting/freezing.
     '''
     melt_all = np.ma.masked_where(shelf_area == 0, melt_all)
-    print 'mean melt', melt_all.mean()
 
     return melt_all.mean()
+
+def get_total_mass_flux(mass_flux,shelf_area):
+    '''
+    Compute the total mass flux of melt water.
+    '''
+    mass_flux = np.ma.masked_where(shelf_area == 0, mass_flux)
+    mass_flux = np.ma.masked_where(mass_flux == 0, mass_flux)
+
+    return mass_flux.sum()
 
 def get_fw(PRCmE,mass_flux,x,y):
     '''
@@ -169,13 +212,13 @@ def compute_B0_MO_lenght(temp,salt,PRCmE,depth,t,y,args):
     Cp = 3974.0
     # get EoS coeffs
     p = gsw.p_from_z(depth,-70.0) * 1.0e4 # in Pascal
-    beta = eos.beta_wright_eos(temp,salt,p)/rho_0 
+    beta = eos.beta_wright_eos(temp,salt,p)/rho_0
     alpha = eos.alpha_wright_eos(temp,salt,p)/rho_0
     #print 'depth, beta, alpha',depth.min(), depth.max(), beta.min(), beta.max(), alpha.min(), alpha.max()
     # load local data
-    ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])    
-    sensible = mask_bad_values(Dataset(args.sfc_file).variables['sensible'][t,:])    
-    latent = mask_bad_values(Dataset(args.sfc_file).variables['latent'][t,:])    
+    ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])
+    sensible = mask_bad_values(Dataset(args.sfc_file).variables['sensible'][t,:])
+    latent = mask_bad_values(Dataset(args.sfc_file).variables['latent'][t,:])
     shelf_area = Dataset(args.ice_shelf_file).variables['shelf_area'][0,:]
     # buoyancy flux
     B0 = -g * (alpha*(-(sensible + latent)/(rho_0 * Cp)) - beta*(PRCmE*salt/rho_0))
@@ -219,7 +262,7 @@ def get_oht(t,s,d,vh,y,y_loc):
          t_freeze = eos.tfreeze(s_new,p)
          dt = (t_new - t_freeze)
          #print 't-tf min/max',dt.min(),dt.max()
-         
+
          oht = - (vhnew*cp*rho0*dt).sum() # watts
          return oht
 
@@ -229,7 +272,7 @@ def get_total_transp(y,vh,loc_y,opt):
          '''
          tmp = np.nonzero(y<=loc_y)[0][-1]
          if opt == 0: # mask southward flow
-            vhnew = np.ma.masked_where(vh[:,tmp,:]<0.0, vh[:,tmp,:]) 
+            vhnew = np.ma.masked_where(vh[:,tmp,:]<0.0, vh[:,tmp,:])
          else: # mask northward flow
             vhnew = np.ma.masked_where(vh[:,tmp,:]>0.0, vh[:,tmp,:])
 
@@ -242,13 +285,13 @@ def get_CDW(x,y,vh,s,t,args):
          t_cdw = 0.0
          s_cdw = 34.6
          tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
-         vhnew = np.ma.masked_where(vh[:,tmp,:]>0.0, vh[:,tmp,:])         
+         vhnew = np.ma.masked_where(vh[:,tmp,:]>0.0, vh[:,tmp,:])
          tnew = np.ma.masked_where(t[:,tmp,:]>=t_cdw, t[:,tmp,:])
          snew = np.ma.masked_where(s[:,tmp,:]>=s_cdw, s[:,tmp,:])
          transp = (vhnew * tnew * snew / (tnew * snew)).sum() # in m^3/s
-        
+
          print 'CDW Transport (sv)', transp/1.0e6
- 
+
          return transp/1.0e6 # in sv
 
 def get_transport(x,y,vh,h,rhopot2,args):
@@ -277,13 +320,13 @@ def get_transport(x,y,vh,h,rhopot2,args):
          if total_transp is np.ma.masked: total_transp = 0.0
 
          print 'AABW Transport (sv)', total_transp/1.0e6, '\n'
- 
+
          return total_transp/1.0e6, transp_x, thickness # in sv
 
 def get_saltf(x,y,saltf,CI_tot,args):
 	'''
-        Compute the total salt flux into (+) the ocean in the cont. shelf 
-	region (cshelf_lenght). Salt flux is just computed when CI_tot < 0.7. 
+        Compute the total salt flux into (+) the ocean in the cont. shelf
+	region (cshelf_lenght). Salt flux is just computed when CI_tot < 0.7.
 	'''
 	# get indices for region of interest
         tmp = np.nonzero(y<=args.cshelf_lenght)[0]
@@ -332,7 +375,7 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    # open a new netCDF file for writing.
    ncfile = Dataset(exp_name+'.nc','w',format='NETCDF4')
    # dimensions
-   nx = len(xx) ; ny = len(yy) 
+   nx = len(xx) ; ny = len(yy)
    # create dimensions.
    ncfile.createDimension('time', len(ocean_time))
    ncfile.createDimension('nx',nx)
@@ -365,7 +408,7 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    totalFw.units = 'kg/s'; totalFw.description = 'Total net mass flux of freshwater across the entire domain (lprec+melt).'
 
    NorthwardTranspShelf = ncfile.createVariable('NorthwardTranspShelf',np.dtype('float32').char,('time'))
-   NorthwardTranspShelf.units = 'sv' 
+   NorthwardTranspShelf.units = 'sv'
    NorthwardTranspShelf.description = 'Northward cross-shelf volume transport computed at the shelf break'
 
    SouthwardTranspShelf = ncfile.createVariable('SouthwardTranspShelf',np.dtype('float32').char,('time'))
@@ -421,10 +464,17 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
    B0_iceshelf_mean.units = 'm2/s3'
    B0_iceshelf_mean.description = 'Net surface buoyancy flux ave. within the ice shelf region'
 
-      
+   Melt = ncfile.createVariable('Melt',np.dtype('float32').char,('time'))
+   Melt.units = 'm/year'
+   Melt.description = 'Domain ave. melt rate'
+
+   TotalMassFlux = ncfile.createVariable('TotalMassFlux',np.dtype('float32').char,('time'))
+   TotalMassFlux.units = 'kg/s'
+   TotalMassFlux.description = 'Total mass flux of melt water'
+
    # write data to coordinate vars.
    x[:] = xx[:]
-   y[:] = yy[:] 
+   y[:] = yy[:]
    time[:] = ocean_time[:]  # in years
 
    # close the file.
