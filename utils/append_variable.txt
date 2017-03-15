@@ -1,0 +1,1 @@
+ncks -v eta IDEAL_IS_IC_1.nc  IDEAL_IS_IC.nc

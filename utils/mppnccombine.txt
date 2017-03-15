@@ -1,0 +1,1 @@
+mppnccombine -k 10 -64 -v prog.nc
