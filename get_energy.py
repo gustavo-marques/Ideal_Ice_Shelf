@@ -7,7 +7,7 @@ import argparse
 from netCDF4 import MFDataset, Dataset
 import numpy as np
 import wright_eos as eos
-import gsw 
+import gsw
 import matplotlib.pyplot as plt
 import warnings
 import os
@@ -23,10 +23,10 @@ def parseCommandLine():
       ''',
   epilog='Written by Gustavo Marques, Oct. 2016.')
 
-  parser.add_argument('-exp_name', type=str, default='test', help='''Name of the experiment (default is test).''')
-  
+  parser.add_argument('-n', type=str, default='test', help='''Name of the experiment (default is test).''')
+
   parser.add_argument('-energy', type=str, default='', help='''Extract the total energy (KE + PE) per unit mass (m2 s-2) from the given file and plot it as a function of time.''')
-  
+
   parser.add_argument('-total_tke', type=str, default='', help='''Plot the total domain turbulent kinetic energy per unit mass (m2 s-2) from the given file.''')
 
   optCmdLineArgs = parser.parse_args()
@@ -65,7 +65,7 @@ def compute_total_tke(args):
         ubar2 = ubar2 + u*u
         vbar = vbar + v
         vbar2 = vbar2 + v*v
-   
+
     ubar, vbar = ubar/len(time), vbar/len(time)
     print 'Finish computing mean, now tke...'
     for t in range(len(time)):
@@ -73,8 +73,8 @@ def compute_total_tke(args):
         u = Dataset(file).variables['u'][t,:]
         v = Dataset(file).variables['v'][t,:]
         up = (u - ubar)**2; vp = (v - vbar)**2
-        TKEu[t] = up.sum() 
-        TKEv[t] = vp.sum() 
+        TKEu[t] = up.sum()
+        TKEv[t] = vp.sum()
 
     # plot
     plt.figure()
@@ -83,12 +83,12 @@ def compute_total_tke(args):
     plt.xlabel('Time [years]')
     plt.ylabel('Total TKE (red = u, blue = v) [m2 s-2]')
     plt.grid()
-    plt.savefig(args.exp_name+'_total_tke.png')
+    plt.savefig(args.n+'_total_tke.png')
 
 def compute_energy(args):
     file = args.energy
-    os.system("awk '/MOM Day/{print $3}' " + file + " > tmp0" ) 
-    os.system("awk '/MOM Day/{print $6}' " + file + " > tmp1" ) 
+    os.system("awk '/MOM Day/{print $3}' " + file + " > tmp0" )
+    os.system("awk '/MOM Day/{print $6}' " + file + " > tmp1" )
     os.system("awk -F',' '{print $1}' tmp1 > tmp2")
     time = np.loadtxt('tmp0')/365. # in yr.
     energy = np.loadtxt('tmp2')
@@ -98,7 +98,7 @@ def compute_energy(args):
     plt.xlabel('Time [years]')
     plt.ylabel('Total energy [m2 s-2]')
     plt.grid()
-    plt.savefig(args.exp_name+'_total_energy.png')
+    plt.savefig(args.n+'_total_energy.png')
 
 # Invoke parseCommandLine(), the top-level prodedure
 if __name__ == '__main__': parseCommandLine()
