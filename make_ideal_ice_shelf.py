@@ -47,7 +47,7 @@ def parseCommandLine():
 
   parser.add_argument('-nz', type=int, default=63,
       help='''Number of model layers (default = 63).''')
-  
+
   parser.add_argument('-W', type=float, default=600.,
       help='''Domain width in the x direction (km). Default is 600.''')
 
@@ -62,13 +62,13 @@ def parseCommandLine():
 
   parser.add_argument('-tauy_max', type=float, default=0.05,
       help='''Max. (katabatic) wind stress in y (Pa). Default is 0.05''')
- 
+
   parser.add_argument('-tauy_efold', type=float, default=20.,
       help='''E-folding lenght for the katabatic wind (km). Default is 20.0''')
 
   parser.add_argument('-tauy_min', type=float, default=0.001,
       help='''Min. (katabatic) wind stress in y (Pa). Default is 0.001''')
-  
+
   parser.add_argument('-w1min', type=float, default=7.5,
       help='''Min. (katabatic) wind mag. in y (m/s). Default is 7.5''')
 
@@ -140,41 +140,41 @@ def parseCommandLine():
       help='''Widht of sponge layer (km). Default is 100.''')
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
-  
+
   parser.add_argument('-add_seasonal_cycle', help='''Adds a seosonal cycle in  the forcing.''', action="store_true")
- 
+
   parser.add_argument('-temp_forcing_period', type=float, default=60.83332,
       help='''When -add_seasonal_cycle is used, this sets the surface temp. forcing period (days). Default is 60.83332 (i.e., 365/12.).''')
 
   parser.add_argument('-wind_forcing_period', type=float, default=60.83332,
       help='''When -add_seasonal_cycle is used, this sets the surface katabatic wind forcing period (days). Default is 60.83332 (i.e., 365/12.).''')
- 
+
   parser.add_argument('-tauy_confined', help='''If true, tauy varies in x using a gaussian function.''', action="store_true")
-  
+
   parser.add_argument('-debug', help='''Adds prints and plots to help debug.''', action="store_true")
-  
+
   parser.add_argument('-linear_forcing', help='''If true, t_10 varies linearly. By default t_10 varies by a combination of exponential and linear functions.''', action="store_true")
-  
+
   parser.add_argument('-ice_shelf', help='''Generate ice shelf ncfile.''', action="store_true")
 
   parser.add_argument('-trough', help='''Adds a trough cutting the continental shelf.''', action="store_true")
-  
+
   parser.add_argument('-trough_setup', type=int, default=1,
       help='''1 (default): trough in the center
-              2: trough in the right 
-              3: trough in the left 
-              4: troughs center/right 
+              2: trough in the right
+              3: trough in the left
+              4: troughs center/right
               5: troughs center/left
-              6: troughs left/right 
-              7: troughs left/center/right 
+              6: troughs left/right
+              7: troughs left/center/right
           ''')
 
   parser.add_argument('-homogeneous_ts', help='''Make the initial T/S homogeneous in the horizontal.''', action="store_true")
-  
+
   parser.add_argument('-mean_profile', help='''The initial T/S profiles is contructed using time-averages.''', action="store_true")
-  
+
   parser.add_argument('-ts_restart', help='''The initial T/S profiles is contructed from a file a given file (-ts_file).''', action="store_true")
-  
+
   parser.add_argument('-restart_time_indice', type=int, default=-1, help='''The time indice for temp/salt in the restart file (-ts_file). Default is -1.''')
 
   parser.add_argument('-ts_file', type=str, default='',
@@ -209,7 +209,7 @@ def driver(args):
 
    if args.coupled_run:
 
-     make_mosaic(x,y,Ocean_Depth,args) 
+     make_mosaic(x,y,Ocean_Depth,args)
 
    if args.ts_restart:
       # use T/S from specified run
@@ -219,8 +219,8 @@ def driver(args):
       make_ts(x,y,args)
 
    # create forcing
-   make_forcing(x,y,args) 
-   
+   make_forcing(x,y,args)
+
    return
 
 def make_ice_shelf(x,y,args):
@@ -228,7 +228,7 @@ def make_ice_shelf(x,y,args):
    Here is a slightly different version but with constants
    H(x) = H0 *(Q0)^(1/4) / [Q0+4*H0^4*C^3*x]^(1/4)
    where H0 is ice thickness at the grounding line Q0 = U0*H0 is ice flux at the grounding line, C = rho*g*(1-rho/rho_w)/4/Bbar, rho is the ice density, rho_w is the sea-water density, Bbar is ice stiffness parameter.
-   for the following parameters 
+   for the following parameters
    rho = 917 kg/m^3
    rho_w = 1028 kg/m^3
    Bbar = 1.68e8
@@ -252,7 +252,7 @@ def make_ice_shelf(x,y,args):
    h =  H0 *(Q0)**(1./4.) / (Q0+25*H0**4*C**3*(y-gp))**(1./4.)
    h[y<gp] = H0
    h[y>Lice] = 0.0
-   h_smooth = h.copy() 
+   h_smooth = h.copy()
    # smooth
    if dx > 2.0e3:
       # Lice - 50.0e3 just smooth next to IS front
@@ -267,7 +267,7 @@ def make_ice_shelf(x,y,args):
    tmp = np.nonzero(h_smooth==0.0)[0][0]
    args.ISL = x[tmp] / 1.0e3
    print 'Ice shelf meridional lenght is (km):',x[tmp] / 1.0e3
-   
+
    if args.debug:
       plt.plot(y,h,'k',y,h_smooth,'r')
       plt.savefig('PNG/ice_shelf_profile.png')
@@ -285,7 +285,7 @@ def make_ice_shelf(x,y,args):
    thick.standard_name =  'ice shelf thickness'
    area = ncfile.createVariable('area','double',('ny','nx',))
    area.units = 'm2'
-   area.standard_name =  'ice shelf area'  
+   area.standard_name =  'ice shelf area'
 
    # write into nc file
    for i in range(args.nx):
@@ -294,7 +294,7 @@ def make_ice_shelf(x,y,args):
 
    ncfile.sync()
    ncfile.close()
-   print ('*** SUCCESS creating '+name+'.nc!') 
+   print ('*** SUCCESS creating '+name+'.nc!')
 
 def make_mosaic(x,y,Ocean_Depth,args):
    '''
@@ -340,7 +340,7 @@ def make_mosaic(x,y,Ocean_Depth,args):
    x_h.units = 'm'
    y_h = ncfile.createVariable('y','f8',('nyp','nxp',))
    y_h.units = 'm'
-   tile = ncfile.createVariable('tile','c',('string',)) 
+   tile = ncfile.createVariable('tile','c',('string',))
    dx_h[:,:] = dx[:,:]
    dy_h[:,:] = dy[:,:]
    area_h[:,:] = area[:,:]
@@ -457,7 +457,7 @@ def make_mosaic(x,y,Ocean_Depth,args):
    for i in range(nl):
       tile1_cell[i,:] = [ni,nj]
       tile2_cell[i,:] = [ni,nj]
-   
+
    xgrid_area[:] = dxo * dyo
    count=-1
    for j in range(nj):
@@ -471,7 +471,7 @@ def make_mosaic(x,y,Ocean_Depth,args):
             xgrid_area[count] = dxo * dyo
 
    rg.close()
-   print ('*** SUCCESS creating '+name+'.nc!') 
+   print ('*** SUCCESS creating '+name+'.nc!')
 
    name = 'land_mosaic_tile1Xocean_mosaic_tile1'
    rg = Dataset(name+'.nc','w')
@@ -504,7 +504,7 @@ def make_mosaic(x,y,Ocean_Depth,args):
    for i in range(nl):
       tile1_cell[i,:] = [ni,nj]
       tile2_cell[i,:] = [ni,nj]
-   
+
    xgrid_area[:] = dxo * dyo
    count=-1
    for j in range(nj):
@@ -516,7 +516,7 @@ def make_mosaic(x,y,Ocean_Depth,args):
             tile1_distance[count] = [0,0]
             tile2_distance[count] = [0,0]
             xgrid_area[count] = dxo * dyo
-  
+
    rg.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
@@ -598,14 +598,14 @@ def get_profile(t,i,j,var,depth,z,args,vname):
    '''
    if args.mean_profile:
       data = np.mean(Dataset('WOA05_pottemp_salt.nc').variables[var][:,:,j,i], axis=0)
-      
+
    else:
       data = Dataset('WOA05_pottemp_salt.nc').variables[var][t,:,j,i]
 
    # replace mask value with last good value
    tmp = np.nonzero(data.mask==False)[0][-1]
    data[tmp+1::] = data[tmp]
-   # smooth  
+   # smooth
    data = gaussian_filter(data,2) # filter std 2
    # interpo
    f1 = interp1d(depth, data)
@@ -626,7 +626,7 @@ def set_freezing_temp(T,S,z,y,args):
         for j in range(args.ny):
            # set T to freezing point just near the coast
            if y[j] <= (args.ISL + args.cshelf_lenght):
-              T[0,k,j,:] = eos.tfreeze(S[0,k,j,:],1.0e5) 
+              T[0,k,j,:] = eos.tfreeze(S[0,k,j,:],1.0e5)
 
     #for j in range(args.ny):
     #  for i in range(args.nx):
@@ -642,9 +642,9 @@ def set_freezing_temp(T,S,z,y,args):
 
 def make_ts_restart(x,y,args):
    '''
-   Extract last T/S from ts_file(ocean_month_z) and save them in a ncfile. 
+   Extract last T/S from ts_file(ocean_month_z) and save them in a ncfile.
    '''
-   if args.ts_file == '': 
+   if args.ts_file == '':
       print
       raise MyError( 'Parameter -ts_file must be specified.')
 
@@ -657,7 +657,7 @@ def make_ts_restart(x,y,args):
    salt = Dataset(args.ts_file).variables['salt'][t,:]
 
    XH,YH = np.meshgrid(xh,yh)
-   # 3D fields where data will be interpolated 
+   # 3D fields where data will be interpolated
    # x,y, are high-res and zl is from month_z
    temp3D = np.zeros((len(zl),len(y),len(x)))
    salt3D = np.zeros((len(zl),len(y),len(x)))
@@ -686,7 +686,7 @@ def make_ts_restart(x,y,args):
           tmp = np.nonzero(temp.mask[k,:,i]==False)[0][0]
           temp[k,0:tmp,i] = temp[k,tmp,i]
           salt[k,0:tmp,i] = salt[k,tmp,i]
-          
+
        #ftemp = interpolate.RectBivariateSpline(yh, xh, temp[k,:,:], bbox=[0,args.L,0,args.W])
        ftemp = interpolate.RectBivariateSpline(yh, xh, temp[k,:,:])
        temp3D[k,:] = ftemp(y,x)
@@ -702,11 +702,11 @@ def make_ts_restart(x,y,args):
           salt3D_new[0,:,j,i] = fsalt(z)
 
    # write ncfile
-   write_ic_ncfile('ic_ts',x,y,z,temp3D_new,salt3D_new)   
+   write_ic_ncfile('ic_ts',x,y,z,temp3D_new,salt3D_new)
 
 def make_ts(x,y,args):
    '''
-   Extract T/S from WOA05 for a particulat lat. then interpolate results into ocean grid. 
+   Extract T/S from WOA05 for a particulat lat. then interpolate results into ocean grid.
    '''
    # climatology depth
    depth = Dataset('WOA05_pottemp_salt.nc').variables['DEPTH'][:]
@@ -746,7 +746,7 @@ def make_ts(x,y,args):
    else:
      # distace from southern wall to use in the interp.
      #dist = [0,args.cshelf_lenght+args.slope_lenght*0.5,args.L,args.L]
-     #dummy = args.ISL + args.cshelf_lenght + args.slope_lenght*0.5 
+     #dummy = args.ISL + args.cshelf_lenght + args.slope_lenght*0.5
      dist = [0, args.ISL, args.L-100.,args.L]
      # horizontal interp
      for k in range(args.nz):
@@ -764,7 +764,7 @@ def make_ts(x,y,args):
    OHC = np.trapz(temp_north[depth<=50], dx=args.max_depth/args.nz) * 1028. * 4000.0
    # C m kg Kg m^2 / s^2  Kg C m^3 = kg/s^2 = J/m^2
    #J = kg m^2/ s^2
-   # multiply by area 
+   # multiply by area
    OHC = OHC * args.sponge_width * args.W # unit = J
    print '#####################'
    print 'Sponge (upper 50 m) OHC is ~ (J)', OHC
@@ -782,10 +782,10 @@ def make_ts(x,y,args):
    alpha = eos.alpha_wright_eos(temp3D,salt3D,2.0e7)
    beta = eos.beta_wright_eos(temp3D,salt3D,2.0e7)
    Rho_T0_S0 = eos.wright_eos(0.,0.,2.0e7) + 0.017 # 0.017 is a correction factor
-   
+
    # compute linear eos
    rho_lin = Rho_T0_S0 + alpha.mean()*temp3D + beta.mean()*salt3D
-   
+
    layers = Dataset('GOLD_IC.2010.11.15.nc').variables['Layer'][:] # used in the global run with sig2
    if args.debug:
       print 'alpha,beta,Rho_T0_S0',alpha.mean(),beta.mean(),Rho_T0_S0
@@ -797,17 +797,17 @@ def make_ts(x,y,args):
       plt.contour(y,-z,rho_lin[0,:,:,0]-1000.,layers-1000,colors='k',linewidths=2)
       plt.title('Density - 1000.')
       plt.savefig('PNG/rho_section.png')
-  
- 
+
+
       plt.figure()
       plt.plot(sigma2[0,:,0,0]-1000.,-z,'b',rho_lin[0,:,0,0]-1000.,-z,'bx')
       plt.plot(sigma2[0,:,args.ny/2.,0]-1000.,-z,'r',rho_lin[0,:,args.ny/2.,0]-1000.,-z,'rx')
       plt.plot(sigma2[0,:,args.ny-1,0]-1000.,-z,'k',rho_lin[0,:,args.ny-1,0]-1000.,-z,'kx')
       plt.title('Linear (dashed) vs. nonlinear EoS at south, center and north (b,r,k)')
       plt.savefig('PNG/rho_profiles.png')
- 
+
       # plot t - tfreeze at surface
-      tf = eos.tfreeze(salt3D[0,0,:,:],1.0e5) 
+      tf = eos.tfreeze(salt3D[0,0,:,:],1.0e5)
       plt.figure()
       plt.subplot(311)
       plt.contourf(x,y,temp3D[0,0,:,:],np.linspace(temp3D[0,0,:,:].min(),temp3D[0,0,:,:].max(),50))
@@ -849,7 +849,7 @@ def make_ts(x,y,args):
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
    write_ic_ncfile('ic_ts',x,y,z,temp3D,salt3D)
-  
+
 def write_ic_ncfile(name,x,y,z,T,S):
    '''
    Write the initial T/S condition into a netcdf file called name.
@@ -891,9 +891,9 @@ def write_ic_ncfile(name,x,y,z,T,S):
 
    PTEMP = ncfile.createVariable('PTEMP',np.dtype('float32').char,('TIME','DEPTH','LAT','LON'), fill_value = -1.e+34)
    PTEMP.missing_value = -1.e+34
-   PTEMP[:] = T[:] 
+   PTEMP[:] = T[:]
 
-   SALT = ncfile.createVariable('SALT',np.dtype('float32').char,('TIME','DEPTH','LAT','LON'), fill_value = -1.e+34)  
+   SALT = ncfile.createVariable('SALT',np.dtype('float32').char,('TIME','DEPTH','LAT','LON'), fill_value = -1.e+34)
    SALT.missing_value = -1.e+34
    SALT[:] = S[:]
    ncfile.close()
@@ -941,13 +941,13 @@ def make_forcing(x,y,args):
      print('About to create forcing file with',nt, ' records...')
    else:
      nt = 1
-   
+
    # atmos/ice forcing
    time_days = np.zeros(nt)
-   t_bot = np.zeros((nt,ny,nx)) 
-   wind_x = np.zeros((nt,ny,nx)) 
-   wind_y = np.zeros((nt,ny,nx)) 
-   tau_x = np.zeros((nt,ny,nx)) 
+   t_bot = np.zeros((nt,ny,nx))
+   wind_x = np.zeros((nt,ny,nx))
+   wind_y = np.zeros((nt,ny,nx))
+   tau_x = np.zeros((nt,ny,nx))
    tau_y = np.zeros((nt,ny,nx))
    liq = np.zeros((nt,ny,nx))
    snow = np.zeros((nt,ny,nx))
@@ -985,8 +985,8 @@ def make_forcing(x,y,args):
      temp_season_sin = np.sin(np.pi*time_days[t]/temp_period)**2
      wind_season_cos = np.cos(np.pi*time_days[t]/wind_period)**2
      wind_season_sin = np.sin(np.pi*time_days[t]/wind_period)**2
-   
-     # temperatures, start with summer 
+
+     # temperatures, start with summer
      t1 = t1min + temp_season_cos*dt1
      t2 = t2min + temp_season_cos*dt2
      t3 = t3min + temp_season_cos*dt3
@@ -1005,8 +1005,8 @@ def make_forcing(x,y,args):
      #   wind_x_pos = args.wind_x_pos
 
      Lw2 = w2_y_lim - ISL
-     Lw3 = w3_y_lim - w2_y_lim 
-     Lw4 = Ly - w3_y_lim 
+     Lw3 = w3_y_lim - w2_y_lim
+     Lw4 = Ly - w3_y_lim
      for j in range(ny):
        if y[j] <= ISL:
           tau_x[t,j,:] = 0.0; wind_x[t,j,:] = 0.0
@@ -1017,7 +1017,7 @@ def make_forcing(x,y,args):
        elif y[j] > w2_y_lim and y[j] <= w3_y_lim: # shelf break wind (ASF)
           tmp = 1* np.pi*(y[j]-w2_y_lim)/(Lw3)
 	  tau_x[t,j,:] = (tau_asf * np.sin(tmp)**2) # not time dependent
-	  wind_x[t,j,:] = (w3 * np.sin(tmp)**2) 
+	  wind_x[t,j,:] = (w3 * np.sin(tmp)**2)
        else: # ACC
           tmp = 1* np.pi*(y[j]-w3_y_lim)/(Lw4)
 	  tau_x[t,j,:] = 0.0
@@ -1026,7 +1026,7 @@ def make_forcing(x,y,args):
      # heat
      # Follow http://onlinelibrary.wiley.com/doi/10.1002/wea.436/pdf
      # Q is ~ linear
-     
+
      # katabatic
      # follow ~ http://journals.ametsoc.org/doi/pdf/10.1175/1520-0493(1994)122%3C0671%3ADOATDM%3E2.0.CO%3B2
      # # has a gaussian shape: tauy = tauy_max * np.exp(((x-W/2.)**2)/(2*W_v10))
@@ -1048,12 +1048,12 @@ def make_forcing(x,y,args):
             if args.tauy_confined:
                 for i in range(nx):
                    tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
-                   wind_y[t,j,i] = (w1 * tmp1) 
+                   wind_y[t,j,i] = (w1 * tmp1)
             else:
 	        wind_y[t,j,:] = w1 #(delta_wind_y * wind_cos) + wind_y_min
 	 #elif y[j] >= ISL+efold and y[j] <= wind_x_pos:
 	 else:
-	    t_bot[t,j,:] = (t1 - t2) * np.exp(-(y[j]-ISL-efold)/(efold)) + t2 
+	    t_bot[t,j,:] = (t1 - t2) * np.exp(-(y[j]-ISL-efold)/(efold)) + t2
             if args.tauy_confined:
                for i in range(nx):
                    tmp1 =  np.exp((-(x[i]-W*0.5)**2)/(2*W_v10))
@@ -1083,8 +1083,8 @@ def make_forcing(x,y,args):
 
 
      # lprec, fprec
-     lprec = args.liq_prec # lprec 
-     fprec = args.frozen_prec # lprec 
+     lprec = args.liq_prec # lprec
+     fprec = args.frozen_prec # lprec
      #tmp = args.cshelf_lenght
      for j in range(ny):
 	if y[j] < w2_y_lim:
@@ -1092,9 +1092,9 @@ def make_forcing(x,y,args):
 	elif y[j]>= w2_y_lim and y[j]< (Ly-sponge):
            #tmp = (Ly-sponge) - wind_x_pos
 	   #liq[t,j,:] = season_cos * lprec *2./3. + lprec * 1./3. #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
-	   liq[t,j,:] = lprec 
+	   liq[t,j,:] = lprec
            #snow[t,j,:] = season_sin * fprec  #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
-           snow[t,j,:] = fprec  
+           snow[t,j,:] = fprec
         else:
            liq[t,j,:] = 0.0
            snow[t,j,:] = 0.0
@@ -1158,7 +1158,7 @@ def make_forcing(x,y,args):
       plt.subplot(212)
       plt.contourf(x,y,tau_y[0,:,:]); plt.colorbar()
       plt.xlabel('x [km]'); plt.ylabel('y [km]')
-      plt.savefig('PNG/tauy.png') 
+      plt.savefig('PNG/tauy.png')
 
    # create ncfile
    # open a new netCDF file for writing.
@@ -1195,7 +1195,7 @@ def make_forcing(x,y,args):
    else:
       time[0] = 0.0
 
-   t_10 = ncfile.createVariable('T_10',np.dtype('float32').char,('TIME','LAT','LON')) 
+   t_10 = ncfile.createVariable('T_10',np.dtype('float32').char,('TIME','LAT','LON'))
    t_10.long_name = 'Air Temperature'
    t_10.units = 'Kelvin'
    t_10[:] = t_bot[:]
@@ -1209,12 +1209,12 @@ def make_forcing(x,y,args):
    v_10.long_name = 'V wind'
    v_10.units = 'm/s'
    v_10[:] = wind_y[:]
-  
+
    salt_flux = ncfile.createVariable('salt_flux',np.dtype('float32').char,('TIME', 'LAT', 'LON'))
    salt_flux.units = 'kg/(m^2 s)'
    salt_flux.long_name = 'salt flux'
    salt_flux[:] = salt # + adds salt from ocean
- 
+
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
@@ -1235,7 +1235,7 @@ def make_forcing(x,y,args):
    xh.long_name = 'h point nominal longitude'
    xh.cartesian_axis = 'X'
    xh[:] = x[:]
-   
+
    xq = ncfile.createVariable('xq',np.dtype('double').char,('xq'))
    xq.units = 'km'
    xq.long_name = 'q point nominal longitude'
@@ -1247,7 +1247,7 @@ def make_forcing(x,y,args):
    yh.long_name = 'h point nominal latitude'
    yh.cartesian_axis = 'Y'
    yh[:] = y[:]
-   
+
    yq = ncfile.createVariable('yq',np.dtype('double').char,('yq'))
    yq.units = 'km'
    yq.long_name = 'q point nominal latitude'
@@ -1267,7 +1267,7 @@ def make_forcing(x,y,args):
    else:
       time[0] = 0
 
-   nv = ncfile.createVariable('nv',np.dtype('double').char,('nv'))   
+   nv = ncfile.createVariable('nv',np.dtype('double').char,('nv'))
    nv.long_name = 'vertex number'
    nv.units = 'none'
    nv.cartesian_axis = 'N'
@@ -1352,7 +1352,7 @@ def make_forcing(x,y,args):
      taux.units = 'Pascal'
      taux.missing_value = 1.e+20
      taux.long_name = 'Zonal Wind Stress'
-     taux[:] = tau_x[:]   
+     taux[:] = tau_x[:]
 
      tauy = ncfile.createVariable('tauy',np.dtype('float32').char,('time', 'yq', 'xh'), fill_value = 1.e+20)
      tauy.units = 'Pascal'
@@ -1380,7 +1380,7 @@ def make_forcing(x,y,args):
 
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
-  
+
    print ('*** Run make_quick_mosaic ***')
    os.system('module load fre')
    os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
@@ -1394,9 +1394,10 @@ def make_topo(x,y,args):
    Ws = args.slope_lenght * 1.0e3 # len of slope in m
    H = args.max_depth # max depth
    W = args.W  # domain width in km
-   [X,Y] = np.meshgrid(x,y) 
+   [X,Y] = np.meshgrid(x,y)
    nx = len(x); ny = len(y)
    D = np.zeros((ny,nx))
+   dx = x[1]-x[0]
 
    for j in range(ny):
       for i in range(nx):
@@ -1404,13 +1405,13 @@ def make_topo(x,y,args):
 
 
    if args.ice_shelf:
-     H1 = 500. # # depth increase under ice shelf
+     H1 = 200. # 500 depth increase under ice shelf
      ISL = args.ISL  # lenght of ice shelf cavity in m
-     ymask = ISL 
+     ymask = ISL
      ymask2 = ISL #+ 100.
-     L1 = (ISL * 1.0e3)*2.0 
+     L1 = (ISL * 1.0e3)*2.0
      L1 = 200.0e3 # location where shelf gets deeper under IS
-     Ld = 100.0e3 # decay in the tanh under IS
+     Ld = 70.0e3 # 100. decay in the tanh under IS
      #minor = 2*ISL
      #major = 200.0
      Wl = args.land_width # widht of land region next to ice shelf in km
@@ -1435,13 +1436,13 @@ def make_topo(x,y,args):
                    D[j,i] = 0.0
            #     else:
            #        if Y[j,i]<= L1:
-           #           D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1*0.5)/(100.e3)) - 1.0) 
+           #           D[j,i] = Hs - (H1/2.0) * (np.tanh((Y[j,i]*1.0e3 - L1*0.5)/(100.e3)) - 1.0)
 
    # add trough(s)
    trough = np.zeros((ny,nx))
    if args.trough_setup == 2 or args.trough_setup == 6:
       # right
-      x_t = args.W*0.7 
+      x_t = args.W*0.7
       xx = x - x_t
    elif args.trough_setup == 3:
       # left
@@ -1464,8 +1465,8 @@ def make_topo(x,y,args):
             trough[j,i] = D[j,i] + 0.5 * (200) * (1+np.tanh((xx[i]+20.)/5.))
          else:
             trough[j,i] = D[j,i] + 0.5 * (200) * (1-np.tanh((xx[i]-20.)/5.))
-   
-   for j in range(ny): 
+
+   for j in range(ny):
      tmp = np.nonzero(trough[j,:] > D[j,:].min()+0.5)[-1]
      #plt.figure()
      #plt.plot(x,D[j,:])
@@ -1478,7 +1479,7 @@ def make_topo(x,y,args):
 	  # center/right
 	  tmp1 = np.nonzero(x<=args.W*0.7)[0][-1]
 	  tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-	  trough[j,tmp1] = trough[j,tmp] 
+	  trough[j,tmp1] = trough[j,tmp]
        elif args.trough_setup == 5:
 	  # center/left
 	  tmp1 = np.nonzero(x<=args.W*0.3)[0][-1]
@@ -1494,7 +1495,7 @@ def make_topo(x,y,args):
 	  # left/center/right
 	  tmp1 = np.nonzero(x<=args.W*0.3)[0][-1]
 	  tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
-	  trough[j,tmp1] = trough[j,tmp] 
+	  trough[j,tmp1] = trough[j,tmp]
           tmp1 = np.nonzero(x<=args.W*0.7)[0][-1]
           tmp1 = range(-int(len(tmp)*0.5),int(len(tmp)*0.5)) + tmp1
           trough[j,tmp1] = trough[j,tmp]
@@ -1504,16 +1505,21 @@ def make_topo(x,y,args):
         for i in range(nx):
            if (Y[j,i]>land[i]):
               if (trough[j,i] > D[j,i]): D[j,i] = trough[j,i]
- 
+
    ##if args.trough:
-   # remove corners or "right angles" in the topography  
-   # meridional dir. 
+   # remove corners or "right angles" in the topography
+   # meridional dir.
+   if dx < 2.0e3:
+      filter_width = 5
+   else:
+      filter_width = 2
+
    for i in range(nx):
       tmp = np.nonzero(Y[:,i]>land[i])[0]
       if len(tmp)>1:
-         D[tmp[0]::,i] = gaussian_filter(D[tmp[0]::,i],2)
+         D[tmp[0]::,i] = gaussian_filter(D[tmp[0]::,i],filter_width)
       else:
-         D[:,i] = gaussian_filter(D[:,i],2)
+         D[:,i] = gaussian_filter(D[:,i],filter_width)
 
    # zonal dir.
    for j in range(ny):
@@ -1547,7 +1553,7 @@ def make_topo(x,y,args):
    ncfile.createDimension('nx',nx)
    ncfile.createDimension('ny',ny)
    ncfile.createDimension('ntiles',1)
- 
+
    # create variables
    nxx = ncfile.createVariable('nx',np.dtype('double').char,('nx'))
    nxx.units = 'km'
@@ -1598,7 +1604,7 @@ def make_topo(x,y,args):
    depth[:,:] = D[:,:]
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
- 
+
    return D
 
 # A helper function to use when writing strings in a netcdf file
