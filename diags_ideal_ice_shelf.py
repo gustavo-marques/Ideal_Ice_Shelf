@@ -39,6 +39,9 @@ def parseCommandLine():
   parser.add_argument('-t0', type=int, default=0,
      help='''Initial time indice to start computations. Default is 0.''')
 
+  parser.add_argument('-tf', type=int, default=-1,
+     help='''Final time indice for computations. Default is -1 (all starting from t0).''')
+
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
@@ -48,8 +51,11 @@ def driver(args):
    files that are needed.
    """
    # load a few variables
-   time = Dataset(args.prog_file).variables['time'][args.t0::]/365. # in years
-   #time = Dataset(args.ice_file).variables['time'][:]/365. # in years
+   if args.tf == -1:
+      time = Dataset(args.prog_file).variables['time'][args.t0::]/365. # in years
+   else:
+      time = Dataset(args.prog_file).variables['time'][args.t0:args.tf+1]/365.
+
    x = Dataset(args.prog_file).variables['xh'][:] # in km
    y = Dataset(args.prog_file).variables['yh'][:]
    HI = Dataset(args.ice_file).variables['HI'][0,:]
