@@ -1085,11 +1085,11 @@ def make_forcing(x,y,args):
      # lprec, fprec
      lprec = args.liq_prec # lprec
      fprec = args.frozen_prec # lprec
-     #tmp = args.cshelf_lenght
+     tmp = args.cshelf_lenght
      for j in range(ny):
-	if y[j] < w2_y_lim:
+	if y[j] < tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-	elif y[j]>= w2_y_lim and y[j]< (Ly-sponge):
+	elif y[j]>= tmp and y[j]< (Ly-sponge):
            #tmp = (Ly-sponge) - wind_x_pos
 	   #liq[t,j,:] = season_cos * lprec *2./3. + lprec * 1./3. #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
 	   liq[t,j,:] = lprec
