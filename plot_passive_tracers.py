@@ -26,6 +26,8 @@ def parseCommandLine():
 
   parser.add_argument('-name', type=str, default='test', help='''Name of the experiment (default is test).''')
 
+  parser.add_argument('-tracer', type=str, default='tr2', help='''Tracer name in the netcdf file (default is tr2).''')
+
   parser.add_argument('-n', type=int, default='1', help='''Compute every n values (default is 1).''')
 
   parser.add_argument('-ti', type=int, default='0', help='''Initial time indice (default is 0).''')
@@ -73,7 +75,7 @@ def driver(args):
   for t in range(tm):
       time = netCDF4.Dataset('prog.nc').variables['time'][tind[t]] # in days
       print 'Time is:',time
-      data0 = netCDF4.Dataset('prog.nc').variables['tr2'][tind[t],:,:,:]
+      data0 = netCDF4.Dataset('prog.nc').variables[args.tracer][tind[t],:,:,:]
       h0 = netCDF4.Dataset('prog.nc').variables['h'][tind[t],:,:,:]
       e0 = netCDF4.Dataset('prog.nc').variables['e'][tind[t],:,:,:]
       # remap
@@ -81,19 +83,25 @@ def driver(args):
       #
       data_ave = (data0 * h0).sum(axis = 0)/h0.sum(axis=0)
       print 'min/max',data_ave.min(), data_ave.max()
-      dyelev = np.linspace(0,50,100)
-      plt_xy(X,Y,data_ave,'tracer_2',depth,time,t,dyelev,my_cmap,args.name)
+      if args.tracer == 'tr2':
+         dyelev = np.linspace(0,50,100)
+         dyetic = [0,5,10,25,50]
+      else:
+         dyelev = np.linspace(0,1.5,100)
+         dyetic = [0,0.2,0.4,0.6,0.8,1.0,1.2,1.4]
+
+      plt_xy(X,Y,data_ave,args.tracer,depth,time,t,dyelev,dyetic,my_cmap,args.name)
 
   print 'Done with loop!'
   return
 
-def plt_xy(X,Y,tracer,tracer_name,depth,time,t,dyelev,my_cmap,exp):
+def plt_xy(X,Y,tracer,tracer_name,depth,time,t,dyelev,dyetic,my_cmap,exp):
     fig = plt.figure(facecolor='black')
     ax = fig.add_subplot(111,axisbg='gray')
     cs = ax.contourf(X,Y,tracer,dyelev,cmap=my_cmap,extend='both')
     ax.set_aspect('auto')
     cs.set_clim(dyelev.min(),dyelev.max())
-    cb = plt.colorbar(cs,orientation='horizontal',ticks=[0,5,10,25,50],extend='both')
+    cb = plt.colorbar(cs,orientation='horizontal',ticks=dyetic,extend='both')
     #cb = plt.colorbar(cs,orientation='horizontal')
     cb.set_label(tracer_name, fontsize=16)
     #ax.plot(xpall,zpall,'k-',lw=0.5)
