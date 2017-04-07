@@ -84,8 +84,10 @@ def driver(args):
       data_ave = (data0 * h0).sum(axis = 0)/h0.sum(axis=0)
       print 'min/max',data_ave.min(), data_ave.max()
       if args.tracer == 'tr2':
-         dyelev = np.linspace(0,50,100)
-         dyetic = [0,5,10,25,50]
+         #dyelev = np.linspace(0,50,100)
+         dyelev = np.linspace(0,15,100)
+         #dyetic = [0,5,10,25,50]
+         dyetic = [0,2.5,5.0,7.5,10,12.5,15.0]
       else:
          dyelev = np.linspace(0,1.5,100)
          dyetic = [0,0.2,0.4,0.6,0.8,1.0,1.2,1.4]
