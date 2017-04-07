@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
-# generate 3D diagnostics 
+# generate 3D diagnostics
 # Gustavo Marques, Sep. 2016
 
 import argparse
-import netCDF4 
+import netCDF4
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import pyvtk
 import os,sys
 import pp
+import time
 
 def parseCommandLine():
   """
@@ -19,7 +20,7 @@ def parseCommandLine():
   """
   parser = argparse.ArgumentParser(description=
       '''
-      Generated 3D VTK diagnostics for the ISOMIP+ test cases. This script 
+      Generated 3D VTK diagnostics for the ISOMIP+ test cases. This script
       assumes that files/variables names are consistent with the default ISOMIP/GFDL
       options (see: https://github.com/NOAA-GFDL/MOM6-examples/tree/dev/master/ocean_only/ISOMIP).
       ''',
@@ -32,7 +33,7 @@ def parseCommandLine():
       help='''The time indice to save the VTK files. Default value is 0, which saves the entire dataset. If --time > 0, only one time instance will be saved.''')
 
   parser.add_argument('-dt', type=int, default=1,
-      help='''The time indice interval to save the VTK files. Default value is 1, which saves the entire dataset.''') 
+      help='''The time indice interval to save the VTK files. Default value is 1, which saves the entire dataset.''')
 
   parser.add_argument('-ncpus', type=int, default=1,
       help='''The number of cpus to use when time = 0 (i.e., the entire dataset will be saved). Default value is 1.''')
@@ -42,12 +43,15 @@ def parseCommandLine():
 
   parser.add_argument('--bergs', help='''Generates 3D VTK data using icebergs.''', action="store_true")
 
+  parser.add_argument('-time_stats', help='''Prints the approx. time spent at different blocks of code.''', action="store_true")
+
   optCmdLineArgs = parser.parse_args()
   global name
   name = optCmdLineArgs.n
   driver3D(optCmdLineArgs)
 
 def driver3D(args):
+    t0 = time.time()
     if args.time != 0 and args.ncpus > 1:
        print 'Error! Parameter -ncpus cannot be > 1 when time =! 0.'
        quit()
@@ -60,11 +64,11 @@ def driver3D(args):
        job_server = pp.Server(args.ncpus, ppservers=ppservers)
     else:
        # Creates jobserver with automatically detected number of workers
-       job_server = pp.Server(ppservers=ppservers)          
-   
+       job_server = pp.Server(ppservers=ppservers)
+
     print "Starting pp with", job_server.get_ncpus(), "workers"
-    
-    args.oceanfile = args.oceanfile 
+
+    args.oceanfile = args.oceanfile
     # ocean grid
     D=netCDF4.Dataset('ocean_geometry.nc').variables['D'][:]
     lonh=netCDF4.Dataset('ocean_geometry.nc').variables['lonh'][:]
@@ -81,14 +85,24 @@ def driver3D(args):
     # ice shelf base
     ssh = netCDF4.Dataset('IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,:]
 
+    t1 = time.time()
+    if args.time_stats:
+       print 'Time in initialization:',(t1-t0)
+
+    t0 = time.time()
     # load time
     if args.time > 0 :
-        time = np.array(netCDF4.Dataset(args.oceanfile).variables['time'][args.time])
+        times = np.array(netCDF4.Dataset(args.oceanfile).variables['time'][args.time])
         tind = [args.time]
     else:
-        time = netCDF4.Dataset(args.oceanfile).variables['time'][:]
-        tind = range(0,len(time),args.dt)
+        times = netCDF4.Dataset(args.oceanfile).variables['time'][:]
+        tind = range(0,len(times),args.dt)
 
+    t1 = time.time()
+    if args.time_stats:
+       print 'Time loading time:',(t1-t0)
+
+    t0 = time.time()
     if args.bergs:
        rho_berg = 918.0
        rho = 1030.
@@ -99,27 +113,45 @@ def driver3D(args):
     else:
        # ice shelf thickness, static for now
        IS = netCDF4.Dataset('MOM_Shelf_IC.nc').variables['h_shelf'][:]
-    
+
+    t1 = time.time()
+    if args.time_stats:
+       print 'Time loading ice shelf data:',(t1-t0)
+
+    t0 = time.time()
     # interface and layer thickness
     e=netCDF4.Dataset(args.oceanfile).variables['e'][0,:,:,:]
     h=netCDF4.Dataset(args.oceanfile).variables['h'][0,:,:,:]
     # correct top and bottom, for vis pourposes
     h[0,:,:]=e[0,:,:]; h[-1,:,:]=e[-1,:,:]
     NZ,NY,NX=h.shape
+
     # create VTK bathymetry
     VTKgen(lats,lons,D.mask,depth=D,h=h,fname=name)
-    
+
+    t1 = time.time()
+    if args.time_stats:
+       print 'Time writing topography:',(t1-t0)
+
+    t0 = time.time()
+
     #if not tind>1:
         # create VTK ice-shelf
     print 'Saving ice shelf...'
     VTKgen(lats,lons,D.mask,h=h,shelf_base=ssh,shelf_thick=IS,fname=name)
 
+    t1 = time.time()
+    if args.time_stats:
+       print 'Time writing ice shelf data:',(t1-t0)
+
+    t0 = time.time()
+
     # list to tuple
     time_ind = tuple(tind)
     # Execution starts as soon as one of the workers will become available
-    jobs = [(t, job_server.submit(get_data, (t, lats, lons, D, dx, dy, NX, NY, args, ), 
+    jobs = [(t, job_server.submit(get_data, (t, lats, lons, D, dx, dy, NX, NY, args, ),
            (VTKgen,nan_helper,f1,f3,),
-           ("os","pyvtk","netCDF4","numpy",))) for t in time_ind]
+           ("os","pyvtk","netCDF4","numpy","time",))) for t in time_ind]
 
 #    jobs = [(t, job_server.submit(get_data1, (t,args, ), (VTKgen,),
 #        ("netCDF4",))) for t in tind]
@@ -134,8 +166,8 @@ def driver3D(args):
     if args.time==0:
        print ' \n' + '==> ' + ' Writting time to asn ascii file... \n' + ''
        f = open('VTK/time.txt', 'wb')
-       for i in range(len(time)):
-            f.write('%8.4f \n' % (time[i]))
+       for i in range(len(times)):
+            f.write('%8.4f \n' % (times[i]))
        f.close()
 
 
@@ -154,6 +186,7 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        # ocean
        # structure
        # layer thickness
+       t0 = time.time()
        file = netCDF4.Dataset(args.oceanfile)
        e=netCDF4.Dataset(args.oceanfile).variables['e'][t,:,:,:]
        h=netCDF4.Dataset(args.oceanfile).variables['h'][t,:,:,:]
@@ -172,6 +205,11 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        else:
           tr3=numpy.zeros(salt.shape)
 
+       t1 = time.time()
+       if args.time_stats:
+          print 'Main loop, time loading data:',(t1-t0)
+
+       t0 = time.time()
        # for isopycnal models
        # temp, mark values where h_dum<10 cm with Nan
        temp[h_dum<0.01]=numpy.nan; salt[h_dum<0.01]=numpy.nan
@@ -200,11 +238,20 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
 			   u[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], u[~nans,j,i])
 			   v[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], v[~nans,j,i])
 
+       t1 = time.time()
+       if args.time_stats:
+          print 'Main loop, time processing data:',(t1-t0)
+
+       t0 = time.time()
+
        # write just bottom values
        #VTKgen(lats,lons,D.mask,depth=D,h=h,temp=tt,salt=ss,rho=gamma,u=uu,v=vv,writebottom=True,fname=reg,t=ind)
-
        print 'Saving ocean data... \n'
        VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,rho=sig2,dye2=tr2,dye3=tr3,u=u,v=v,fname=args.n,t=t)
+       t1 = time.time()
+       if args.time_stats:
+          print 'Main loop, time writing VTK:',(t1-t0)
+
        if args.bergs:
            print 'Saving bergs data... \n'
            # save ice shelf made of icebergs
@@ -244,19 +291,19 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
           print ' \n' + '==> ' + 'Writing tracers/vel. just at the bottom layer ...\n' + ''
           data=[]
           if temp is not None:
-             tmp=np.zeros((2,NY,NX)) 
+             tmp=np.zeros((2,NY,NX))
              if len(temp.shape)==2: # in case the user provides 2D array with bottom data
                  tmp[:,:,:]=temp[:,:]
              else:
                  tmp[:,:,:]=temp[-1,:,:]
-                 
+
              temp=f1(tmp)
              data.append("pyvtk.Scalars(temp,name='Temp')")
 
           if salt is not None:
              tmp=np.zeros((2,NY,NX))
              if len(salt.shape)==2:
-                 tmp[:,:,:]=salt[:,:] 
+                 tmp[:,:,:]=salt[:,:]
              else:
                 tmp[:,:,:]=salt[-1,:,:]
 
@@ -281,7 +328,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
                 tmp[:,:,:]=dye1[-1,:,:]
 
              dye1=f1(tmp)
-             data.append("pyvtk.Scalars(dye1,name='Dye1')") 
+             data.append("pyvtk.Scalars(dye1,name='Dye1')")
 
           if dye2 is not None:
              tmp=np.zeros((2,NY,NX))
@@ -336,9 +383,9 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
               else:
                  s = str("vtk.tofile('%s/%s-bottom-%05d','binary')" % (dirname,fname,t))
                  eval(s)
-   
-            
- 
+
+
+
     if shelf_base is not None and shelf_thick is not None:
        NZ_IS = 2
        newlat=np.resize(lat,(NZ_IS,NY,NX))
@@ -361,7 +408,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
        if temp is not None:
          temp=f1(temp)
          data.append("pyvtk.Scalars(temp,name='Temp')")
-         
+
        if salt is not None:
          salt=f1(salt)
          data.append("pyvtk.Scalars(salt,name='Salt')")
@@ -390,7 +437,7 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
             vel=f3(u,v,w)
 
          data.append("pyvtk.Vectors(vel,name='Velocity')")
-    
+
        if seaice is not None:
          NZ,NY,NX=h.shape
          sice1=np.zeros((NZ,NY,NX))
@@ -398,11 +445,11 @@ def VTKgen(lat,lon,mask,depth=None,h=None,temp=None,salt=None,rho=None,dye1=None
          sice2=np.zeros((NZ,NY,NX))
          seaice[seaice>=0.15]=1.0 # all values >=15% are unit
          sice2[0,:,:]=seaice[:,:]
-         seaice1=f1(sice1) 
-         seaice2=f1(sice2) 
+         seaice1=f1(sice1)
+         seaice2=f1(sice2)
          data.append("pyvtk.Scalars(seaice1,name='Sea-ice')")
          data.append("pyvtk.Scalars(seaice2,name='Sea-ice-binary')")
-       
+
 
        if temp is not None or salt is not None or rho is not None or u is not None or seaice is not None:
          NZ,NY,NX=h.shape
@@ -437,7 +484,7 @@ def get_iceshelf(bottom,thick,NZ):
     tmp=np.resize(thick,(NZ,NY,NX))
     ice_shelf=np.zeros((NZ,NY,NX))
     z_shelf=np.zeros((NZ,NY,NX))
-    z_shelf[0,:,:]=bottom[:,:]+0.1 
+    z_shelf[0,:,:]=bottom[:,:]+0.1
     for i in range(NX):
 	    z_shelf[1,:,i]=(bottom[:,0] + thick[0,:,0]) + 0.1
 
