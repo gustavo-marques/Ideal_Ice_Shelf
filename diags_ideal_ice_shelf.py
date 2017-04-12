@@ -42,6 +42,12 @@ def parseCommandLine():
   parser.add_argument('-tf', type=int, default=-1,
      help='''Final time indice for computations. Default is -1 (all starting from t0).''')
 
+  parser.add_argument('-AABW_rho', type=float, default=1037.15,
+     help='''Minimum density (sigma2) to compute AABW transport (kg/m3). Default is 1037.15''')
+
+  parser.add_argument('-CDW_rho', type=float, default=1037.05,
+     help='''Minimum density (sigma2) to compute CDW transport (kg/m3). Default is 1037.05''')
+
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
@@ -122,11 +128,10 @@ def driver(args):
            # PRCmE: net surface water flux (lprec + melt + lrunoff - evap + calcing)
 	   PRCmE = mask_bad_values(Dataset(args.sfc_file).variables['PRCmE'][t,:])
            depth = 0.5*(e[0:-1,:,:]+e[1::,:,:]) # vertical pos. of cell
-	   tr1 = mask_bad_values(Dataset(args.prog_file).variables['tr1'][t,:])
-	   tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
+	   #tr1 = mask_bad_values(Dataset(args.prog_file).variables['tr1'][t,:])
+	   #tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
            pressure = gsw.p_from_z(depth,-75.) * 1.0e4 # in Pa [1 db = 10e4 Pa]
            rho = eos.wright_eos(temp,salt,pressure)
-           print 'rho.min(),rho.max()',rho.min(),rho.max()
 
            # diags functions
 	   salt_flux[tt] = get_saltf(x,y,saltf,CI_tot,args)
@@ -134,7 +139,7 @@ def driver(args):
 	   ice_area[tt],ice_volume[tt] = get_ice_diags(x,y,CI_tot,HI)
 	   HI_max[tt] = HI.max()
            AABW_transp[tt],AABW_transp_x[tt,:], AABW_h[tt,:] = get_transport(x,y,vh,h,rhopot2,args)
-           CDW_transp[tt] = get_CDW(x,y,vh,salt,temp,args)
+           CDW_transp[tt] = get_CDW(x,y,vh,rhopot2,args)
            NHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,0) # northward
            SHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,1) # southward
            NHT_ice_shelf[tt] = get_total_transp(y,vh,args.ISL,0) # northward
@@ -145,8 +150,9 @@ def driver(args):
            melt[tt] = get_melt(melt_all,shelf_area)
            total_mass_flux[tt] = get_total_mass_flux(mass_flux,shelf_area)
            #return l, B0, B0.mean(), B0_shelf, B0_IS
-           MO_lenght[tt,:], B0[tt,:], B0_mean[tt], B0_shelf_mean[tt], B0_IS_mean[tt] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
+           #MO_lenght[tt,:], B0[tt,:], B0_mean[tt], B0_shelf_mean[tt], B0_IS_mean[tt] = compute_B0_MO_lenght(temp[0,:],salt[0,:],PRCmE,depth[0,:],t,y,args)
            #dyn_pump[tt] = get_dyn_pump(y,vh,tr1,tr2,rho,total_mass_flux[tt],np.abs(SHT_ice_shelf[tt]),args.ISL)
+           print '\n'
 
    print 'Saving netcdf data...'
 
@@ -284,17 +290,18 @@ def get_total_transp(y,vh,loc_y,opt):
 
          return vhnew.sum()/1.0e6 # in sv
 
-def get_CDW(x,y,vh,s,t,args):
+def get_CDW(x,y,vh,rhopot2,args):
          '''
          Compute the onshore volume transport of CDW at the shelf break.
          '''
-         t_cdw = 0.0
-         s_cdw = 34.6
+         rhopot2 = rhopot2 - 1000.0
+         rho_max = args.AABW_rho - 1000.
+         rho_min = args.CDW_rho - 1000.
          tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
          vhnew = np.ma.masked_where(vh[:,tmp,:]>0.0, vh[:,tmp,:])
-         tnew = np.ma.masked_where(t[:,tmp,:]>=t_cdw, t[:,tmp,:])
-         snew = np.ma.masked_where(s[:,tmp,:]>=s_cdw, s[:,tmp,:])
-         transp = (vhnew * tnew * snew / (tnew * snew)).sum() # in m^3/s
+         sig2_min = np.ma.masked_where(rhopot2[:,tmp,:]<rho_min, rhopot2[:,tmp,:])
+         sig2_max = np.ma.masked_where(rhopot2[:,tmp,:]>rho_max, rhopot2[:,tmp,:])
+         transp = (vhnew * sig2_min * sig2_max / (sig2_min * sig2_max)).sum() # in m^3/s
 
          print 'CDW Transport (sv)', transp/1.0e6
 
@@ -305,10 +312,9 @@ def get_transport(x,y,vh,h,rhopot2,args):
          Compute the total volume transport, outflow thickness.
 	 '''
          T = -0.75; S = 34.7
-         rho_min = eos.wright_eos(T,S,2.0e7)-1000.
-         rho_min = 37.18
+         #rho_min = eos.wright_eos(T,S,2.0e7)-1000.
+         rho_min = args.AABW_rho - 1000.
          rhopot2 = rhopot2 - 1000.0
-         print 'rho_AABW, rhopot2 min/max',rho_min, rhopot2.min(), rhopot2.max()
 	 #dx = np.ones((h[:,0,:].shape)) * (x[1]-x[0]) * 1.0e3 # in m
          # end of cont. shelf
 	 tmp = np.nonzero(y<=args.cshelf_lenght)[0][-1]
@@ -325,7 +331,7 @@ def get_transport(x,y,vh,h,rhopot2,args):
          # set masked values to zero
          if total_transp is np.ma.masked: total_transp = 0.0
 
-         print 'AABW Transport (sv)', total_transp/1.0e6, '\n'
+         print 'AABW Transport (sv)', total_transp/1.0e6
 
          return total_transp/1.0e6, transp_x, thickness # in sv
 
