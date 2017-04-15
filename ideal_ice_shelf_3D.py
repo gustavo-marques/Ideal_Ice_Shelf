@@ -200,10 +200,10 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        else:
           tr2=numpy.zeros(salt.shape)
 
-       if 'tr3' in file.variables:
-          tr3=netCDF4.Dataset(args.oceanfile).variables['tr3'][t,:,:,:]
+       if 'tr1' in file.variables:
+          tr1=netCDF4.Dataset(args.oceanfile).variables['tr1'][t,:,:,:]
        else:
-          tr3=numpy.zeros(salt.shape)
+          tr1=numpy.zeros(salt.shape)
 
        t1 = time.time()
        if args.time_stats:
@@ -213,7 +213,7 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        # for isopycnal models
        # temp, mark values where h_dum<10 cm with Nan
        temp[h_dum<0.01]=numpy.nan; salt[h_dum<0.01]=numpy.nan
-       sig2[h_dum<0.01] = numpy.nan; tr2[h_dum<0.01] = numpy.nan; tr3[h_dum<0.01] = numpy.nan
+       sig2[h_dum<0.01] = numpy.nan; tr2[h_dum<0.01] = numpy.nan; tr1[h_dum<0.01] = numpy.nan
        # same for salt, u and v
        v=netCDF4.Dataset(args.oceanfile).variables['vh'][t,:,:,:]/(h*dx)
        u=netCDF4.Dataset(args.oceanfile).variables['uh'][t,:,:,:]/(h*dy)
@@ -234,7 +234,7 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
 			   salt[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], salt[~nans,j,i])
 			   sig2[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], sig2[~nans,j,i])
 			   tr2[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], tr2[~nans,j,i])
-			   tr3[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], tr3[~nans,j,i])
+			   tr1[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], tr1[~nans,j,i])
 			   u[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], u[~nans,j,i])
 			   v[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], v[~nans,j,i])
 
@@ -247,7 +247,7 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
        # write just bottom values
        #VTKgen(lats,lons,D.mask,depth=D,h=h,temp=tt,salt=ss,rho=gamma,u=uu,v=vv,writebottom=True,fname=reg,t=ind)
        print 'Saving ocean data... \n'
-       VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,rho=sig2,dye2=tr2,dye3=tr3,u=u,v=v,fname=args.n,t=t)
+       VTKgen(lats,lons,D.mask,h=hz,temp=temp,salt=salt,rho=sig2,dye2=tr2,dye3=tr1,u=u,v=v,fname=args.n,t=t)
        t1 = time.time()
        if args.time_stats:
           print 'Main loop, time writing VTK:',(t1-t0)
