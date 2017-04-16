@@ -15,7 +15,7 @@ import numpy
 from misc import *
 import wright_eos as eos
 
-matplotlib.rcParams.update({'font.size': 16})
+matplotlib.rcParams.update({'font.size': 18})
 
 def parseCommandLine():
   """
@@ -78,11 +78,13 @@ def driver(args):
       temp = netCDF4.Dataset('prog.nc').variables['temp'][tind[t],:,:,:]
       salt = netCDF4.Dataset('prog.nc').variables['salt'][tind[t],:,:,:]
       rhopot2 = netCDF4.Dataset('prog.nc').variables['rhopot2'][tind[t],:,:,:]
+
       # mask vanished layers
       temp = np.ma.masked_where(h<0.01,temp)
       salt = np.ma.masked_where(h<0.01,salt)
       tracer1 = np.ma.masked_where(h<0.01,tracer1)
       tracer2 = np.ma.masked_where(h<0.01,tracer2)
+
       volume = np.ma.masked_where(h<0.01,volume)
 
       TS_diagram(temp,salt,rhopot2,depth,tracer1,tracer2,volume,t,my_cmap,args.name)
@@ -126,7 +128,7 @@ def TS_diagram(temp,salt,rho,depth,tracer1,tracer2,volume,t,cm,exp):
     ax1.set_aspect('auto')
     rho_vals = [36.9,37,37.1,37.2,37.3]
     CS = plt.contour(S,T,sig2,rho_vals, colors='k',lw=0.25)
-    plt.clabel(CS, fontsize=15, inline=1, fmt='%4.2f') # Label every second level
+    plt.clabel(CS, fontsize=18, inline=1, fmt='%4.2f') # Label every second level
     #sc=ax1.scatter(salt,temp, c=depth, s=1,vmin=0,vmax=depth.max(), cmap=cm,norm=mp.colors.LogNorm())
     sc=ax1.scatter(salt.flatten(),temp.flatten(), c=depth.flatten(), vmin = 5, vmax = depth.max(),s=size, alpha = 1, norm=colors.LogNorm(), marker='o',cmap = cm)#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
     cb=fig.colorbar(sc)
@@ -153,7 +155,7 @@ def TS_diagram(temp,salt,rho,depth,tracer1,tracer2,volume,t,cm,exp):
     ax2 = fig.add_subplot(111)
     ax2.set_aspect('auto')
     CS2 = plt.contour(S,T,sig2,rho_vals, colors='k',lw=0.25)
-    plt.clabel(CS2, fontsize=15, inline=1, fmt='%4.2f') # Label every second level
+    plt.clabel(CS2, fontsize=18, inline=1, fmt='%4.2f') # Label every second level
     sc2=ax2.scatter(salt.flatten(),temp.flatten(), c=tracer2.flatten(), cmap=plt.cm.bwr,vmin = 0.0001, vmax = 50,s=size, alpha = 1,  norm=colors.LogNorm(), marker='o')#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
     cb2=fig.colorbar(sc2)
     ax2.plot(salts,tf,'gray')
