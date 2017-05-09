@@ -486,7 +486,7 @@ def get_iceshelf(bottom,thick,NZ):
     z_shelf=np.zeros((NZ,NY,NX))
     z_shelf[0,:,:]=bottom[:,:]+0.1
     for i in range(NX):
-	    z_shelf[1,:,i]=(bottom[:,0] + thick[0,:,0]) + 0.1
+	    z_shelf[1,:,i]=(bottom[:,i] + thick[:,i]) + 0.1
 
     z_shelf = np.ma.masked_where(tmp==0,z_shelf)
     z_shelf.fill_value=np.nan
