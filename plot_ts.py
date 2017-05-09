@@ -15,7 +15,7 @@ import numpy
 from misc import *
 import wright_eos as eos
 
-matplotlib.rcParams.update({'font.size': 18})
+matplotlib.rcParams.update({'font.size': 22})
 
 def parseCommandLine():
   """
@@ -54,7 +54,7 @@ def driver(args):
   depth = netCDF4.Dataset('ocean_geometry.nc').variables['D'][:]
   X = netCDF4.Dataset('ocean_geometry.nc').variables['geolon'][:]
   Y = netCDF4.Dataset('ocean_geometry.nc').variables['geolat'][:]
-  area = netCDF4.Dataset('ocean_geometry.nc').variables['Ah'][:] # m^2
+  area = netCDF4.Dataset('ocean_geometry.nc').variables['Ah'][:,200:300] # m^2
 
   # time
   tind = np.arange(ti,tf,n)
@@ -69,15 +69,15 @@ def driver(args):
   for t in range(tm):
       time = netCDF4.Dataset('prog.nc').variables['time'][tind[t]] # in days
       print 'Time is:',time
-      tracer1 = netCDF4.Dataset('prog.nc').variables['tr1'][tind[t],:,:,:]
-      tracer2 = netCDF4.Dataset('prog.nc').variables['tr2'][tind[t],:,:,:]
-      h = netCDF4.Dataset('prog.nc').variables['h'][tind[t],:,:,:]
+      tracer1 = netCDF4.Dataset('prog.nc').variables['tr1'][tind[t],:,:,200:300]
+      tracer2 = netCDF4.Dataset('prog.nc').variables['tr2'][tind[t],:,:,200:300]
+      h = netCDF4.Dataset('prog.nc').variables['h'][tind[t],:,:,200:300]
       volume = h * np.tile(area, (h.shape[0],1,1))
-      e = netCDF4.Dataset('prog.nc').variables['e'][tind[t],:,:,:]
+      e = netCDF4.Dataset('prog.nc').variables['e'][tind[t],:,:,200:300]
       depth = -0.5 * (e[0:-1,:,:] + e[1::,:,:])
-      temp = netCDF4.Dataset('prog.nc').variables['temp'][tind[t],:,:,:]
-      salt = netCDF4.Dataset('prog.nc').variables['salt'][tind[t],:,:,:]
-      rhopot2 = netCDF4.Dataset('prog.nc').variables['rhopot2'][tind[t],:,:,:]
+      temp = netCDF4.Dataset('prog.nc').variables['temp'][tind[t],:,:,200:300]
+      salt = netCDF4.Dataset('prog.nc').variables['salt'][tind[t],:,:,200:300]
+      rhopot2 = netCDF4.Dataset('prog.nc').variables['rhopot2'][tind[t],:,:,200:300]
 
       # mask vanished layers
       temp = np.ma.masked_where(h<0.01,temp)
@@ -132,7 +132,7 @@ def TS_diagram(temp,salt,rho,depth,tracer1,tracer2,volume,t,cm,exp):
     #sc=ax1.scatter(salt,temp, c=depth, s=1,vmin=0,vmax=depth.max(), cmap=cm,norm=mp.colors.LogNorm())
     sc=ax1.scatter(salt.flatten(),temp.flatten(), c=depth.flatten(), vmin = 5, vmax = depth.max(),s=size, alpha = 1, norm=colors.LogNorm(), marker='o',cmap = cm)#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
     cb=fig.colorbar(sc)
-    cb.set_label('Depth [m]',fontsize = 18)
+    cb.set_label('Depth [m]',fontsize = 22)
     aux(ax1,tmin,tmax,smin,smax,volume,size,salts,tf)
     plt.tight_layout()
     s = str("plt.savefig('PNG/%s-ts-depth-%04d.png',bbox_inches='tight')"% (exp,t))
@@ -143,9 +143,9 @@ def TS_diagram(temp,salt,rho,depth,tracer1,tracer2,volume,t,cm,exp):
     ax2.set_aspect('auto')
     CS2 = plt.contour(S,T,sig2,rho_vals, colors='k',lw=0.25)
     plt.clabel(CS2, fontsize=15, inline=1, fmt='%4.2f') # Label every second level
-    sc2=ax2.scatter(salt.flatten(),temp.flatten(), c=tracer1.flatten(), cmap=plt.cm.bwr,vmin = 0.0001, vmax = 1.5,s=size, alpha = 1,  norm=colors.LogNorm(), marker='o')#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
+    sc2=ax2.scatter(salt.flatten(),temp.flatten(), c=tracer1.flatten(), cmap=cm,vmin = 0.0001, vmax = 1.5,s=size, alpha = 1,  norm=colors.LogNorm(), marker='o')#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
     cb2=fig.colorbar(sc2)
-    cb2.set_label('Tracer (brine rejection)',fontsize = 18)
+    cb2.set_label('Tracer (brine rejection)',fontsize = 22)
     aux(ax2,tmin,tmax,smin,smax,volume,size,salts,tf)
     plt.tight_layout()
     s = str("plt.savefig('PNG/%s-ts-tr1-%04d.png',bbox_inches='tight')"% (exp,t))
@@ -155,15 +155,29 @@ def TS_diagram(temp,salt,rho,depth,tracer1,tracer2,volume,t,cm,exp):
     ax2 = fig.add_subplot(111)
     ax2.set_aspect('auto')
     CS2 = plt.contour(S,T,sig2,rho_vals, colors='k',lw=0.25)
-    plt.clabel(CS2, fontsize=18, inline=1, fmt='%4.2f') # Label every second level
-    sc2=ax2.scatter(salt.flatten(),temp.flatten(), c=tracer2.flatten(), cmap=plt.cm.bwr,vmin = 0.0001, vmax = 50,s=size, alpha = 1,  norm=colors.LogNorm(), marker='o')#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
+    plt.clabel(CS2, fontsize=20, inline=1, fmt='%4.2f') # Label every second level
+    sc2=ax2.scatter(salt.flatten(),temp.flatten(), c=tracer2.flatten(), cmap=cm,vmin = 0.0001, vmax = 50,s=size, alpha = 1,  norm=colors.LogNorm(), marker='o')#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
     cb2=fig.colorbar(sc2)
     ax2.plot(salts,tf,'gray')
-    cb2.set_label('Tracer (melt water)',fontsize = 18)
+    cb2.set_label('Tracer (melt water)',fontsize = 22)
     aux(ax2,tmin,tmax,smin,smax,volume,size,salts,tf)
     plt.tight_layout()
     s = str("plt.savefig('PNG/%s-ts-tr2-%04d.png',bbox_inches='tight')"% (exp,t))
     eval(s)
+
+    fig = plt.figure(figsize=(10,8))
+    ax2 = fig.add_subplot(111)
+    ax2.set_aspect('auto')
+    CS2 = plt.contour(S,T,sig2,rho_vals, colors='b',lw=0.25)
+    plt.clabel(CS2, fontsize=20, inline=1, fmt='%4.2f') # Label every second level
+    sc2=ax2.scatter(salt.flatten(),temp.flatten(), s=size, c = 'k', marker='o')#, s=4,vmin=0,vmax=depth.max(), cmap=cm, norm=colors.Normalize())
+    ax2.plot(salts,tf,'gray')
+    cb2.set_label('Tracer (melt water)',fontsize = 22)
+    aux(ax2,tmin,tmax,smin,smax,volume,size,salts,tf)
+    plt.tight_layout()
+    s = str("plt.savefig('PNG/%s-ts-regular-%04d.png',bbox_inches='tight')"% (exp,t))
+    eval(s)
+
     plt.show()
 #    plt.close('all')
     return
@@ -171,8 +185,8 @@ def TS_diagram(temp,salt,rho,depth,tracer1,tracer2,volume,t,cm,exp):
 def aux(ax,tmin,tmax,smin,smax,vol,size,salts,tf):
     ax.set_ylim(tmin,tmax)
     ax.set_xlim(smin,smax)
-    ax.set_xlabel('Salinity', fontsize = 18)
-    ax.set_ylabel(r'Temperature [$^o$C]', fontsize = 18)
+    ax.set_xlabel('Salinity', fontsize = 22)
+    ax.set_ylabel(r'Temperature [$^o$C]', fontsize = 22)
     s = str("ax.text(34.12,0.45,r'= %2.1f  km$^3$')"% (vol.max()/1.0e9))
     eval(s)
     ax.plot(salts,tf,'gray')

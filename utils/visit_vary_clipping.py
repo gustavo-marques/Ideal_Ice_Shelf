@@ -45,7 +45,7 @@ visit.SetOperatorOptions(ClipAtts, 2)
 
 # indices controlling clip
 ti = 200; tf = 230; trho = 300
-pos1 = 600 # final clip
+pos1 = 500 # final clip
 cstep = (pos0-pos1)/(tf-ti) # clip step
 pos = pos0 # initial pos
 for i in range(n):
