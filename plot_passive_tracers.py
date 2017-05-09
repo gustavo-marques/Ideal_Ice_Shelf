@@ -12,6 +12,9 @@ import os
 import argparse
 import numpy
 from misc import *
+import matplotlib
+
+matplotlib.rcParams.update({'font.size': 22})
 
 def parseCommandLine():
   """
@@ -89,9 +92,9 @@ def driver(args):
       print 'min/max',data_ave.min(), data_ave.max()
       if args.tracer == 'tr2':
          #dyelev = np.linspace(0,50,100)
-         dyelev = np.linspace(0,20,100)
+         dyelev = np.linspace(0,50,100)
          #dyetic = [0,5,10,25,50]
-         dyetic = [0,5.0,10,15.0,20.0]
+         dyetic = [0,10.0,20,30.0,40.0,50.0]
       else:
          dyelev = np.linspace(0,1.5,100)
          dyetic = [0,0.2,0.4,0.6,0.8,1.0,1.2,1.4]
@@ -145,25 +148,29 @@ def plt_xy(X,Y,tracer,tracer_name,depth,time,t,dyelev,dyetic,my_cmap,exp):
     return
 
 def plt_xy_uv(X,Y,tracer,u,v,tracer_name,depth,time,t,dyelev,dyetic,my_cmap,exp,n):
-    fig = plt.figure(facecolor='black',figsize=(10,10))
+    ##fig = plt.figure(facecolor='black',figsize=(10,10))
     #fig = plt.figure(facecolor='black')
-    ax = fig.add_subplot(111,axisbg='gray')
+    ##ax = fig.add_subplot(111,axisbg='gray')
+    fig, (ax, cax) = plt.subplots(nrows=2,figsize=(10,10),
+                  gridspec_kw={"height_ratios":[1, 0.05]})
     #ax.axis('equal')
     cs = ax.contourf(X,Y,tracer,dyelev,cmap=my_cmap,extend='both')
     ax.set_aspect('equal')
     cs.set_clim(dyelev.min(),dyelev.max())
-    cb = plt.colorbar(cs,orientation='vertical',ticks=dyetic,extend='both')
+    #cbaxes = fig.add_axes([0.15, 0.05, 0.75, 0.03])
+    cb = plt.colorbar(cs, cax = cax,orientation='horizontal',ticks=dyetic,extend='both')
+    #cb = plt.colorbar(cs,orientation='horizontal',ticks=dyetic,extend='both')
     #cb = plt.colorbar(cs,orientation='horizontal')
-    cb.set_label('Passive tracer', fontsize=16)
+    cb.set_label('Depth averaged tracer', fontsize=22)
     #ax.plot(xpall,zpall,'k-',lw=0.5)
     ax.contour(X,Y,depth,[550,650,750,850],colors='k')
-    Q = ax.quiver(X[::n,::n],Y[::n,::n],u[::n,::n],v[::n,::n],scale=5)
-    qk = ax.quiverkey(Q, 0.64, 0.2, 0.25, r'0.25 m s$^{-1}$', labelpos='E',
+    Q = ax.quiver(X[::n,::n],Y[::n,::n],u[::n,::n],v[::n,::n],scale=1)
+    qk = ax.quiverkey(Q, 0.72, 0.25, 0.05, r'0.05 $\frac{m}{s}$', labelpos='E',
                    coordinates='figure')
-    ax.set_xlabel('x [km]')
-    ax.set_ylabel('y [km]')
+    ax.set_xlabel('x [km]', fontsize = 22)
+    ax.set_ylabel('y [km]',fontsize = 22)
     ax.set_xlim(0,500)
-    ax.set_ylim(Y.min(),600)
+    ax.set_ylim(Y.min(),500)
     ss = str("ax.set_title('Time: %5.2f days')"% (time))
     eval(ss)
     #forceAspect(ax,aspect=1)
