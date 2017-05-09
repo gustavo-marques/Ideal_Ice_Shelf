@@ -140,8 +140,8 @@ def driver(args):
 	   ice_area[tt],ice_volume[tt] = get_ice_diags(x,y,CI_tot,HI)
 	   HI_max[tt] = HI.max()
            AABW_transp[tt],AABW_transp_x[tt,:], AABW_h[tt,:] = get_transport(x,y,vh,h,rhopot2,args)
-           CDW_transp[tt] = get_CDW(x,y,vh,rhopot2,args.cshelf_lenght)
-           CDW1_transp[tt] = get_CDW(x,y,vh,rhopot2,300.0)
+           CDW_transp[tt] = get_CDW(x,y,vh,rhopot2,args.cshelf_lenght, args)
+           CDW1_transp[tt] = get_CDW(x,y,vh,rhopot2,300.0,args)
            NHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,0) # northward
            SHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,1) # southward
            NHT_ice_shelf[tt] = get_total_transp(y,vh,args.ISL,0) # northward
@@ -292,7 +292,7 @@ def get_total_transp(y,vh,loc_y,opt):
 
          return vhnew.sum()/1.0e6 # in sv
 
-def get_CDW(x,y,vh,rhopot2,yloc):
+def get_CDW(x,y,vh,rhopot2,yloc,args):
          '''
          Compute the onshore volume transport of CDW at the shelf break.
          '''
