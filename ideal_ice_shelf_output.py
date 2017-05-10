@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# generate the ISOMIP + diagnostics 
+# generate the ISOMIP + diagnostics
 # Gustavo Marques, Aug. 2016
 
 import argparse
@@ -27,17 +27,14 @@ def parseCommandLine():
   """
   parser = argparse.ArgumentParser(description=
       '''
-      Compute the isomip+ diagnostics and write them into a netCDF file. This script 
+      Compute the isomip+ diagnostics and write them into a netCDF file. This script
       assumes that files/variables names are consistent with the default ISOMIP/GFDL
       options (see: https://github.com/NOAA-GFDL/MOM6-examples/tree/dev/master/ocean_on       ly/ISOMIP).
       ''',
   epilog='Written by Gustavo Marques, Aug. 2016.')
 
-  parser.add_argument('-type', type=str, default='ocean0',
-      help='''The type pf experiment that will computed (ocean0, ocean1 etc). Default is ocean0.''')
-
-  parser.add_argument('-n', type=str, default='Ocean0_COM_MOM6-LAYER',
-      help='''The name of the experiment following the ISOMIP+ definition (expt_COM_model). This name is used to save the netCDF file. Default is Ocean0_COM_MOM6-LAYER.''')
+  parser.add_argument('-n', type=str, default='M1_exp5_1km_output',
+      help='''The name of the experiment. Default is M1_exp5_1km_output.''')
 
   parser.add_argument('-icfile', type=str, default='IDEAL_IS_IC.nc',
       help='''The name of the ocean initial condition file. Default is IDEAL_IS_IC.nc.''')
@@ -53,24 +50,22 @@ def parseCommandLine():
 
   parser.add_argument('-month_z_file', type=str, default='ocean_month_z.nc',
       help='''The name of monthly mean file with z coordinate. Default is ocean_month_z.nc''')
-  
+
   parser.add_argument('-prog_file', type=str, default='prog.nc',
       help='''The name of prognostic ocean file. Default is prog.nc''')
 
   parser.add_argument('-nx', type=float, default=250,
       help='''The number of grid points in the zonal direction (for the OUTPUT ncfile). Default is 250.''')
-  
+
   parser.add_argument('-ny', type=float, default=500,
       help='''The number of grid points in the meridional direction (for the OUTPUT ncfile). Default is 500.''')
 
   parser.add_argument('-nz', type=float, default=400,
       help='''The number of grid points in the vertical direction (for the OUTPUT ncfile). Default is 400.''')
-  
+
 #  parser.add_argument('--test', action="store_true",
 #      help='''Write 4D versions of elevation and overtuningStreamfunction so we can use gplot. ''')
 
-  parser.add_argument('--mean4gamma', help='''Compute (and save in a text file) melting over the area where ice base > 300 m and over final six months.''', action="store_true")
- 
   optCmdLineArgs = parser.parse_args()
   global name
   name = optCmdLineArgs.n
@@ -82,27 +77,23 @@ def driver(args):
    """
    if name == 'Ocean0_COM_MOM6-LAYER':
       print("WARNING: exp. name has not been defined, using the default name Ocean0_COM_MOM6-LAYER.")
-   
+
    # load essential variables
    # bedrock
    depth = Dataset(args.geometry).variables['D'][:]
-   # area under shelf 
+   # area under shelf
    shelf_area = Dataset(args.isfile).variables['shelf_area'][0,:,:]
    # base of STATIC ice shelf, which is ssh(t=0); make it positive
    ice_base = -Dataset(args.icfile).variables['ave_ssh'][0,:,:]
    ice_base[ice_base<1e-5] = 0.0
    #mask grounded ice and open ocean
-   shelf_area = mask_grounded_ice(shelf_area,depth,ice_base) 
+   shelf_area = mask_grounded_ice(shelf_area,depth,ice_base)
    shelf_area = mask_ocean(shelf_area,shelf_area)
-  
-   # x,y, at tracer points 
+
+   # x,y, at tracer points
    x=Dataset(args.geometry).variables['geolon'][:]*1.0e3 # in m
    y=Dataset(args.geometry).variables['geolat'][:]*1.0e3 # in m
 
-   if args.mean4gamma:
-      print("Computing mean melt rate to calibrate gamma...")
-      melt4gamma(name,shelf_area,ice_base,depth,args)
-   
    # read entire time variable from montly mean
    # it might be useful to add the option of passing
    # just part of the data (e.g., last 6 months)
@@ -113,7 +104,7 @@ def driver(args):
    create_ncfile(name,time,args)
 
    # load additional variables
-   ocean_area = Dataset(args.geometry).variables['Ah'][:] 
+   ocean_area = Dataset(args.geometry).variables['Ah'][:]
    h = Dataset(args.month_file).variables['h'][:]
    h[h<1.0e-5] = 0.0
    melt = Dataset(args.month_file).variables['melt'][:]
@@ -124,7 +115,7 @@ def driver(args):
    melt = mask_grounded_ice(melt,depth,ice_base)
    melt = mask_ocean(melt,shelf_area)
    # tracers
-   salt = Dataset(args.month_file).variables['salt'][:]   
+   salt = Dataset(args.month_file).variables['salt'][:]
    temp = Dataset(args.month_file).variables['temp'][:]
    rho = get_rho(salt,temp)
 
@@ -136,18 +127,18 @@ def driver(args):
 
    # compute mean melt rate
    mean_melt_rate(melt,shelf_area)
-   
+
    # compute total melt flux
    total_melt_flux(mass_flux)
 
    # mean temp
    mean_tracer(ocean_area,h,temp,'meanTemperature','C')
-   
+
    # mean salt
    mean_tracer(ocean_area,h,salt,'meanSalinity','PSU')
 
    # horizontal fields
-   
+
    # bathymetry (negative)
    bathymetry = -mask_grounded_ice(depth,depth,ice_base)
    bathymetry.fill_value=0.0
@@ -156,7 +147,7 @@ def driver(args):
    # meltRate, already masked above
    melt = melt/(3600.*24*365) # in m/s
    saveXY(melt,'meltRate')
-   
+
    # frictionVelocity
    ustar_shelf = Dataset(args.month_file).variables['ustar_shelf'][:]
    # mask open ocean and grounded ice
@@ -196,11 +187,11 @@ def driver(args):
    #iceDraft[shelf_area == 0.] = 0.0
    iceDraft.fill_value = 720.0; iceDraft = iceDraft.filled()
    saveXY(-iceDraft,'iceDraft')
-   
+
    # data from ocean_month_z
    temp_z = Dataset(args.month_z_file).variables['temp'][:]
    salt_z = Dataset(args.month_z_file).variables['salt'][:]
-   
+
    # data at bottom most cell
    bottomTemperature = get_bottom_data(temp_z)
    bottomSalinity = get_bottom_data(salt_z)
@@ -229,14 +220,15 @@ def driver(args):
    uhbt = Dataset(args.month_file).variables['uhbt'][:]
    vhbt = Dataset(args.month_file).variables['vhbt'][:]
    # mask grouded region
-   uhbt = mask_grounded_ice(uhbt,depth,ice_base)
-   vhbt = mask_grounded_ice(vhbt,depth,ice_base)
+   #uhbt = mask_grounded_ice(uhbt,depth,ice_base)
+   #vhbt = mask_grounded_ice(vhbt,depth,ice_base)
    psi2D = get_psi2D(uhbt,vhbt)
+
    psi2D = mask_grounded_ice(psi2D,depth,ice_base)
    saveXY(psi2D,'barotropicStreamfunction')
- 
+
    # overturningStreamfunction
-   
+
    #uh = Dataset(args.month_file).variables['uh'][:]
    #e = Dataset(args.month_file).variables['e'][:]
    #osf = get_OSF(uh,e,h,x[0,:],y[:,0])
@@ -268,19 +260,19 @@ def get_OSF(uh,e,h,x,y):
     print 'Computing OSF...'
     for t in range(NT):
        print "time index {} of {}".format(t, NT)
-       zInterface = e[t, :, :, :]      
+       zInterface = e[t, :, :, :]
        # h at u points
        h_u = 0.5 * (h[t, :, :, 0:-1] + h[t, :, :, 1::])
        uht = uh[t, :, :, 0:-1]
        # recover u
-       ut = uht/(h_u * dy*np.ones(uht.shape)) 
+       ut = uht/(h_u * dy*np.ones(uht.shape))
        zInterface_u = 0.5*(zInterface[:, :, 0:-1] + zInterface[:, :, 1:])
-       uMask = np.ones((NZ,NY,NX-1), bool)     
+       uMask = np.ones((NZ,NY,NX-1), bool)
 
        dummy = computeOSF(ut, uMask, dy=dy*np.ones(uht.shape),
                         zInterface=zInterface_u,
                         zInterfaceOut=zInterfaceOut, plot=True,
-                        xPlot=x, zPlot=zInterface, tIndex=t)       
+                        xPlot=x, zPlot=zInterface, tIndex=t)
        # skip the extra points we added at the top, since those aren't part of
        # standard ISOMIP+ output
        osfOut[t,:,:] = dummy[nzExtra:, :]
@@ -290,7 +282,7 @@ def get_psi3D_OLD(u,e,shelf,depth):
     '''
     This is obsolete and is left here for comparison purposes.
     Loop in time, interpolate uh to a fixed z spaced grid, then
-    compute the overturning streamfunction psi at the grid corner points. 
+    compute the overturning streamfunction psi at the grid corner points.
     '''
     z = - np.arange(2.5,720.,5)
     NT,NZ,NY,NX = u.shape
@@ -329,13 +321,16 @@ def get_psi2D(u,v):
     uh[:,:,1::] = utmp; uh[:,:,0] = 0.5*u[:,:,0] #u_i=1 = 0.5*u_(i=3/2)
     vh[:,1::,:] = vtmp; vh[:,0,:] = 0.5*v[:,0,:] #v_j=1 = 0.5*v_(j=3/2)
     for t in range(NT):
-        psi[t,:,:] = (-uh[t,:,:].cumsum(axis=0) + vh[t,:,:].cumsum(axis=1))*0.5
-        
-    return psi 
+        # mask
+        u_tmp = np.ma.masked_where(np.abs(uh[t,:]) > 1.0e30, uh[t,:])
+        v_tmp = np.ma.masked_where(np.abs(vh[t,:]) > 1.0e30, vh[t,:])
+        psi[t,:,:] = (-u_tmp.cumsum(axis=0) + v_tmp.cumsum(axis=1))*0.5
+
+    return psi
 
 def get_bottom_data(data):
     '''
-    Return a 3D array (time,y,x) with data at the bottom most cell of each column. 
+    Return a 3D array (time,y,x) with data at the bottom most cell of each column.
     Data is already masked where there is no ocean.
     '''
     NT,NK,NY,NX = data.shape
@@ -355,7 +350,7 @@ def saveXY(var,varname):
    '''
    Save 2D (x,y) or 3D array (time,x,y) into the netCDF file.
    '''
-   ncwrite(name,varname,var) 
+   ncwrite(name,varname,var)
    return
 
 def mean_tracer(area,h,var,varname,units):
@@ -374,9 +369,9 @@ def mean_tracer(area,h,var,varname,units):
 
 def total_melt_flux(mass):
     '''
-    Compute the total mass flux of freshwater across the ice-oceaninterface, positive 
+    Compute the total mass flux of freshwater across the ice-oceaninterface, positive
     for melting and negative for freezing.
-    '''    
+    '''
     total_mass = np.zeros(mass.shape[0])
     for t in range(len(total_mass)):
         total_mass[t] = mass[t,:].sum()
@@ -400,12 +395,12 @@ def mean_melt_rate(melt,area):
     return
 
 def total_volume(area,h):
-    area = np.resize(area,h.shape) 
+    area = np.resize(area,h.shape)
     vol = np.zeros(h.shape[0])
     for t in range(len(vol)):
         vol[t] = (area[t,:] * h[t,:]).sum()
-        print('Total vol. (m^3) at t='+str(t)+' is:'+str(vol[t])) 
-        
+        print('Total vol. (m^3) at t='+str(t)+' is:'+str(vol[t]))
+
     ncwrite(name,'totalOceanVolume',vol)
     return
 
@@ -437,50 +432,28 @@ def ncwrite(name,var_name,data):
     file.close()
     print('*** Variable '+var_name+' was written successfully. \n')
     return
- 
+
 def get_rho(S,T):
     '''
-    Compute density with a linear EoS and using isomip+ coeffs. 
+    Compute density with a linear EoS and using isomip+ coeffs.
     '''
     rho0=1027.51; Sref=34.2; Tref=-1.0
     alpha = 3.733e-5; beta = 7.843e-4
     rho = rho0 * (1 - alpha * (T-Tref) + beta * (S-Sref))
     return rho
 
-def melt4gamma(name,area,ice_base,depth,args):
-   '''
-   Compute (and save in a text file) melting over the area where ice base > 300 m and over final six months.
-   '''
-
-   print('WARNING: have you checked if exp. has reached steady state?')
-   # read melt over last 6 months
-   melt = Dataset(args.ocean_month).variables['melt'][-6::,:,:]
-   # total area under ice shelf (exclude grounded ice)
-   # mask area where ice base <= 300 
-   area = np.ma.masked_where(ice_base<=300.,area)
-   print('Ice shelf area below 300 m and excluding grouded ice is (m^2): '+str(area.sum()))
-   total_melt = np.zeros(melt.shape[0])
-   # compute mean melt at each time
-   for t in range(len(total_melt)):
-       total_melt[t] = ((area * melt[t,:,:]).sum()/area.sum())
-       print('Averaged melt at t='+str(t)+' is:'+str(total_melt[t]))
-   
-   print('Time-averaged <melt> is: '+str(total_melt.mean()))
-   return
-
-
 def mask_ocean(data,area):
    """
    Mask open ocean. Works with 2D or 3D arrays.
    """
    if len(data.shape) == 2: # 2D array
-     data = np.ma.masked_where(area==0,data)   
+     data = np.ma.masked_where(area==0,data)
 
    else: # 3D array
      NZ,NY,NX = data.shape
      area=np.resize(area,(NZ,NY,NX))
      data = np.ma.masked_where(area==0,data)
-   
+
    return  data
 
 def mask_grounded_ice(data,depth,base):
@@ -488,7 +461,7 @@ def mask_grounded_ice(data,depth,base):
    Mask regions where the ice shelf is grounded (base>=depth). Works with 2D or 3D arrays.
    """
    if len(data.shape) == 2: # 2D array
-      data = np.ma.masked_where(base+1.0>=depth, data) # need +1 here      
+      data = np.ma.masked_where(base+1.0>=depth, data) # need +1 here
    else: # 3D array
       NZ,NY,NX = data.shape
       base = np.resize(base,(NZ,NY,NX))
@@ -502,7 +475,6 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    Creates a netcdf file with the fields required for the isomip+ experiments. Different fields are generated based on the type of experiment that is being analyzed (Ocean0, Ocean1 etc).
    """
 
-   type = args.type
    # open a new netCDF file for writing.
    ncfile = Dataset(exp_name+'.nc','w',format='NETCDF4')
    # dimensions
@@ -513,14 +485,14 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    ncfile.createDimension('nx',nx)
    ncfile.createDimension('ny',ny)
    ncfile.createDimension('nz',nz)
-  
+
    # create variables, assign units and provide decription
    x = ncfile.createVariable('x',np.dtype('float32').char,('nx'))
-   x.units = 'm' 
+   x.units = 'm'
    x.description = 'x location of cell centers'
    x.long_name = 'x location of cell centers'
    y = ncfile.createVariable('y',np.dtype('float32').char,('ny'))
-   y.units = 'm' 
+   y.units = 'm'
    y.description = 'y location of cell centers'
    y.long_name = 'y location of cell centers'
    z = ncfile.createVariable('z',np.dtype('float32').char,('nz'))
@@ -537,8 +509,8 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    meanMeltRate.units = 'm/s'; meanMeltRate.description = 'mean melt rate averaged over area of floating ice, positive for melting'
    totalMeltFlux = ncfile.createVariable('totalMeltFlux',np.dtype('float32').char,('time'))
    totalMeltFlux.units = 'kg/s'; totalMeltFlux.description = 'total flux of melt water summed over area of floating ice, positive for melting'
-   
-   totalOceanVolume = ncfile.createVariable('totalOceanVolume',np.dtype('float32').char,('time'))   
+
+   totalOceanVolume = ncfile.createVariable('totalOceanVolume',np.dtype('float32').char,('time'))
    totalOceanVolume.units = 'm^3'; totalOceanVolume.description = 'total volume of ocean'
 
    meanSeaLevel = ncfile.createVariable('meanSeaLevel',np.dtype('float32').char,('time'))
@@ -548,12 +520,8 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    meanTemperature.units = 'deg C'; meanTemperature.description = 'the potential temperature averaged over the ocean volume'
    meanSalinity = ncfile.createVariable('meanSalinity',np.dtype('float32').char,('time'))
    meanSalinity.units = 'PSU'; meanSalinity.description = 'the salinity averaged over the ocean volume'
-   if (type == 'ocean3' or type == 'ocean4'):
-     iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('time','ny','nx'))  
-     bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('time','ny','nx'))
-   else:
-     iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('ny','nx')) 
-     bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('ny','nx'))  
+   iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('ny','nx'))
+   bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('ny','nx'))
    iceDraft.units = 'm'; iceDraft.description = 'elevation of the ice-ocean interface'
    bathymetry.units = 'm'; bathymetry.description = 'elevation of the bathymetry'
    meltRate = ncfile.createVariable('meltRate',np.dtype('float32').char,('time','ny','nx'))
@@ -570,19 +538,19 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    vBoundaryLayer.units = 'm/s'; vBoundaryLayer.description = 'y-velocity in the boundary layer used to compute u*'
    barotropicStreamfunction = ncfile.createVariable('barotropicStreamfunction',np.dtype('float32').char,('time','ny','nx'))
    barotropicStreamfunction.units = 'm^3/s'; barotropicStreamfunction.description = 'barotropic streamfunction'
-   
+
    # As of now we need to compute overturningStreamfunction in the native grid
    overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('time','nz','nx'))
-   
+
    overturningStreamfunction.units = 'm^3/s'
    overturningStreamfunction.description = 'overturning (meridional) streamfunction'
    overturningStreamfunction.long_name = 'overturning (meridional) streamfunction'
    #overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('time','nz','nx'))
    #overturningStreamfunction.units = 'm^3/s'; overturningStreamfunction.description = 'overturning (meridional) streamfunction'
 
-   bottomTemperature = ncfile.createVariable('bottomTemperature',np.dtype('float32').char,('time','ny','nx'))   
+   bottomTemperature = ncfile.createVariable('bottomTemperature',np.dtype('float32').char,('time','ny','nx'))
    bottomTemperature.units = 'deg C'; bottomTemperature.description = 'temperature in the bottom grid cell of each ocean column'
-   bottomSalinity = ncfile.createVariable('bottomSalinity',np.dtype('float32').char,('time','ny','nx'))   
+   bottomSalinity = ncfile.createVariable('bottomSalinity',np.dtype('float32').char,('time','ny','nx'))
    bottomSalinity.units = 'PSU'; bottomSalinity.description = 'salinity in the bottom grid cell of each ocean column'
    #temperatureXZ = ncfile.createVariable('temperatureXZ',np.dtype('float32').char,('time','nz','nx'))
    #temperatureXZ.units = 'deg C'; temperatureXZ.description = 'temperature slice in x-z plane through the center of the domain (y = 40 km)'
@@ -597,15 +565,15 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    lon = Dataset(args.icfile).variables['lonh'][:]
    lat = Dataset(args.icfile).variables['lath'][:]
    D = Dataset(args.geometry).variables['D'][:]
-   W = (lon[-1]+(lon[1]-lon[0])*0.5)-(lon[0]-(lon[1]-lon[0])*0.5) 
-   L = (lat[-1]+(lat[1]-lat[0])*0.5)-(lat[0]-(lat[1]-lat[0])*0.5) 
+   W = (lon[-1]+(lon[1]-lon[0])*0.5)-(lon[0]-(lon[1]-lon[0])*0.5)
+   L = (lat[-1]+(lat[1]-lat[0])*0.5)-(lat[0]-(lat[1]-lat[0])*0.5)
    max_depth = D.max()
    dx = W/nx
    dy = L/ny
    dz = max_depth/nz
    x[:] = np.arange((lon[0]-(lon[1]-lon[0])*0.5)+dx*0.5,W+lon[0]-0.5*dx,dx)*1.0e3
    y[:] = np.arange((lat[0]-(lat[1]-lat[0])*0.5)+dy*0.5,L,dy)*1.0e3
-   z[:] = -np.arange(0.5*dz,max_depth,dz) 
+   z[:] = -np.arange(0.5*dz,max_depth,dz)
    # time since start of simulation
    time[:] = ocean_time[:]/365.# in years
 
