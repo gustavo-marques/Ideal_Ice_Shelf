@@ -56,14 +56,14 @@ color4 = '#3cb371'
 
 # plot some metrics for runs with varing wind forcing
 
-path='/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp11/'
+path='/archive/gmm/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp13/'
 files = ['out3/ocean_month.nc','out1/prog.nc','out2/prog.nc','out3/prog.nc']
-indices = [12,24,-12,-12]
-titles = ['a)','b)','c)','d)']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
 x = Dataset(path+'out1/ocean_geometry.nc').variables['geolon'][:]
 y = Dataset(path+'out1/ocean_geometry.nc').variables['geolat'][:]
-depth = Dataset(path+'out1/ocean_geometry.nc').variables['D'][:,250]#.mean(axis=1)
+depth = Dataset(path+'out1/ocean_geometry.nc').variables['D'][:,250]
+ssh = Dataset(path+'out1/IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,250]
+e0 = Dataset(path+'out3/ocean_month.nc').variables['e'][:,:,:,250].mean(axis=0)
 # remapping params
 cs = mom_remapping.Remapping_Cs()
 cs.remapping_scheme = 2
@@ -84,16 +84,15 @@ class MidpointNormalize(Normalize):
         x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(value, x, y))
 
-def get_data(cs,h,depth,z,exp,t):
+def get_data(cs,h,depth,z,exp):
     s=Dataset(exp)
-    time=s.variables['time'][t]/365. # in yrs
-    print 'exp and time (hrs)',exp,time
-    temp=s.variables['temp'][:,:,:,250].mean(axis=3).mean(axis=0)
-    salt=s.variables['salt'][:,:,:,250].mean(axis=3).mean(axis=0)
+    print 'Reading file', exp
+    temp=s.variables['temp'][-2::,:,:,:].mean(axis=3).mean(axis=0)
+    salt=s.variables['salt'][-2::,:,:,:].mean(axis=3).mean(axis=0)
     rho = eos.wright_eos(temp,salt,2.0e7)
-    v=s.variables['vh'][:,:,:,:].sum(axis=3).mean(axis=0)
-    h0=s.variables['h'][:,:,:,250].mean(axis=0)
-    e0=s.variables['e'][:,:,:,250].mean(axis=0)
+    v=s.variables['vh'][-2::,:,:,:].sum(axis=3).mean(axis=0)
+    h0=s.variables['h'][-2::,:,:,250].mean(axis=0)
+    e0=s.variables['e'][-2::,:,:,250].mean(axis=0)
     s.close()
 
     km, jm = h0.shape
@@ -107,7 +106,9 @@ def get_data(cs,h,depth,z,exp,t):
     #vh = np.ma.masked_where(h0<0.001, vh)
     rho = np.ma.masked_where(h0<0.001, rho)
     # integrate from bottom to top
-    psi[:,:] = -np.cumsum(vh[::-1,:],axis=0)[::-1,:]*0.5
+    #psi[:,:] = -np.cumsum(vh[::-1,:],axis=0)[::-1,:]*0.5
+    # top to bottom
+    psi[:,:] = np.cumsum(vh,axis=0)*0.5
     # interpolate psi (can't remap it, it has been integrated already)
     psi1 = np.zeros((len(h),jm))
     for j in range(jm):
@@ -123,31 +124,57 @@ def get_data(cs,h,depth,z,exp,t):
     # mask bad values
     psi1 = np.ma.masked_where(np.ma.getmask(rho1), psi1)
 
-    return time,rho1,psi1/1.0e6 # in sv
+    return rho1,psi1/1.0e6 # in sv
 
 ### Call the function make_cmap which returns your colormap
 colors = [(0,0,255), (255,255,255), (255,0,0)]
 my_cmap = make_cmap(colors, bit=True)
-psi_vals = np.linspace(-0.2,0.025,10)
+# read data
+psi_vals = np.linspace(-0.15,0.15,50)
+
+
 norm = MidpointNormalize(midpoint=0)
-time,rho,psi=get_data(cs,h,depth,z,path+files[i],indices[i])
+rho,psi=get_data(cs,h,depth,z,path+files[0])
 fig = plt.figure(facecolor='white')
 ax = fig.add_subplot(111,axisbg='black')
-ct=ax.contourf(Y,-Z,psi,psi_vals,cmap=plt.cm.coolwarm, norm=norm)
-plt.colorbar(ct, orientation='horizontal',ticks=[-0.2,-0.15,-0.1,-0.05,0.,0.025])
+ct=ax.contourf(Y,-Z,psi,psi_vals,cmap=plt.cm.bwr, norm=norm)
+plt.colorbar(ct, orientation='horizontal',ticks=[-0.1,-0.05,0.,0.025])
 #cbar.set_label(r'Depth-averaged melt water tracer', fontsize=16)
-ax.contour(Y,-Z,np.abs(psi),5,colors='gray',linewidth=0.5)
+ax.contour(Y,-Z,np.abs(psi),8,colors='gray',linewidth=0.2)
 #ax.set_aspect('equal',adjustable = 'box-forced')
 ax.set_xlim([0,1000])
 ax.set_ylim([-4000,0])
 #ct.set_clim(dyelev.min(),dyelev.max())
 #psi_vals = np.arange(psi.min(),psi.max(),2)
-ax.contour(Y,-Z,rho,[1037.05,1037.2],colors='k')
-ss = str("ax.set_title('%s time = %2.1f years')"% (titles[0],time))
-eval(ss)
+s=ax.contour(Y,-Z,rho-1000,[37.05,37.20,37.25],colors='k',lw=0.5)
+ax.clabel(s, inline=1, fontsize=10,fmt='%4.2f',)
+# fill IS and bottom
+ax.fill_between(Y[0,:], e0[0,:], 0.0, facecolor='white', interpolate=True)
+ax.fill_between(Y[0,:], e0[-1,:], -4000, facecolor='#A9A9A9', interpolate=True)
+ax.plot(Y[0,:], ssh,'k-',lw=1.5)
+ax.set_title('Overturning streamfunction [sv]')
 ax.set_xlabel('y [km]', fontsize=18)
 ax.set_ylabel('depth [m]', fontsize=18)
-plt.savefig('fig5.png',format='png',dpi=300,bbox_inches='tight')
-plt.close()
+#plt.savefig('fig5.png',format='png',dpi=300,bbox_inches='tight')
+
+fig = plt.figure(facecolor='white')
+ax = fig.add_subplot(111,axisbg='black')
+ct=ax.contourf(Y,-Z,rho-1000,np.linspace(37,37.3,50),)
+plt.colorbar(ct, orientation='horizontal',ticks=[37,37.05,37.1,37.15,37.2,37.25,37.3])
+ax.contour(Y,-Z,np.abs(psi),8,colors='gray',linewidth=0.2)
+#ax.set_aspect('equal',adjustable = 'box-forced')
+ax.set_xlim([0,1000])
+ax.set_ylim([-4000,0])
+s=ax.contour(Y,-Z,rho-1000,[37.05,37.20,37.25],colors='k',lw=0.5)
+ax.clabel(s, inline=1, fontsize=10,fmt='%4.2f',)
+# fill IS and bottom
+ax.fill_between(Y[0,:], e0[0,:], 0.0, facecolor='white', interpolate=True)
+ax.fill_between(Y[0,:], e0[-1,:], -4000, facecolor='#A9A9A9', interpolate=True)
+ax.plot(Y[0,:], ssh,'k-',lw=1.5)
+ax.set_title('Potential density')
+ax.set_xlabel('y [km]', fontsize=18)
+ax.set_ylabel('depth [m]', fontsize=18)
+#plt.savefig('fig5b.png',format='png',dpi=300,bbox_inches='tight')
+plt.show()
 print 'Done!'
 
