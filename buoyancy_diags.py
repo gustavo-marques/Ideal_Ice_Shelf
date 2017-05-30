@@ -103,7 +103,7 @@ def driver(args):
            tt = t - args.t0 # time indice used in the arrays
            print 'Time (years):', time[tt]
 	   # load data
-	   saltf = mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
+	   saltf = -mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
            Qall = mask_bad_values(Dataset(args.sfc_file).variables['net_heat_coupler'][t,:])
            lprec = mask_bad_values(Dataset(args.sfc_file).variables['lprec'][t,:])
            ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])
@@ -131,7 +131,7 @@ def driver(args):
            SSS = np.ma.masked_where(np.abs(SSS)>1.0e15,SSS)
            SSS = np.ma.masked_where(hml<1.0e-2,SSS)
            # diags functions
-	   sflux[tt] = (np.ma.masked_where(area_cshelf.mask == True, saltf)).sum()
+	   sflux[tt] = (area_cshelf *saltf).sum()
            print 'Total salt flux on the shelf (kg/(s m^2)):',sflux[tt]
            hml_shelf[tt] = (np.ma.masked_where(area_cshelf.mask == True, hml)).mean()
            print 'Mixed layer depth ave. over the cont. shelf ():',hml_shelf[tt]
@@ -242,9 +242,19 @@ def buoyancy_flux_cshelf(Qall,saltf,lprec,area_cshelf,hml,temp,salt,h,SST,SSS):
    mass_fw = (lprec * area_cshelf * 3600.0*24) # in kg and over one day
    rho = eos.wright_eos(SST,SSS,2.0e7)
    mass_ocean = volume*rho # in kg
+   total_salt = mass_ocean * SSS # in g
+   # old_mass should be > mass_ocean if sea ice is produced
+   old_mass = mass_ocean - mass_fw # in kg 
+   old_total_salt = total_salt + saltf # in g
+   old_SSS = old_total_salt/old_mass
+   old_rho = eos.wright_eos(SST,old_SSS,2.0e7)
+   print 'old_rho min/max',old_rho.min(),old_rho.max()
+   print 'old_SSS min/max',old_SSS.min(),old_SSS.max()
+   print 'old_mass',old_mass.sum()
    print 'mass_fw,mass_ocean',mass_fw.sum(), mass_ocean.sum()
-   salt2 = saltf/(mass_ocean + mass_fw) # salinity due to salt flux
-   delta_rho = rho - eos.wright_eos(SST,SSS-salt2,2.0e7) 
+   #salt2 = saltf/(mass_ocean + mass_fw) # salinity due to salt flux
+   #delta_rho = rho - eos.wright_eos(SST,SSS-salt2,2.0e7) 
+   delta_rho = rho - old_rho
    S = (delta_rho * g)/RHO0
    B = (S*Q*area_cshelf).sum() # in m4/s3
    print 'delta_rho min/max',delta_rho.min(), delta_rho.max()
