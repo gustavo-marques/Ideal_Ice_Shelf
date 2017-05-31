@@ -1547,7 +1547,7 @@ def make_topo(x,y,args):
 
    # avoid having a 'cave'
    if args.trough:
-      tmp = np.nonzero(Y[:,0]<args.GL/1.0e3 + 1.0)[0]
+      tmp = np.nonzero(Y[:,0]<args.GL/1.0e3 + 3.0)[0]
       for j in range(len(tmp)):
           tmp1 = np.nonzero(D[tmp[j],:]>1.)[0]
           D[tmp[j],tmp1] = D[tmp[j],tmp1[0]]
