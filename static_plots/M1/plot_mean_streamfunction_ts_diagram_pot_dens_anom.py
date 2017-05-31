@@ -68,15 +68,15 @@ royalblue = '#4169E1'
 stateblue = '#6A5ACD'
 # plot some metrics for runs with varing wind forcing
 
-path='/archive/gmm/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/'+str(exp)+'/'
+path='/work/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/'+str(exp)+'/'
 files = ['out3/ocean_month.nc','out1/prog.nc','out2/prog.nc','out3/prog.nc']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
-x = Dataset(path+'out1/ocean_geometry.nc').variables['geolon'][:]
-y = Dataset(path+'out1/ocean_geometry.nc').variables['geolat'][:]
-depth = Dataset(path+'out1/ocean_geometry.nc').variables['D'][:,250]
-ssh = Dataset(path+'out1/IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,250]
-e0 = Dataset(path+'out4/ocean_month.nc').variables['e'][:,:,:,250].mean(axis=0)
-area = np.tile(Dataset(path+'out1/ocean_geometry.nc').variables['Ah'][:],(e0.shape[0]-1,1,1))
+x = Dataset(path+'out3/ocean_geometry.nc').variables['geolon'][:]
+y = Dataset(path+'out3/ocean_geometry.nc').variables['geolat'][:]
+depth = Dataset(path+'out3/ocean_geometry.nc').variables['D'][:,250]
+ssh = Dataset(path+'out3/IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,250]
+e0 = Dataset(path+'out3/ocean_month.nc').variables['e'][:,:,:,250].mean(axis=0)
+area = np.tile(Dataset(path+'out3/ocean_geometry.nc').variables['Ah'][:],(e0.shape[0]-1,1,1))
 # remapping params
 cs = mom_remapping.Remapping_Cs()
 cs.remapping_scheme = 2

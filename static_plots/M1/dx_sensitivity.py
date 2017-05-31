@@ -14,13 +14,13 @@ color4 = '#3cb371'
 
 # plot some metrics for runs with varing wind forcing
 
-path='/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/'
+path='/work/gmm/Projects/Ideal_ice_shelf/Mode1/'
 icfile = 'IDEAL_IS_IC.nc'
-fnames = ['dx1km/Sigma_zstar/M1_exp5/out3/M1_exp5_1km','dx2km/Sigma_zstar/M1_exp5/out2/M1_exp5_2km','dx5km/Sigma_zstar/M1_exp5/M1_exp5_5km','dx10km/Sigma_zstar/M1_exp5/out1/M1_exp5_10km']
-fnames1 = ['dx1km/Sigma_zstar/M1_exp13/out3/M1_exp13_1km','dx2km/Sigma_zstar/M1_exp13/out2/M1_exp13_2km','dx5km/Sigma_zstar/M1_exp13/M1_exp13_5km','dx10km/Sigma_zstar/M1_exp13/out1/M1_exp13_10km']
+fnames = ['dx1km/Sigma_zstar/M1_exp5/out3/M1_exp5_1km','dx2.5km/Sigma_zstar/M1_exp5/out2/M1_exp5_2.5km','dx5km/Sigma_zstar/M1_exp5/M1_exp5_5km','dx10km/Sigma_zstar/M1_exp5/out1/M1_exp5_10km']
+fnames1 = ['dx1km/Sigma_zstar/M1_exp13/out3/M1_exp13_1km','dx2.5km/Sigma_zstar/M1_exp13/out2/M1_exp13_2.5km','dx5km/Sigma_zstar/M1_exp13/M1_exp13_5km','dx10km/Sigma_zstar/M1_exp13/out1/M1_exp13_10km']
 
 param = 'dx_and_melting'
-labels = ['1','2','5','10']
+labels = ['1','2.5','5','10']
 vars = ['OHT_ice_shelf','OHT_shelf','seaiceVolume','Melt','AABW','CDW','CDW1','polynyaArea']
 units = ['OHT(y=200 km) [TW]','OHT(y=460 km) [TW]','Sea ice volume [m$^3$]','Melt rate  [m yr$^{-1}$]','AABW transport [Sv]','CDW transport [Sv]','CDW transport [Sv]','Coastal polynya area [km$^2$]']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
