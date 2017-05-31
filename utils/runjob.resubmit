@@ -1,0 +1,85 @@
+#!/bin/csh -f
+#PBS -r y                                                              #This job is restartable
+#PBS -j oe
+#PBS -q debug
+#PBS -S /bin/sh
+#PBS -E
+#PBS -N Test                                                  #Job Name
+#PBS -l partition=c4
+#PBS -l size=4
+#PBS -l walltime=00:10:00
+#PBS -m bea                                                            #Email
+######################################################################################################################
+#
+#  Gaea c1ms batch skeleton version 0.9
+#
+#  0.9 - Initial version - 20110906 - Daniel Gall - Daniel.Gall@noaa.gov
+#
+######################################################################################################################
+#Source the system initialization scripts (but not the user's so as to avoid interactive settings that can poison us)
+source /etc/csh.cshrc
+
+#### SET FOLLOWING PARAMS #######
+# 1) make sure to set input.nml (first run) and input_r.nml properly
+# 2) rm INPUT/*res*
+# 3) make sure 'dirs' and 'ndir' has the number of runs that you need
+# 4) the name below must be identical to #PBS -N above
+
+set run_name = 'Test'
+# path to executable
+set mom = '../../../../../build/intel/ice_ocean_SIS2/repro/MOM6'
+# number of processors
+set nproc = 144
+# sub dirs. to store data
+set dirs = {"out1","out2","out3","out4","out5"}
+set ndir = 5
+##### END OF PARAMS ######
+
+# create output dir
+set j = 1
+ while ( $j <= $ndir )
+   if (! -e $dirs[$j] ) then
+    echo "This is run # $j"
+    echo "Creating $dirs[$j]!"
+    mkdir $dirs[$j]
+    break
+   else
+    echo "$dirs[$j] exists!"
+    cp input_r.nml input.nml
+    @ j++
+   endif
+ end
+
+# run the model
+aprun -n $nproc $mom
+
+# mv files to a directory
+mv *.nc *.nc.* *.stats *.out RES* $run_name* $dirs[$j]
+mkdir RESTART
+
+# find if job needs to be resubmited
+if ( $j < $ndir ) then
+
+    # find out if model blew up
+    set tmp = `grep 'FATAL from PE' $dirs[$j]/$run_name* > tmp1`
+    awk '{print $1}' tmp1 > tmp2
+    set did_run = `tail -n 1 tmp2`
+
+    if ( "$did_run" == "" ) then
+
+       # symlink for restart files
+       cd INPUT
+       rm *res*
+       ln -s ../$dirs[$j]/RESTART/*.* .
+       cd ../
+
+       msub runjob.resubmit
+
+    else
+
+       echo "Blew up, ending run!"
+
+    endif
+
+endif
+
