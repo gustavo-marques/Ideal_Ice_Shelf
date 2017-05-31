@@ -254,18 +254,30 @@ def make_ice_shelf(x,y,args):
    h[y>Lice] = 0.0
    h_smooth = h.copy()
    # smooth
-   if dx > 2.0e3:
-      # Lice - 50.0e3 just smooth next to IS front
-      h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],2)
-      print 'h_smooth = gaussian_filter(h,2)'
-   else:
-      h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],4)
-      print 'h_smooth = gaussian_filter(h,4)'
+   if dx == 0.5e3:
+      filter_width = 8
+   elif dx == 1.0e3:
+      filter_width = 4
+   elif dx == 2.0e3:
+      filter_width = 3
+   elif dx == 2.5e3:
+      filter_width = 2
+   elif dx == 5.0e3:
+      filter_width = 2
+   elif dx == 10.0e3:
+      filter_width = 1
+
+   # Lice - 50.0e3 just smooth next to IS front
+   h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],filter_width)
+   #else:
+   #   h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],4)
+   #   print 'h_smooth = gaussian_filter(h,4)'
 #   h_smooth[y<gp] = H0
    h_smooth[h_smooth<1.0] = 0.0
    # find meridional lenght of ice shelf
    tmp = np.nonzero(h_smooth==0.0)[0][0]
    args.ISL = x[tmp] / 1.0e3
+   args.GL = gp # grouding line position, in km
    print 'Ice shelf meridional lenght is (km):',x[tmp] / 1.0e3
 
    if args.debug:
@@ -1509,8 +1521,12 @@ def make_topo(x,y,args):
    ##if args.trough:
    # remove corners or "right angles" in the topography
    # meridional dir.
-   if dx < 2.0e3:
+   if dx == 0.5e3:
+      filter_width = 10
+   elif dx == 1.0e3:
       filter_width = 5
+   elif dx == 2.0e3:
+      filter_width = 3
    else:
       filter_width = 2
 
@@ -1528,6 +1544,13 @@ def make_topo(x,y,args):
          D[j,D[j,:]!=0.0] = gaussian_filter(D[j,D[j,:]!=0.0],1)
       else:
          D[j,:] = gaussian_filter(D[j,:],1)
+
+   # avoid having a 'cave'
+   if args.trough:
+      tmp = np.nonzero(Y[:,0]<args.GL/1.0e3 + 3.0)[0]
+      for j in range(len(tmp)):
+          tmp1 = np.nonzero(D[tmp[j],:]>1.)[0]
+          D[tmp[j],tmp1] = D[tmp[j],tmp1[0]]
 
    # to avoid sea ice formation under ice shelves,
    # two topography files need to be constructed.
