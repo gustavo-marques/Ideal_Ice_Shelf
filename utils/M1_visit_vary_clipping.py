@@ -1,6 +1,14 @@
-import visit
+from visit import *
+from visit_utils import *
 import math
-import csv
+import csv, sys
+
+name = 'M1_exp5_1km'
+path = "/work/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK/"
+
+RestoreSessionWithDifferentSources("M1_salt.session", 0, ("localhost:"+path+"M1_exp5_1km-salt-*.vtk database","localhost:"+path+"M1_exp5_1km-bathymetry.vtk","localhost:"+path+"M1_exp5_1km-rhopot2-*.vtk database"))
+
+ResizeWindow(1, 800, 600)
 
 # initial position
 c0 = visit.View3DAttributes()
@@ -12,7 +20,7 @@ c0.parallelScale = 1209.52
 c0.nearPlane = -2430.67
 c0.farPlane = 2430.67
 c0.imagePan = (-0.0194483, -0.0190144)
-c0.imageZoom = 1.45171
+c0.imageZoom = 1.35171
 c0.perspective = 0
 c0.eyeAngle = 2
 c0.centerOfRotationSet = 0
@@ -22,15 +30,15 @@ c0.axis3DScales = (1, 1, 1)
 c0.shear = (0, 0, 1)
 
 # set view to these values
-visit.SetView3D(c0)
+SetView3D(c0)
 
 # number of snapshots
-n=visit.TimeSliderGetNStates()
+n=TimeSliderGetNStates()
 
 # Initial Clipping AAttributes
 pos0 = 1250 # initial pos
-#ClipAtts = visit.ClipAttributes()
-ClipAtts = GetOperatorOptions(2)
+ClipAtts = visit.ClipAttributes()
+#ClipAtts = GetOperatorOptions(0)
 #ClipAtts.quality = visit.ClipAtts.Fast  # Fast, Accurate
 #ClipAtts.funcType = visit.ClipAtts.Plane  # Plane, Sphere
 ClipAtts.plane1Status = 1
@@ -41,7 +49,22 @@ ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1  # None, Plane1, Plane2,
 ClipAtts.center = (0, 0, 0)
 ClipAtts.radius = 1
 ClipAtts.sphereInverse = 0
-visit.SetOperatorOptions(ClipAtts, 2)
+SetOperatorOptions(ClipAtts, 2)
+
+# Set basic save options
+s = SaveWindowAttributes()
+#
+# The 'family' option controls if visit automatically adds a frame number to 
+# the rendered files. For this example we will explicitly manage the output name.
+#
+s.family = 0
+s.format = s.PNG
+s.screenCapture = 0
+s.quality = 100
+s.progressive = 0
+s.width = 900
+s.height = 600
+
 
 # indices controlling clip
 ti = 200; tf = 230; trho = 300
@@ -58,20 +81,27 @@ for i in range(n):
        ClipAtts.plane1Origin = (pos1, 0, 0)
 
     if i == trho:
-       SetActivePlots((2, 5))
-       SetActivePlots(5)
+       #SetActivePlots((2, 5))
+       #SetActivePlots(5)
+       SetActivePlots((1, 3))
+       SetActivePlots(3)
        HideActivePlots()
     elif i<trho:
        ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
        ClipAtts.plane1Status = 1
        ClipAtts.plane2Status = 0
        # update visit
-       visit.SetOperatorOptions(ClipAtts, 2)
+       SetOperatorOptions(ClipAtts, 0)
 
-    visit.SetTimeSliderState(i) # advance timeslider
-    visit.DrawPlots()
-    visit.SaveWindow()
+    #before we render the result, explicitly set the filename for this render
+    s.fileName = name+"-%04d.png" % i
+    SetSaveWindowAttributes(s)
+    # render the image to a PNG file
+    SetTimeSliderState(i) # advance timeslider
+    DrawPlots()
+    SaveWindow()
 
 # show time for last frame
 #banner.text = str("Time = %5.2f days" % (time0-dt))
-visit.View3DAttributes()
+View3DAttributes()
+sys.exit()

@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<Object name="VisIt">
+    <Field name="Version" type="string">2.9.2</Field>
+    <Object name="GUI">
+        <Object name="FileServerList">
+            <Field name="path" type="string">/archive/gmm/Ideal_ice_shelf/Mode2/dx2km/Sigma_zstar/M2_exp0/VTK</Field>
+            <Field name="filter" type="string">*</Field>
+            <Field name="useCurrentDir" type="bool">true</Field>
+            <Field name="automaticFileGrouping" type="bool">true</Field>
+            <Field name="smartFileGrouping" type="bool">true</Field>
+            <Field name="showDotFiles" type="bool">false</Field>
+            <Object name="recentpaths">
+                <Field name="localhost" type="stringVector">"/arch8/gmm/Ideal_ice_shelf/Mode2/dx2km/Sigma_zstar/M2_exp0/VTK" "/home/Gustavo.Marques" "/archive/gmm/Ideal_ice_shelf/Mode2/dx2km/Sigma_zstar/M2_exp0/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp0" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp2" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp2/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp1" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp0/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Mode2_cold_variable_w3/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Linear_forcing3/VTK" "/Users/gmarques/Desktop" "/Users/gmarques/Desktop/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Linear_forcing3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Standard4" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Standard4/VTK" </Field>
+            </Object>
+        </Object>
+        <Object name="AppearanceAttributes">
+            <Field name="useSystemDefault" type="bool">true</Field>
+            <Field name="background" type="string">#c0c0c0</Field>
+            <Field name="foreground" type="string">#000000</Field>
+            <Field name="fontName" type="string">Helvetica,12,-1,5,50,0,0,0,0,0</Field>
+            <Field name="style" type="string">macintosh</Field>
+            <Field name="orientation" type="int">0</Field>
+            <Field name="defaultForeground" type="string">#000000</Field>
+            <Field name="defaultBackground" type="string">#ececec</Field>
+            <Field name="defaultFontName" type="string">".SF NS Text,13,-1,5,50,0,0,0,0,0"</Field>
+            <Field name="defaultStyle" type="string">macintosh</Field>
+            <Field name="defaultOrientation" type="int">0</Field>
+        </Object>
+        <Field name="postWhenShown" type="bool">false</Field>
+        <Object name="Color tables">
+            <Field name="x" type="int">898</Field>
+            <Field name="y" type="int">179</Field>
+            <Field name="width" type="int">378</Field>
+            <Field name="height" type="int">802</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+            <Field name="currentColorTable" type="string">bottom</Field>
+        </Object>
+        <Object name="Information">
+            <Field name="x" type="int">4</Field>
+            <Field name="y" type="int">52</Field>
+            <Field name="width" type="int">483</Field>
+            <Field name="height" type="int">304</Field>
+            <Field name="visible" type="bool">false</Field>
+        </Object>
+        <Object name="MainWin">
+            <Field name="x" type="int">0</Field>
+            <Field name="y" type="int">39</Field>
+            <Field name="width" type="int">372</Field>
+            <Field name="height" type="int">1106</Field>
+            <Field name="SPLITTER_VALUES_V2" type="floatVector">0 0.995842 0 </Field>
+        </Object>
+        <Object name="Pseudocolor plot attributes">
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">78</Field>
+            <Field name="width" type="int">523</Field>
+            <Field name="height" type="int">555</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Object name="Vector plot attributes">
+            <Field name="x" type="int">12</Field>
+            <Field name="y" type="int">156</Field>
+            <Field name="width" type="int">647</Field>
+            <Field name="height" type="int">428</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Object name="Clip operator attributes">
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">78</Field>
+            <Field name="width" type="int">390</Field>
+            <Field name="height" type="int">624</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Object name="Threshold operator attributes">
+            <Field name="x" type="int">10</Field>
+            <Field name="y" type="int">130</Field>
+            <Field name="width" type="int">439</Field>
+            <Field name="height" type="int">455</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Object name="Transform operator attributes">
+            <Field name="x" type="int">12</Field>
+            <Field name="y" type="int">355</Field>
+            <Field name="width" type="int">491</Field>
+            <Field name="height" type="int">427</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Field name="plotDatabases" type="stringVector">"localhost:/archive/gmm/Ideal_ice_shelf/Mode2/dx2km/Sigma_zstar/M2_exp0/VTK/M2_exp0_2km-bathymetry.vtk" "localhost:/archive/gmm/Ideal_ice_shelf/Mode2/dx2km/Sigma_zstar/M2_exp0/VTK/M2_exp0_2km-ice-shelf.vtk" "localhost:/archive/gmm/Ideal_ice_shelf/Mode2/dx2km/Sigma_zstar/M2_exp0/VTK/M2_exp0_2km-*.vtk database" </Field>
+        <Object name="TimeFormat">
+            <Field name="displayMode" type="string">Cycles</Field>
+            <Field name="precision" type="int">5</Field>
+        </Object>
+        <Field name="showSelectedFiles" type="bool">false</Field>
+        <Field name="allowFileSelectionChange" type="bool">true</Field>
+        <Field name="enableWarningMessagePopups" type="bool">true</Field>
+    </Object>
+</Object>
