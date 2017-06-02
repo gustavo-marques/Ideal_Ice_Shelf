@@ -3,6 +3,7 @@ from visit_utils import *
 import math
 import csv, sys
 
+# to run this script: visit -cli -nowin -s M1_visit_vary_clipping.py
 name = 'M1_exp5_1km'
 path = "/work/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK/"
 
@@ -38,9 +39,6 @@ n=TimeSliderGetNStates()
 # Initial Clipping AAttributes
 pos0 = 1250 # initial pos
 ClipAtts = visit.ClipAttributes()
-#ClipAtts = GetOperatorOptions(0)
-#ClipAtts.quality = visit.ClipAtts.Fast  # Fast, Accurate
-#ClipAtts.funcType = visit.ClipAtts.Plane  # Plane, Sphere
 ClipAtts.plane1Status = 1
 ClipAtts.plane1Origin = (pos0, 0, 0)
 ClipAtts.plane1Normal = (1, 0, 0)
