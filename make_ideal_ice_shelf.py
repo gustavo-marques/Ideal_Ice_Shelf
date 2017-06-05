@@ -1097,7 +1097,8 @@ def make_forcing(x,y,args):
      # lprec, fprec
      lprec = args.liq_prec # lprec
      fprec = args.frozen_prec # lprec
-     tmp = args.cshelf_lenght
+     #tmp = args.cshelf_lenght
+     tmp = ISL+100.0
      for j in range(ny):
 	if y[j] < tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
