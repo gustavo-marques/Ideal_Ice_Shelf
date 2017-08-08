@@ -98,13 +98,14 @@ def driver(args):
    AABW_transp = np.zeros(len(time)); var.append('AABW_transp'); varname.append('AABW')
    sflux = np.zeros(len(time)); var.append('sflux'); varname.append('sflux')
    hml_shelf = np.zeros(len(time)); var.append('hml_shelf'); varname.append('hml_shelf')
+   ice_volume = np.zeros(len(time)); var.append('ice_volume'); varname.append('seaiceVolume')
    # loop in time
    for t in range(args.t0,len(time)+args.t0):
            tt = t - args.t0 # time indice used in the arrays
            print 'Time (years):', time[tt]
 	   # load data
 	   saltf = -mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
-           Qall = mask_bad_values(Dataset(args.sfc_file).variables['net_heat_coupler'][t,:])
+           Qall = mask_bad_values(Dataset(args.sfc_file).variables['LwLatSens'][t,:])
            lprec = mask_bad_values(Dataset(args.sfc_file).variables['lprec'][t,:])
            ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])
            vh = mask_bad_values(Dataset(args.prog_file).variables['vh'][t,:])
@@ -162,7 +163,9 @@ def driver(args):
            print 'Temp shelf (C):',Tshelf[tt]
            # AABW mass flux
            AABW_transp[tt] = get_mass_flux(x,y,vh,h,rhopot2,args)
-
+           # sea ice vol
+           tmp,ice_volume[tt] = get_ice_diags(x,y,CI_tot,HI)
+           print 'Total sea ice vol. (m^3):',ice_volume[tt]
            print '\n'
 
    print 'Saving netcdf data...'
@@ -174,6 +177,19 @@ def driver(args):
        #ncwrite(name,varname,var)
 
    print 'Done!'
+
+def get_ice_diags(x,y,CI_tot,HI):
+        '''
+        Compute total area covered by sea ice. Sea ice is present when CI_tot >= 0.7.
+        '''
+        grid_area = np.ones((CI_tot.shape)) * (x[1]-x[0]) * (y[1]-y[0])
+        CI_tot = np.ma.masked_where(CI_tot < 0.85, CI_tot)
+        ice_area = (grid_area * (CI_tot/CI_tot)).sum()
+        ice_volume = (grid_area * 1.0e6 * HI).sum()
+        # set masked values to zero
+        if ice_area is np.ma.masked: ice_area = 0.0
+
+        return ice_area,ice_volume
 
 
 def get_mass_flux(x,y,vh,h,rhopot2,args):
@@ -244,7 +260,7 @@ def buoyancy_flux_cshelf(Qall,saltf,lprec,area_cshelf,hml,temp,salt,h,SST,SSS):
    mass_ocean = volume*rho # in kg
    total_salt = mass_ocean * SSS # in g
    # old_mass should be > mass_ocean if sea ice is produced
-   old_mass = mass_ocean - mass_fw # in kg 
+   old_mass = mass_ocean - mass_fw # in kg
    old_total_salt = total_salt + saltf # in g
    old_SSS = old_total_salt/old_mass
    old_rho = eos.wright_eos(SST,old_SSS,2.0e7)
@@ -253,7 +269,7 @@ def buoyancy_flux_cshelf(Qall,saltf,lprec,area_cshelf,hml,temp,salt,h,SST,SSS):
    print 'old_mass',old_mass.sum()
    print 'mass_fw,mass_ocean',mass_fw.sum(), mass_ocean.sum()
    #salt2 = saltf/(mass_ocean + mass_fw) # salinity due to salt flux
-   #delta_rho = rho - eos.wright_eos(SST,SSS-salt2,2.0e7) 
+   #delta_rho = rho - eos.wright_eos(SST,SSS-salt2,2.0e7)
    delta_rho = rho - old_rho
    S = (delta_rho * g)/RHO0
    B = (S*Q*area_cshelf).sum() # in m4/s3
@@ -353,6 +369,9 @@ def create_ncfile(exp_name, xx, yy, ocean_time, args): # may add exp_type
 
    qflux = ncfile.createVariable('qflux',np.dtype('float32').char,('time'))
    qflux.units = 'W/m2'; qflux.description = 'Total heat flux over the cont. shelf'
+
+   seaiceVolume = ncfile.createVariable('seaiceVolume',np.dtype('float32').char,('time'))
+   seaiceVolume.units = 'm^3'; seaiceVolume.description = 'total volume of sea ice'
 
    # write data to coordinate vars.
    x[:] = xx[:]

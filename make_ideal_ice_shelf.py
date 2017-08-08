@@ -155,7 +155,12 @@ def parseCommandLine():
 
   parser.add_argument('-linear_forcing', help='''If true, t_10 varies linearly. By default t_10 varies by a combination of exponential and linear functions.''', action="store_true")
 
-  parser.add_argument('-ice_shelf', help='''Generate ice shelf ncfile.''', action="store_true")
+  parser.add_argument('-ice_shelf', help='''Generate ice shelf ncfile using an analytical function.''', action="store_true")
+
+  parser.add_argument('-ice_shelf_linear', help='''Generate ice shelf using picewise linear functions.''', action="store_true")
+
+  parser.add_argument('-IS_path', type=str, default='',
+      help='''Path of the exp. that will be used to create an ice shelf profile. Default is empty.''')
 
   parser.add_argument('-trough', help='''Adds a trough cutting the continental shelf.''', action="store_true")
 
@@ -201,6 +206,8 @@ def driver(args):
    if args.ice_shelf:
       # create ice shelf
       make_ice_shelf(x,y,args)
+   elif args.ice_shelf_linear:
+      make_ice_shelf_linear(x,y,args)
    else:
       args.ISL = 0.0
 
@@ -223,6 +230,56 @@ def driver(args):
 
    return
 
+def make_ice_shelf_linear(x,y,args):
+   # IS params
+   gp = 20.0 # km
+   h_max = 3000
+   h_1 = 350.0; y_1 = 80.0
+   h_2 = 220.0; y_2 = 150.0
+   h_3 = 0.0; y_3 = 200.
+   h = np.zeros((args.ny,args.nx))
+   for i in range(args.nx):
+     for j in range(args.ny):
+        if y[j] <= gp:
+           h[j,:] = h_max
+        elif y[j]>gp and y[j]<y_1:
+           h[j,:] = (h_1-h_max)/(y_1-gp)*(y[j]-gp) + h_max
+        elif y[j]>=y_1 and y[j]<y_2:
+           h[j,:] = (h_2-h_1)/(y_2-y_1)*(y[j]-y_1) + h_1
+        elif y[j]>=y_2 and y[j]<y_3:
+           h[j,:] = (h_3-h_2)/(y_3-y_2)*(y[j]-y_2) + h_2
+        else:
+           h[j,:] = 0.0
+
+   dy = y[1]-y[0]
+   dx = x[1]-x[0]
+   a = np.ones((args.ny,args.nx)) * dx * dy
+   a[h == 0.0] = 0.0
+   tmp = np.nonzero(h[:,0]==0.0)[0][0]
+   args.ISL = y[tmp]
+   args.GL = gp # grouding line position, in km
+   print 'Ice shelf meridional lenght is (km):',y[tmp]
+
+   # Create a netcdf horizontal ocean-grid file
+   name = 'IC_IS'
+   ncfile = Dataset(name+'.nc','w')
+   ncfile.createDimension('nx',args.nx)
+   ncfile.createDimension('ny',args.ny)
+   thick = ncfile.createVariable('thick','double',('ny','nx',))
+   thick.units = 'm'
+   thick.standard_name =  'ice shelf thickness'
+   area = ncfile.createVariable('area','double',('ny','nx',))
+   area.units = 'm2'
+   area.standard_name =  'ice shelf area'
+
+   # write into nc file
+   thick[:] = h[:]
+   area[:] = a[:]
+
+   ncfile.sync()
+   ncfile.close()
+   print ('*** SUCCESS creating '+name+'.nc!')
+
 def make_ice_shelf(x,y,args):
    '''
    Here is a slightly different version but with constants
@@ -242,8 +299,9 @@ def make_ice_shelf(x,y,args):
    '''
    x = x * 1.0e3 # im m
    y = y * 1.0e3 # im m
-   C = 1.4440e-06
-   H0 = 3000.0 #m
+   #C = 1.4440e-06
+   C = 1.10e-06
+   H0 = 2500.0 #m
    Q0 = 0.03327 #m^2/s
    gp = 20.e3 # grouding line position
    dy = y[1]-y[0]
@@ -255,25 +313,27 @@ def make_ice_shelf(x,y,args):
    h_smooth = h.copy()
    # smooth
    if dx == 0.5e3:
-      filter_width = 8
+      filter_width = 30
    elif dx == 1.0e3:
-      filter_width = 4
+      filter_width = 15
    elif dx == 2.0e3:
-      filter_width = 3
+      filter_width = 7
    elif dx == 2.5e3:
-      filter_width = 2
+      filter_width = 6
    elif dx == 5.0e3:
-      filter_width = 2
+      filter_width = 3
    elif dx == 10.0e3:
-      filter_width = 1
+      filter_width = 1.5
 
    # Lice - 50.0e3 just smooth next to IS front
-   h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],filter_width)
+   #h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],filter_width)
+   h_smooth[:] = gaussian_filter(h[:],filter_width)
+   h_smooth[y<=gp] = H0
    #else:
    #   h_smooth[y>Lice - 50.0e3] = gaussian_filter(h[y>Lice - 50.0e3],4)
    #   print 'h_smooth = gaussian_filter(h,4)'
 #   h_smooth[y<gp] = H0
-   h_smooth[h_smooth<1.0] = 0.0
+   h_smooth[h_smooth<5.0] = 0.0
    # find meridional lenght of ice shelf
    tmp = np.nonzero(h_smooth==0.0)[0][0]
    args.ISL = x[tmp] / 1.0e3
@@ -1098,19 +1158,20 @@ def make_forcing(x,y,args):
      lprec = args.liq_prec # lprec
      fprec = args.frozen_prec # lprec
      #tmp = args.cshelf_lenght
-     tmp = ISL+100.0
+     tmp = ISL#+100.0
      for j in range(ny):
 	if y[j] < tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-	elif y[j]>= tmp and y[j]< (Ly-sponge):
+        else:
+	#elif y[j]>= tmp and y[j]< (Ly-sponge):
            #tmp = (Ly-sponge) - wind_x_pos
 	   #liq[t,j,:] = season_cos * lprec *2./3. + lprec * 1./3. #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
 	   liq[t,j,:] = lprec
            #snow[t,j,:] = season_sin * fprec  #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
            snow[t,j,:] = fprec
-        else:
-           liq[t,j,:] = 0.0
-           snow[t,j,:] = 0.0
+        #else:
+        #   liq[t,j,:] = 0.0
+        #   snow[t,j,:] = 0.0
 
      for j in range(ny):
         if y[j] > ISL and y[j] <= ISL + 50.:
@@ -1417,7 +1478,7 @@ def make_topo(x,y,args):
           D[j,i] = Hs + 0.5 * (H-Hs) * (1.0 + np.tanh((Y[j,i]*1.0e3 - Ys)/Ws))
 
 
-   if args.ice_shelf:
+   if args.ice_shelf or args.ice_shelf_linear:
      H1 = 200. # 500 depth increase under ice shelf
      ISL = args.ISL  # lenght of ice shelf cavity in m
      ymask = ISL

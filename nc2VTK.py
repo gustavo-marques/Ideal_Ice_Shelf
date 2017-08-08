@@ -2,7 +2,8 @@
 
 # generate 3D diagnostics
 # Gustavo Marques, Sep. 2016
-
+import matplotlib as mpl
+mpl.use('Agg')
 import argparse
 import netCDF4
 import numpy as np
@@ -221,13 +222,13 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
 
        #data1 =remap(cs,h0,e0,h,data0,z,D)
        # mark values where h_dum<10 cm with Nan
-       data[h_dum<0.01]=numpy.nan
+       data[h_dum<0.05]=numpy.nan
        # interpolate nan values
        for j in range(NY):
 	     for i in range(NX):
 		 nans, tmp = nan_helper(data[:,j,i])
 		 if nans.mask.any() == False:
-			if h_dum[:,j,i].sum() > 0.0:
+			if h_dum[:,j,i].sum() > 0.001:
 			   data[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], data[~nans,j,i])
 
        t1 = time.time()

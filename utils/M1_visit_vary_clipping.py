@@ -4,10 +4,10 @@ import math
 import csv, sys
 
 # to run this script: visit -cli -nowin -s M1_visit_vary_clipping.py
-name = 'M1_exp5_1km'
-path = "/work/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK/"
+name = 'M2_exp4_2km'
+path = "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp4/out1/VTK/"
 
-RestoreSessionWithDifferentSources("M1_salt.session", 0, ("localhost:"+path+"M1_exp5_1km-salt-*.vtk database","localhost:"+path+"M1_exp5_1km-bathymetry.vtk","localhost:"+path+"M1_exp5_1km-rhopot2-*.vtk database"))
+RestoreSessionWithDifferentSources("M1_salt.session", 0, ("localhost:"+path+name+"-salt-*.vtk database","localhost:"+path+name+"-bathymetry.vtk","localhost:"+path+name+"-rhopot2-*.vtk database"))
 
 ResizeWindow(1, 800, 600)
 
@@ -52,7 +52,7 @@ SetOperatorOptions(ClipAtts, 2)
 # Set basic save options
 s = SaveWindowAttributes()
 #
-# The 'family' option controls if visit automatically adds a frame number to 
+# The 'family' option controls if visit automatically adds a frame number to
 # the rendered files. For this example we will explicitly manage the output name.
 #
 s.family = 0

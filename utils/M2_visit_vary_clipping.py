@@ -6,8 +6,9 @@ import csv, sys
 # to run this script: visit -cli -nowin -s M2_visit_vary_clipping.py
 name = 'M2_exp4_10km'
 path = "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx10km/Sigma_zstar/M2_exp4/VTK/"
+RestoreSessionWithDifferentSources("/ncrc/home2/Gustavo.Marques/Notebooks/Ideal_Ice_Shelf/utils/M2_salt.session", 0, ("localhost:"+path+name+"-rhopot2-*.vtk database","localhost:"+path+name+"-bathymetry.vtk","localhost:"+path+name+"-salt-*.vtk database","localhost:"+path+name+"-temp-*.vtk database"))
 
-RestoreSessionWithDifferentSources("M2_salt.session", 0, ("localhost:"+path+name+"-temp-*.vtk database","localhost:"+path+name+"-bathymetry.vtk","localhost:"+path+name+"-salt-*.vtk database"))
+#RestoreSessionWithDifferentSources("/ncrc/home2/Gustavo.Marques/Notebooks/Ideal_Ice_Shelf/utils/M2_salt.session", 0, ("localhost:"+path+name+"-salt-*.vtk database","localhost:"+path+name+"-bathymetry.vtk","localhost:"+path+name+"-temp-*.vtk database","localhost:"+path+name+"-rhopot2*.vtk database"))
 
 ResizeWindow(1, 800, 600)
 
@@ -36,16 +37,32 @@ SetView3D(c0)
 # number of snapshots
 n=TimeSliderGetNStates()
 # Initial Clipping AAttributes
+# plane 1
 pos0 = 1250 # initial pos
 ClipAtts = visit.ClipAttributes()
-ClipAtts.plane1Status = 1
-ClipAtts.plane1Origin = (pos0, 0, 0)
+ClipAtts.plane1Status = 0
+ClipAtts.plane2Status = 1
+ClipAtts.plane2Origin = (0, 70, 0)
+ClipAtts.plane1Origin = (0, 0, 0)
+ClipAtts.plane3Origin = (0, 0, 0)
 ClipAtts.plane1Normal = (1, 0, 0)
+ClipAtts.plane2Normal = (0, -1, 0)
+ClipAtts.plane3Normal = (0, 0, 1)
 ClipAtts.planeInverse = 0
 ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1  # None, Plane1, Plane2, Plane3
 ClipAtts.center = (0, 0, 0)
 ClipAtts.radius = 1
 ClipAtts.sphereInverse = 0
+SetOperatorOptions(ClipAtts, 1)
+
+ClipAtts.plane2Status = 0
+ClipAtts.plane2Status = 1
+ClipAtts.plane1Origin = (pos0, 0, 0)
+ClipAtts.plane2Origin = (0, 0, 0)
+ClipAtts.plane3Origin = (0, 0, 0)
+ClipAtts.plane1Normal = (1, 0, 0)
+ClipAtts.plane2Normal = (0, -1, 0)
+ClipAtts.plane3Normal = (0, 0, 1)
 SetOperatorOptions(ClipAtts, 2)
 
 # Set basic save options
@@ -64,7 +81,7 @@ s.height = 600
 
 
 # indices controlling clip
-ti = 200; tf = 230; trho = 300
+ti = 20; tf = 50; trho = 60
 pos1 = 600 # final clip
 cstep = (pos0-pos1)/(tf-ti) # clip step
 pos = pos0 # initial pos
@@ -73,22 +90,23 @@ for i in range(n):
        pos = pos - cstep
        print 'pos0-cstep = ', pos
        #Clip
-       ClipAtts.plane1Origin = ((pos), 0, 0)
+       ClipAtts.plane1Origin = (pos, 0, 0)
     elif i>=tf:
        ClipAtts.plane1Origin = (pos1, 0, 0)
 
     if i == trho:
-       #SetActivePlots((2, 5))
-       #SetActivePlots(5)
+       #SetActivePlots(1)
+       SetActivePlots(1)
        SetActivePlots((1, 3))
        SetActivePlots(3)
        HideActivePlots()
     elif i<trho:
+       SetActivePlots(1)
        ClipAtts.planeToolControlledClipPlane = ClipAtts.Plane1
        ClipAtts.plane1Status = 1
        ClipAtts.plane2Status = 0
        # update visit
-       SetOperatorOptions(ClipAtts, 0)
+       SetOperatorOptions(ClipAtts, 2)
 
     #before we render the result, explicitly set the filename for this render
     s.fileName = name+"-%04d.png" % i

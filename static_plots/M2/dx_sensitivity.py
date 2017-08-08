@@ -2,45 +2,56 @@ from matplotlib import pyplot as plt
 import netCDF4
 import numpy as np
 #plt.style.use('ggplot')
+import matplotlib
+
+matplotlib.rcParams.update({'font.size': 20})
+
+#plt.style.use('ggplot')
+color1 = '#6495ed'
+color2 = '#ff6347'
+color3 = '#8470ff'
+color4 = '#3cb371'
 
 # plot some metrics for runs with varing wind forcing
 
 path='/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/'
-dx_path = ['dx0.5km/','dx1km/','dx2km/','dx5km/']
-fnames = ['out3/M2_exp2_500m','out1/M2_exp2_1km','M2_exp2_2km','M2_exp2_5km']
-param = 'dx'
-labels = ['0.5','1.0','2.0','5.0']
-vars = ['OHT_ice_shelf','OHT_shelf','seaiceVolume','Melt']
-units = ['OHT(y=200 km) [TW]','OHT(y=460 km) [TW]','Total Sea ice volume [m$^3$]','<$\dot{m}$>  [m yr$^{-1}$]']
+icfile = 'IDEAL_IS_IC.nc'
+exps = ['M2_exp0','M2_exp4','M2_exp13','M2_exp14']
+#fnames = ['dx1km/Sigma_zstar/M1_exp5/out3/M1_exp5_1km','dx2.5km/Sigma_zstar/M1_exp5/out2/M1_exp5_2.5km','dx5km/Sigma_zstar/M1_exp5/M1_exp5_5km','dx10km/Sigma_zstar/M1_exp5/out1/M1_exp5_10km']
+dx = ['5km','10km']
+
+param = 'dx_and_melting'
+labels = ['5','2.5','5','10']
+vars1 = netCDF4.Dataset(path+'dx'+dx[0]+'/Sigma_zstar/'+exps[0]+'/'+exps[0]+'_'+dx[0]+'.nc').variables
+vars2 = netCDF4.Dataset(path+'dx'+dx[0]+'/Sigma_zstar/'+exps[0]+'/'+exps[0]+'_'+dx[0]+'_buoyancy.nc').variables
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
 
-for n in range(len(vars)):
-   var = vars[n]
-   plt.figure()
-   mean_all = np.zeros(len(fnames))
-   std_all = np.zeros(len(fnames))
-   for i in range(len(fnames)):
-       print 'path',path+dx_path[i]+'Sigma_zstar/M2_exp2/'+fnames[i]+'.nc'
-       if n <=1:
-          data = netCDF4.Dataset(path+dx_path[i]+'Sigma_zstar/M2_exp2/'+fnames[i]+'.nc').variables[var][:]/1.0e12 # TW
-       else:
-          data = netCDF4.Dataset(path+dx_path[i]+'Sigma_zstar/M2_exp2/'+fnames[i]+'.nc').variables[var][:]
-       #units = netCDF4.Dataset(path+fnames[i]+'/'+fnames[i]+'.nc').variables[var].units
+ignore = ['time','x','y','B0_iceshelf_mean','B0','B0_shelf_mean','B0_mean','Monin_Obukhov_lenght','maxSeaiceThick','seaiceArea','polynyaArea','totalSaltFlux','totalFw','FwIS']
+for var in vars2:
+  print 'variable:',var
+  if var not in ignore:
+   fig, ax = plt.subplots(figsize=(10,8))
+   width = 1
+   for j in range(len(dx)):
+     for i in range(len(exps)):
+       path_to_file = path+'dx'+dx[j]+'/Sigma_zstar/'+exps[i]+'/'+exps[i]+'_'+dx[j]+'_buoyancy.nc'
+       print 'path',path_to_file
+       data = netCDF4.Dataset(path_to_file).variables[var][:]
+       units = netCDF4.Dataset(path_to_file).variables[var].units
+       try:
+         description = netCDF4.Dataset(path_to_file).variables[var].description
+       except:
+         description = var
+
        # plot
-       mean_all[i]=data.mean()
-       std_all[i]=data.std()
-
-   plt.errorbar(range(len(fnames)), mean_all, yerr=std_all, fmt='o',color='black',ms=8)
-   plt.plot(range(len(fnames)), mean_all,'k-')
-
-   plt.xticks(range(len(fnames)), labels, rotation='horizontal')
-   # Pad margins so that markers don't get clipped by the axes
-   plt.margins(0.1)
-   # Tweak spacing to prevent clipping of tick-labels
-   plt.subplots_adjust(bottom=0.15)
+       ax.errorbar(width, data.mean(), yerr=data.std(),ecolor='b',color='b',marker='o')
+       width = width+1
+     # add some text for labels, title and axes ticks
+   #ax.set_xlim(-0.1,len(dx)*len(exps)+1)
+   #ax.set_xticklabels((dx))
+   ax.set_title(description,fontsize=14)
+   ax.set_ylabel(r''+var+' ['+units+']', fontsize=20)
+   #ax.set_xlabel(r'Sub-ice-shelf fresh water flux x 1.0E6 [kg s$^{-1}$]', fontsize=20)
    plt.grid()
-   #plt.title(var, fontsize=18)
-   plt.xlabel(r'$\Delta x$ [km]', fontsize=16)
-   plt.ylabel(r''+units[n], fontsize=16)
-   plt.savefig(param+'_sensitivity_'+vars[n]+'.png',format='png',dpi=300,bbox_inches='tight')
+   plt.savefig(param+'_sensitivity_'+var+'.png',format='png',dpi=300,bbox_inches='tight')
    plt.show()

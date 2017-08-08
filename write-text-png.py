@@ -23,11 +23,12 @@ print 'Processing experiment',exp_name + '...'
 data = np.loadtxt('time.txt')
 time=data[:]
 nf=len(time) # number of png
+nf = 2
 for fname in range(nf):
        print ' \n' + '==> ' + '  READING PNG FILES ...\n' + ''
        file = str(exp_name+'%04d.png' % (fname))
        s = str("txt2img('Time = %5.1f (days)',file)" % (time[fname]))
        eval(s)
-    print fname
+       print fname
 
 print ' \n' + '==> ' + '  DONE!\n' + ''
