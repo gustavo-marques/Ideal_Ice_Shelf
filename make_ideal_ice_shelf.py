@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+###!/usr/bin/env /ncrc/home2/Gustavo.Marques/anaconda2/bin/python
+
 # generate files for Idealized Ice Shelf problem.
 # Gustavo Marques
 

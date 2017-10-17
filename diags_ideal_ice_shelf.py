@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env /ncrc/home2/Gustavo.Marques/anaconda2/bin/python
+
+##!/usr/bin/env python
 
 # Compute various diagnostics for the Idealized Ice Shelf problem.
 # Gustavo Marques
