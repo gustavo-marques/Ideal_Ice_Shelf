@@ -143,6 +143,14 @@ def parseCommandLine():
 
   parser.add_argument('-coupled_run', help='''Generate all the files needed to run an ocean_SIS2 simulation.''', action="store_true")
 
+  parser.add_argument('-corrugations', help='''Add corrugations under ice shelf. If true, parameters H_c and lambda_c must be defined.''', action="store_true")
+
+  parser.add_argument('-h_c', type=float, default=35,
+      help='''Height of corrugation in m. Default is 35.''')
+
+  parser.add_argument('-l_c', type=float, default=50,
+      help='''Lenght of corrugation in km. Default is 50.''')
+
   parser.add_argument('-add_seasonal_cycle', help='''Adds a seosonal cycle in  the forcing.''', action="store_true")
 
   parser.add_argument('-temp_forcing_period', type=float, default=60.83332,
@@ -305,7 +313,7 @@ def make_ice_shelf(x,y,args):
    C = 1.10e-06
    H0 = 2500.0 #m
    Q0 = 0.03327 #m^2/s
-   gp = 20.e3 # grouding line position
+   gp = 20.e3 # grouding line position in m
    dy = y[1]-y[0]
    dx = x[1]-x[0]
    Lice = 190.0e3 # ~ location of ice shelf front. It will change because of smoothing
@@ -338,9 +346,9 @@ def make_ice_shelf(x,y,args):
    h_smooth[h_smooth<5.0] = 0.0
    # find meridional lenght of ice shelf
    tmp = np.nonzero(h_smooth==0.0)[0][0]
-   args.ISL = x[tmp] / 1.0e3
-   args.GL = gp # grouding line position, in km
-   print 'Ice shelf meridional lenght is (km):',x[tmp] / 1.0e3
+   args.ISL = y[tmp] / 1.0e3
+   args.GL = gp # grouding line position, in m
+   print 'Ice shelf meridional lenght is (km):',y[tmp] / 1.0e3
 
    if args.debug:
       plt.plot(y,h,'k',y,h_smooth,'r')
@@ -361,10 +369,22 @@ def make_ice_shelf(x,y,args):
    area.units = 'm2'
    area.standard_name =  'ice shelf area'
 
-   # write into nc file
-   for i in range(args.nx):
+   if args.corrugations:
+     x = x/1.0e3; y = y/1.0e3 # in km
+     print 'Adding corrugations under ice shelf...'
+     for i in range(args.nx):
         thick[:,i] = h_smooth[:]
         area[:,i] = area_tmp[:]
+
+     for j in range(args.ny):
+       if y[j]>(gp/1.0e3 + 5*dy/1.0e3) and y[j]< (args.ISL - 5*dy/1.0e3):
+         thick[j,:] = thick[j,:] + args.h_c * np.cos(2*np.pi*x[:]/args.l_c)
+   else:
+     # write into nc file
+     for i in range(args.nx):
+        thick[:,i] = h_smooth[:]
+        area[:,i] = area_tmp[:]
+
 
    ncfile.sync()
    ncfile.close()

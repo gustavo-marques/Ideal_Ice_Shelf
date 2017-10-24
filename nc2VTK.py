@@ -228,7 +228,7 @@ def get_data(t, lats, lons, D, dx, dy, NX, NY, args):
 	     for i in range(NX):
 		 nans, tmp = nan_helper(data[:,j,i])
 		 if nans.mask.any() == False:
-			if h_dum[:,j,i].sum() > 0.001:
+			if h_dum[:,j,i].sum() > 1.5:
 			   data[nans,j,i]= numpy.interp(-hz[nans,j,i], -hz[~nans,j,i], data[~nans,j,i])
 
        t1 = time.time()

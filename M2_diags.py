@@ -25,7 +25,7 @@ def parseCommandLine():
 
   parser.add_argument('-n', type=str, default='test', help='''Name of the experiment (default is test).''')
 
-  parser.add_argument('-prog_file', type=str, default='ocean_month.nc', help='''Name of the prog. file (default is prog.nc).''')
+  parser.add_argument('-prog_file', type=str, default='prog.nc', help='''Name of the prog. file (default is prog.nc).''')
 
   parser.add_argument('-ice_file', type=str, default='ice_month.nc', help='''Name of the ice file (default is ice_month.nc).''')
 
