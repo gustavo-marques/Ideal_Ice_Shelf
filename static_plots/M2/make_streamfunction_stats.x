@@ -1,0 +1,46 @@
+# 1 km
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp0
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp1 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp2 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp3 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp4
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp13 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp14 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp15 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp16 -out ''
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp17 -out ''
+# 2 km
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp0 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp1 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp2 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp3 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp4 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp13 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp14 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp15 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp16 -out ''
+python plot_mean_streamfunction.py -dx 2 -exp M2_exp17 -out ''
+# 5 km
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp0 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp1 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp2 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp3 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp4 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp13 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp14 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp15 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp16 -out ''
+python plot_mean_streamfunction.py -dx 5 -exp M2_exp17 -out ''
+# 10 km
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp0 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp1 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp2 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp3 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp4 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp13 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp14 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp15 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp16 -out ''
+python plot_mean_streamfunction.py -dx 10 -exp M2_exp17 -out ''
+
+
