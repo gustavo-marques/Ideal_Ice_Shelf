@@ -1,5 +1,5 @@
 # 1 km
-python plot_mean_streamfunction.py -dx 1 -exp M2_exp0
+python plot_mean_streamfunction.py -dx 1 -exp M2_exp0 -out out5
 python plot_mean_streamfunction.py -dx 1 -exp M2_exp1 -out ''
 python plot_mean_streamfunction.py -dx 1 -exp M2_exp2 -out ''
 python plot_mean_streamfunction.py -dx 1 -exp M2_exp3 -out ''

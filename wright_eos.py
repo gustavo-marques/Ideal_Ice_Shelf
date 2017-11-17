@@ -115,8 +115,8 @@ def beta_wright_eos(T,S,p):
 
 
 def tfreeze(S,P):
-  TFr_S0_P0 = 0.0788; dTFr_dS = -0.0572; dTFr_dp = -7.77E-08
-  T_Fr = (TFr_S0_P0 + dTFr_dS*S) + dTFr_dp*P
+  TFr_S0_P0 = 0.0939; dTFr_dS = -0.0573; dTFr_dp = -7.53E-08
+  T_Fr = TFr_S0_P0 + dTFr_dS*S + dTFr_dp*P
   return T_Fr
 
 

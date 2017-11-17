@@ -1,5 +1,5 @@
 # 1 km
-python get_barotropic_flow.py -dx 1 -exp M2_exp0
+python get_barotropic_flow.py -dx 1 -exp M2_exp0 -out out5
 python get_barotropic_flow.py -dx 1 -exp M2_exp1 -out ''
 python get_barotropic_flow.py -dx 1 -exp M2_exp2 -out ''
 python get_barotropic_flow.py -dx 1 -exp M2_exp3 -out ''

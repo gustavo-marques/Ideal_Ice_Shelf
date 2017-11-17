@@ -29,7 +29,7 @@
             <Object name="SaveWindowAttributes">
                 <Field name="outputToCurrentDirectory" type="bool">false</Field>
                 <Field name="outputDirectory" type="string">/home/Gustavo.Marques</Field>
-                <Field name="fileName" type="string">M2_exp14_1km-final.png</Field>
+                <Field name="fileName" type="string">M2_exp0_1km-final.png</Field>
                 <Field name="family" type="bool">false</Field>
                 <Field name="format" type="string">PNG</Field>
                 <Field name="width" type="int">3000</Field>
@@ -39,7 +39,7 @@
                 <Field name="quality" type="int">100</Field>
                 <Field name="progressive" type="bool">true</Field>
                 <Field name="binary" type="bool">false</Field>
-                <Field name="lastRealFilename" type="string">/home/Gustavo.Marques/M2_exp14_1km-final.png</Field>
+                <Field name="lastRealFilename" type="string">/home/Gustavo.Marques/M2_exp0_1km-final.png</Field>
                 <Field name="stereo" type="bool">false</Field>
                 <Field name="compression" type="string">PackBits</Field>
                 <Field name="forceMerge" type="bool">false</Field>
@@ -387,8 +387,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">operators/Lineout/tracer</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">operators/Lineout/tr2</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">CurveMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -711,8 +711,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">operators/StatisticalTrends/Sum/tracer</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">operators/StatisticalTrends/Sum/tr2</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">ScalarMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -723,8 +723,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">operators/StatisticalTrends/Mean/tracer</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">operators/StatisticalTrends/Mean/tr2</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">ScalarMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -735,8 +735,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">operators/StatisticalTrends/Variance/tracer</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">operators/StatisticalTrends/Variance/tr2</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">ScalarMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -747,8 +747,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">"operators/StatisticalTrends/Std. Dev./tracer"</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">"operators/StatisticalTrends/Std. Dev./tr2"</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">ScalarMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -759,8 +759,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">operators/StatisticalTrends/Slope/tracer</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">operators/StatisticalTrends/Slope/tr2</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">ScalarMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -771,8 +771,8 @@
                     <Field name="autoExpression" type="bool">false</Field>
                 </Object>
                 <Object name="Expression">
-                    <Field name="name" type="string">operators/StatisticalTrends/Residuals/tracer</Field>
-                    <Field name="definition" type="string">"cell_constant(\<tracer\>, 0.)"</Field>
+                    <Field name="name" type="string">operators/StatisticalTrends/Residuals/tr2</Field>
+                    <Field name="definition" type="string">"cell_constant(\<tr2\>, 0.)"</Field>
                     <Field name="hidden" type="bool">false</Field>
                     <Field name="type" type="string">ScalarMeshVar</Field>
                     <Field name="fromDB" type="bool">false</Field>
@@ -2985,18 +2985,18 @@
             </Object>
             <Object name="View3DAttributes">
                 <Field name="viewNormal" type="doubleArray" length="3">0.869777000000001 0.0963225 0.483953000000001 </Field>
-                <Field name="focus" type="doubleArray" length="3">625 1000 -299.406958293915 </Field>
+                <Field name="focus" type="doubleArray" length="3">625 1000 -300.0375 </Field>
                 <Field name="viewUp" type="doubleArray" length="3">-0.475058 -0.101787 0.874048 </Field>
                 <Field name="viewAngle" type="double">30</Field>
-                <Field name="parallelScale" type="double">1209.52</Field>
-                <Field name="nearPlane" type="double">-2430.98435965525</Field>
-                <Field name="farPlane" type="double">2430.98435965525</Field>
+                <Field name="parallelScale" type="double">1209.36498506319</Field>
+                <Field name="nearPlane" type="double">-2430.67279896431</Field>
+                <Field name="farPlane" type="double">2430.67279896431</Field>
                 <Field name="imagePan" type="doubleArray" length="2">-0.0194483 -0.0190144 </Field>
-                <Field name="imageZoom" type="double">1.35171</Field>
+                <Field name="imageZoom" type="double">1.11711570247934</Field>
                 <Field name="perspective" type="bool">false</Field>
                 <Field name="eyeAngle" type="double">2</Field>
                 <Field name="centerOfRotationSet" type="bool">false</Field>
-                <Field name="centerOfRotation" type="doubleArray" length="3">625 1000 -299.406958293915 </Field>
+                <Field name="centerOfRotation" type="doubleArray" length="3">625 1000 -300.0375 </Field>
                 <Field name="axis3DScaleFlag" type="bool">false</Field>
                 <Field name="axis3DScales" type="doubleArray" length="3">1 1 1 </Field>
                 <Field name="shear" type="doubleArray" length="3">0 0 1 </Field>
@@ -6524,9 +6524,11 @@
         </Object>
         <Object name="ViewerSubject">
             <Object name="SourceMap">
-                <Field name="SOURCE00" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK/M2_exp14_1km-rhopot2-00181.vtk</Field>
+                <Field name="SOURCE00" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-tr2-00031.vtk</Field>
                 <Field name="SOURCE01" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-bathymetry.vtk</Field>
-                <Field name="SOURCE02" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK/M2_exp14_1km-salt-00181.vtk</Field>
+                <Field name="SOURCE02" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-salt-00121.vtk</Field>
+                <Field name="SOURCE03" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-temp-00121.vtk</Field>
+                <Field name="SOURCE04" type="string">localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-rhopot2-00121.vtk</Field>
             </Object>
             <Object name="SourcePlugins">
                 <Field name="localhost:/Users/gmarques/Desktop/VTK/Ocean0_COM_MOM6-*.vtk database" type="string">VTK_1.0</Field>
@@ -6563,8 +6565,9 @@
                 <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK/M1_exp5_1km-bathymetry.vtk" type="string">VTK_1.0</Field>
                 <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK/M1_exp5_1km-rhopot2-*.vtk database" type="string">VTK_1.0</Field>
                 <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK/M1_exp5_1km-salt-*.vtk database" type="string">VTK_1.0</Field>
-                <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK/M2_exp14_1km-rhopot2-00181.vtk" type="string">VTK_1.0</Field>
-                <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK/M2_exp14_1km-salt-00181.vtk" type="string">VTK_1.0</Field>
+                <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-rhopot2-00121.vtk" type="string">VTK_1.0</Field>
+                <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-salt-00121.vtk" type="string">VTK_1.0</Field>
+                <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-tr2-00031.vtk" type="string">VTK_1.0</Field>
                 <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-bathymetry.vtk" type="string">VTK_1.0</Field>
                 <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-rhopot2-00121.vtk" type="string">VTK_1.0</Field>
                 <Field name="localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-salt-00121.vtk" type="string">VTK_1.0</Field>
@@ -6575,7 +6578,7 @@
                     <Field name="name" type="string">Correlation01</Field>
                     <Field name="numStates" type="int">1</Field>
                     <Field name="method" type="string">IndexForIndexCorrelation</Field>
-                    <Field name="databaseNames" type="stringVector">"SOURCE00" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-temp-00121.vtk" "SOURCE02" </Field>
+                    <Field name="databaseNames" type="stringVector">"localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-rhopot2-00121.vtk" "SOURCE03" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-salt-00121.vtk" </Field>
                     <Field name="databaseNStates" type="intVector"></Field>
                     <Field name="databaseTimes" type="doubleVector"></Field>
                     <Field name="databaseCycles" type="intVector"></Field>
@@ -6600,7 +6603,7 @@
                     <Object name="ViewerWindow">
                         <Field name="windowSize" type="intArray" length="2">788 567 </Field>
                         <Field name="windowImageSize" type="intArray" length="2">788 507 </Field>
-                        <Field name="windowLocation" type="intArray" length="2">947 195 </Field>
+                        <Field name="windowLocation" type="intArray" length="2">702 329 </Field>
                         <Field name="maintainView" type="bool">false</Field>
                         <Field name="cameraView" type="bool">true</Field>
                         <Field name="viewExtentsType" type="string">AVT_ORIGINAL_EXTENTS</Field>
@@ -7205,18 +7208,18 @@
                         </Object>
                         <Object name="View3DAttributes">
                             <Field name="viewNormal" type="doubleArray" length="3">0.869777000000001 0.0963225 0.483953000000001 </Field>
-                            <Field name="focus" type="doubleArray" length="3">625 1000 -299.406958293915 </Field>
+                            <Field name="focus" type="doubleArray" length="3">625 1000 -300.0375 </Field>
                             <Field name="viewUp" type="doubleArray" length="3">-0.475058 -0.101787 0.874048 </Field>
                             <Field name="viewAngle" type="double">30</Field>
-                            <Field name="parallelScale" type="double">1209.52</Field>
-                            <Field name="nearPlane" type="double">-2430.98435965525</Field>
-                            <Field name="farPlane" type="double">2430.98435965525</Field>
+                            <Field name="parallelScale" type="double">1209.36498506319</Field>
+                            <Field name="nearPlane" type="double">-2430.67279896431</Field>
+                            <Field name="farPlane" type="double">2430.67279896431</Field>
                             <Field name="imagePan" type="doubleArray" length="2">-0.0194483 -0.0190144 </Field>
-                            <Field name="imageZoom" type="double">1.35171</Field>
+                            <Field name="imageZoom" type="double">1.11711570247934</Field>
                             <Field name="perspective" type="bool">false</Field>
                             <Field name="eyeAngle" type="double">2</Field>
                             <Field name="centerOfRotationSet" type="bool">false</Field>
-                            <Field name="centerOfRotation" type="doubleArray" length="3">625 1000 -299.406958293915 </Field>
+                            <Field name="centerOfRotation" type="doubleArray" length="3">625 1000 -300.0375 </Field>
                             <Field name="axis3DScaleFlag" type="bool">false</Field>
                             <Field name="axis3DScales" type="doubleArray" length="3">1 1 1 </Field>
                             <Field name="shear" type="doubleArray" length="3">0 0 1 </Field>
@@ -7232,7 +7235,7 @@
                                 <Field name="objectName" type="string">Plot0000</Field>
                                 <Field name="objectType" type="string">LegendAttributes</Field>
                                 <Field name="visible" type="bool">true</Field>
-                                <Field name="active" type="bool">true</Field>
+                                <Field name="active" type="bool">false</Field>
                                 <Field name="position" type="doubleArray" length="3">0.05 0.9 0 </Field>
                                 <Field name="position2" type="doubleArray" length="3">1 1 1 </Field>
                                 <Object name="textColor">
@@ -7414,7 +7417,7 @@
                                 <Field name="visible" type="bool">false</Field>
                                 <Field name="active" type="bool">false</Field>
                                 <Field name="position" type="doubleArray" length="3">0.2 0 0 </Field>
-                                <Field name="position2" type="doubleArray" length="3">0.4 0.0499999999695838 0 </Field>
+                                <Field name="position2" type="doubleArray" length="3">0.4 0.0499999999797225 0 </Field>
                                 <Object name="textColor">
                                     <Object name="ColorAttribute">
                                         <Field name="color" type="unsignedCharArray" length="4">255 255 255 0 </Field>
@@ -7553,7 +7556,7 @@
                                 <Field name="stringVector2" type="stringVector">"1037.2" </Field>
                             </Object>
                             <Object name="AnnotationObject">
-                                <Field name="objectName" type="string">Plot0013</Field>
+                                <Field name="objectName" type="string">Plot0012</Field>
                                 <Field name="objectType" type="string">LegendAttributes</Field>
                                 <Field name="visible" type="bool">true</Field>
                                 <Field name="active" type="bool">false</Field>
@@ -7583,9 +7586,81 @@
                                 <Field name="doubleAttribute1" type="double">0.015</Field>
                                 <Field name="intAttribute1" type="int">993</Field>
                                 <Field name="intAttribute2" type="int">5</Field>
+                                <Field name="intAttribute3" type="int">0</Field>
+                                <Field name="doubleVector1" type="doubleVector"></Field>
+                                <Field name="stringVector1" type="stringVector"></Field>
+                                <Field name="stringVector2" type="stringVector"></Field>
+                            </Object>
+                            <Object name="AnnotationObject">
+                                <Field name="objectName" type="string">Plot0013</Field>
+                                <Field name="objectType" type="string">LegendAttributes</Field>
+                                <Field name="visible" type="bool">true</Field>
+                                <Field name="active" type="bool">false</Field>
+                                <Field name="position" type="doubleArray" length="3">0.05 0.9 0 </Field>
+                                <Field name="position2" type="doubleArray" length="3">1 1 1 </Field>
+                                <Object name="textColor">
+                                    <Object name="ColorAttribute">
+                                        <Field name="color" type="unsignedCharArray" length="4">0 0 0 255 </Field>
+                                    </Object>
+                                </Object>
+                                <Field name="useForegroundForTextColor" type="bool">true</Field>
+                                <Object name="color1">
+                                    <Object name="ColorAttribute">
+                                        <Field name="color" type="unsignedCharArray" length="4">0 0 0 50 </Field>
+                                    </Object>
+                                </Object>
+                                <Object name="color2">
+                                    <Object name="ColorAttribute">
+                                        <Field name="color" type="unsignedCharArray" length="4">0 0 0 255 </Field>
+                                    </Object>
+                                </Object>
+                                <Field name="text" type="stringVector">"%# -9.2g" </Field>
+                                <Field name="fontFamily" type="string">Arial</Field>
+                                <Field name="fontBold" type="bool">false</Field>
+                                <Field name="fontItalic" type="bool">false</Field>
+                                <Field name="fontShadow" type="bool">false</Field>
+                                <Field name="doubleAttribute1" type="double">0.055</Field>
+                                <Field name="intAttribute1" type="int">960</Field>
+                                <Field name="intAttribute2" type="int">5</Field>
                                 <Field name="intAttribute3" type="int">1</Field>
                                 <Field name="doubleVector1" type="doubleVector"></Field>
                                 <Field name="stringVector1" type="stringVector"></Field>
+                                <Field name="stringVector2" type="stringVector"></Field>
+                            </Object>
+                            <Object name="AnnotationObject">
+                                <Field name="objectName" type="string">Plot0016</Field>
+                                <Field name="objectType" type="string">LegendAttributes</Field>
+                                <Field name="visible" type="bool">true</Field>
+                                <Field name="active" type="bool">true</Field>
+                                <Field name="position" type="doubleArray" length="3">0.05 0.9 0 </Field>
+                                <Field name="position2" type="doubleArray" length="3">1 1 1 </Field>
+                                <Object name="textColor">
+                                    <Object name="ColorAttribute">
+                                        <Field name="color" type="unsignedCharArray" length="4">0 0 0 255 </Field>
+                                    </Object>
+                                </Object>
+                                <Field name="useForegroundForTextColor" type="bool">true</Field>
+                                <Object name="color1">
+                                    <Object name="ColorAttribute">
+                                        <Field name="color" type="unsignedCharArray" length="4">0 0 0 50 </Field>
+                                    </Object>
+                                </Object>
+                                <Object name="color2">
+                                    <Object name="ColorAttribute">
+                                        <Field name="color" type="unsignedCharArray" length="4">0 0 0 255 </Field>
+                                    </Object>
+                                </Object>
+                                <Field name="text" type="stringVector">"%# -5.4g" </Field>
+                                <Field name="fontFamily" type="string">Arial</Field>
+                                <Field name="fontBold" type="bool">false</Field>
+                                <Field name="fontItalic" type="bool">false</Field>
+                                <Field name="fontShadow" type="bool">false</Field>
+                                <Field name="doubleAttribute1" type="double">0.035</Field>
+                                <Field name="intAttribute1" type="int">961</Field>
+                                <Field name="intAttribute2" type="int">5</Field>
+                                <Field name="intAttribute3" type="int">0</Field>
+                                <Field name="doubleVector1" type="doubleVector">0.005 0.0117017365966036 0.0273861278752583 0.0640930509594351 0.15 </Field>
+                                <Field name="stringVector1" type="stringVector">"" "" "" "" "" </Field>
                                 <Field name="stringVector2" type="stringVector"></Field>
                             </Object>
                         </Object>
@@ -7601,13 +7676,12 @@
                             <Object name="timeSliders">
                                 <Field name="Correlation01" type="int">549</Field>
                             </Object>
-                            <Field name="activeTimeSlider" type="string">"localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-tr2-*.vtk database"</Field>
                             <Object name="plot00">
                                 <Field name="plotName" type="string">Plot0000</Field>
                                 <Field name="pluginID" type="string">Pseudocolor_1.0</Field>
                                 <Field name="sourceID" type="string">SOURCE01</Field>
                                 <Field name="variableName" type="string">Depth</Field>
-                                <Field name="active" type="bool">false</Field>
+                                <Field name="active" type="bool">true</Field>
                                 <Field name="hidden" type="bool">false</Field>
                                 <Field name="realized" type="bool">true</Field>
                                 <Object name="ViewerPlot">
@@ -7616,7 +7690,7 @@
                                     <Field name="spatialExtentsType" type="string">AVT_ORIGINAL_EXTENTS</Field>
                                     <Field name="bgColor" type="doubleArray" length="3">1 1 1 </Field>
                                     <Field name="fgColor" type="doubleArray" length="3">0 0 0 </Field>
-                                    <Field name="expandedFlag" type="bool">false</Field>
+                                    <Field name="expandedFlag" type="bool">true</Field>
                                     <Field name="followsTime" type="bool">true</Field>
                                     <Object name="PseudocolorAttributes">
                                         <Field name="scaling" type="string">Linear</Field>
@@ -7787,7 +7861,7 @@
                                 <Field name="sourceID" type="string">SOURCE02</Field>
                                 <Field name="variableName" type="string">salt</Field>
                                 <Field name="active" type="bool">false</Field>
-                                <Field name="hidden" type="bool">false</Field>
+                                <Field name="hidden" type="bool">true</Field>
                                 <Field name="realized" type="bool">true</Field>
                                 <Object name="ViewerPlot">
                                     <Field name="plotDescription" type="string"></Field>
@@ -7989,15 +8063,181 @@
                                             </Object>
                                         </Object>
                                     </Object>
+                                    <Object name="CompactSILRestrictionAttributes">
+                                        <Field name="topSet" type="string">mesh</Field>
+                                        <Field name="topSetIsAllOn" type="bool">true</Field>
+                                    </Object>
+                                    <Field name="namedSelection" type="string"></Field>
+                                </Object>
+                            </Object>
+                            <Object name="plot02">
+                                <Field name="plotName" type="string">Plot0012</Field>
+                                <Field name="pluginID" type="string">Contour_1.0</Field>
+                                <Field name="sourceID" type="string">SOURCE03</Field>
+                                <Field name="variableName" type="string">temp</Field>
+                                <Field name="active" type="bool">false</Field>
+                                <Field name="hidden" type="bool">true</Field>
+                                <Field name="realized" type="bool">true</Field>
+                                <Object name="ViewerPlot">
+                                    <Field name="plotDescription" type="string"></Field>
+                                    <Field name="cacheIndex" type="int">0</Field>
+                                    <Field name="spatialExtentsType" type="string">AVT_ORIGINAL_EXTENTS</Field>
+                                    <Field name="bgColor" type="doubleArray" length="3">1 1 1 </Field>
+                                    <Field name="fgColor" type="doubleArray" length="3">0 0 0 </Field>
+                                    <Field name="expandedFlag" type="bool">false</Field>
+                                    <Field name="followsTime" type="bool">true</Field>
+                                    <Object name="ContourAttributes">
+                                        <Object name="defaultPalette">
+                                            <Object name="ColorControlPointList">
+                                                <Field name="compactColors" type="unsignedCharVector">255 0 255 255 0 255 0 255 0 0 255 255 0 255 255 255 255 0 255 255 255 255 0 255 255 135 0 255 255 0 135 255 168 168 168 255 255 68 68 255 99 255 99 255 99 99 255 255 40 165 165 255 255 99 255 255 255 255 99 255 255 170 99 255 170 79 255 255 150 0 0 255 0 150 0 255 0 0 150 255 0 109 109 255 150 0 150 255 150 150 0 255 150 84 0 255 160 0 79 255 255 104 28 255 0 170 81 255 68 255 124 255 0 130 255 255 130 0 255 255 </Field>
+                                                <Field name="compactPositions" type="floatVector">0 0.034 0.069 0.103 0.138 0.172 0.207 0.241 0.276 0.31 0.345 0.379 0.414 0.448 0.483 0.517 0.552 0.586 0.621 0.655 0.69 0.724 0.759 0.793 0.828 0.862 0.897 0.931 0.966 1 </Field>
+                                                <Field name="smoothing" type="string">None</Field>
+                                                <Field name="equal" type="bool">true</Field>
+                                                <Field name="discrete" type="bool">true</Field>
+                                                <Field name="category" type="string">Standard</Field>
+                                            </Object>
+                                        </Object>
+                                        <Field name="colorType" type="string">ColorBySingleColor</Field>
+                                        <Field name="colorTableName" type="string">Default</Field>
+                                        <Field name="legendFlag" type="bool">false</Field>
+                                        <Field name="lineStyle" type="int">0</Field>
+                                        <Field name="lineWidth" type="int">0</Field>
+                                        <Object name="singleColor">
+                                            <Object name="ColorAttribute">
+                                                <Field name="color" type="unsignedCharArray" length="4">204 255 255 255 </Field>
+                                            </Object>
+                                        </Object>
+                                        <Field name="contourNLevels" type="int">10</Field>
+                                        <Field name="contourValue" type="doubleVector">0.25 </Field>
+                                        <Field name="contourPercent" type="doubleVector"></Field>
+                                        <Field name="contourMethod" type="string">Value</Field>
+                                        <Field name="minFlag" type="bool">false</Field>
+                                        <Field name="maxFlag" type="bool">false</Field>
+                                        <Field name="min" type="double">0</Field>
+                                        <Field name="max" type="double">1</Field>
+                                        <Field name="scaling" type="string">Linear</Field>
+                                        <Field name="wireframe" type="bool">false</Field>
+                                        <Field name="invertColorTable" type="bool">false</Field>
+                                    </Object>
+                                    <Object name="Operators">
+                                        <Field name="activeOperatorIndex" type="int">1</Field>
+                                        <Object name="operator00">
+                                            <Field name="operatorType" type="string">Transform_1.0</Field>
+                                            <Object name="ViewerOperator">
+                                                <Object name="TransformAttributes">
+                                                    <Field name="doRotate" type="bool">false</Field>
+                                                    <Field name="rotateOrigin" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="rotateAxis" type="doubleArray" length="3">0 0 1 </Field>
+                                                    <Field name="rotateAmount" type="double">0</Field>
+                                                    <Field name="rotateType" type="string">Deg</Field>
+                                                    <Field name="doScale" type="bool">true</Field>
+                                                    <Field name="scaleOrigin" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="scaleX" type="double">2.5</Field>
+                                                    <Field name="scaleY" type="double">2</Field>
+                                                    <Field name="scaleZ" type="double">0.15</Field>
+                                                    <Field name="doTranslate" type="bool">false</Field>
+                                                    <Field name="translateX" type="double">0</Field>
+                                                    <Field name="translateY" type="double">0</Field>
+                                                    <Field name="translateZ" type="double">0</Field>
+                                                    <Field name="transformType" type="string">Similarity</Field>
+                                                    <Field name="inputCoordSys" type="string">Cartesian</Field>
+                                                    <Field name="outputCoordSys" type="string">Spherical</Field>
+                                                    <Field name="continuousPhi" type="bool">false</Field>
+                                                    <Field name="m00" type="double">1</Field>
+                                                    <Field name="m01" type="double">0</Field>
+                                                    <Field name="m02" type="double">0</Field>
+                                                    <Field name="m03" type="double">0</Field>
+                                                    <Field name="m10" type="double">0</Field>
+                                                    <Field name="m11" type="double">1</Field>
+                                                    <Field name="m12" type="double">0</Field>
+                                                    <Field name="m13" type="double">0</Field>
+                                                    <Field name="m20" type="double">0</Field>
+                                                    <Field name="m21" type="double">0</Field>
+                                                    <Field name="m22" type="double">1</Field>
+                                                    <Field name="m23" type="double">0</Field>
+                                                    <Field name="m30" type="double">0</Field>
+                                                    <Field name="m31" type="double">0</Field>
+                                                    <Field name="m32" type="double">0</Field>
+                                                    <Field name="m33" type="double">1</Field>
+                                                    <Field name="invertLinearTransform" type="bool">false</Field>
+                                                    <Field name="vectorTransformMethod" type="string">AsDirection</Field>
+                                                    <Field name="transformVectors" type="bool">true</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                        <Object name="operator01">
+                                            <Field name="operatorType" type="string">Clip_1.0</Field>
+                                            <Object name="ViewerOperator">
+                                                <Object name="ClipAttributes">
+                                                    <Field name="quality" type="string">Fast</Field>
+                                                    <Field name="funcType" type="string">Plane</Field>
+                                                    <Field name="plane1Status" type="bool">false</Field>
+                                                    <Field name="plane2Status" type="bool">true</Field>
+                                                    <Field name="plane3Status" type="bool">false</Field>
+                                                    <Field name="plane1Origin" type="doubleArray" length="3">1250 0 0 </Field>
+                                                    <Field name="plane2Origin" type="doubleArray" length="3">0 70 0 </Field>
+                                                    <Field name="plane3Origin" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="plane1Normal" type="doubleArray" length="3">1 0 0 </Field>
+                                                    <Field name="plane2Normal" type="doubleArray" length="3">0 -1 0 </Field>
+                                                    <Field name="plane3Normal" type="doubleArray" length="3">0 0 1 </Field>
+                                                    <Field name="planeInverse" type="bool">false</Field>
+                                                    <Field name="planeToolControlledClipPlane" type="string">Plane1</Field>
+                                                    <Field name="center" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="radius" type="double">1</Field>
+                                                    <Field name="sphereInverse" type="bool">false</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                    </Object>
+                                    <Object name="plotKeyframes">
+                                        <Object name="AttributeSubjectMap">
+                                            <Field name="indices" type="intVector">0 </Field>
+                                            <Object name="attributes">
+                                                <Object name="ContourAttributes">
+                                                    <Object name="defaultPalette">
+                                                        <Object name="ColorControlPointList">
+                                                            <Field name="compactColors" type="unsignedCharVector">255 0 255 255 0 255 0 255 0 0 255 255 0 255 255 255 255 0 255 255 255 255 0 255 255 135 0 255 255 0 135 255 168 168 168 255 255 68 68 255 99 255 99 255 99 99 255 255 40 165 165 255 255 99 255 255 255 255 99 255 255 170 99 255 170 79 255 255 150 0 0 255 0 150 0 255 0 0 150 255 0 109 109 255 150 0 150 255 150 150 0 255 150 84 0 255 160 0 79 255 255 104 28 255 0 170 81 255 68 255 124 255 0 130 255 255 130 0 255 255 </Field>
+                                                            <Field name="compactPositions" type="floatVector">0 0.034 0.069 0.103 0.138 0.172 0.207 0.241 0.276 0.31 0.345 0.379 0.414 0.448 0.483 0.517 0.552 0.586 0.621 0.655 0.69 0.724 0.759 0.793 0.828 0.862 0.897 0.931 0.966 1 </Field>
+                                                            <Field name="smoothing" type="string">None</Field>
+                                                            <Field name="equal" type="bool">true</Field>
+                                                            <Field name="discrete" type="bool">true</Field>
+                                                            <Field name="category" type="string">Standard</Field>
+                                                        </Object>
+                                                    </Object>
+                                                    <Field name="colorType" type="string">ColorBySingleColor</Field>
+                                                    <Field name="colorTableName" type="string">Default</Field>
+                                                    <Field name="legendFlag" type="bool">false</Field>
+                                                    <Field name="lineStyle" type="int">0</Field>
+                                                    <Field name="lineWidth" type="int">0</Field>
+                                                    <Object name="singleColor">
+                                                        <Object name="ColorAttribute">
+                                                            <Field name="color" type="unsignedCharArray" length="4">204 255 255 255 </Field>
+                                                        </Object>
+                                                    </Object>
+                                                    <Field name="contourNLevels" type="int">10</Field>
+                                                    <Field name="contourValue" type="doubleVector">0.25 </Field>
+                                                    <Field name="contourPercent" type="doubleVector"></Field>
+                                                    <Field name="contourMethod" type="string">Value</Field>
+                                                    <Field name="minFlag" type="bool">false</Field>
+                                                    <Field name="maxFlag" type="bool">false</Field>
+                                                    <Field name="min" type="double">0</Field>
+                                                    <Field name="max" type="double">1</Field>
+                                                    <Field name="scaling" type="string">Linear</Field>
+                                                    <Field name="wireframe" type="bool">false</Field>
+                                                    <Field name="invertColorTable" type="bool">false</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                    </Object>
                                     <Object name="databaseKeyframes">
                                         <Object name="AttributeSubjectMap">
-                                            <Field name="indices" type="intVector">0 729 </Field>
+                                            <Field name="indices" type="intVector">0 1428 </Field>
                                             <Object name="attributes">
                                                 <Object name="DatabaseAttributes">
                                                     <Field name="state" type="int">0</Field>
                                                 </Object>
                                                 <Object name="DatabaseAttributes">
-                                                    <Field name="state" type="int">729</Field>
+                                                    <Field name="state" type="int">1428</Field>
                                                 </Object>
                                             </Object>
                                         </Object>
@@ -8009,13 +8249,13 @@
                                     <Field name="namedSelection" type="string"></Field>
                                 </Object>
                             </Object>
-                            <Object name="plot02">
+                            <Object name="plot03">
                                 <Field name="plotName" type="string">Plot0013</Field>
                                 <Field name="pluginID" type="string">Contour_1.0</Field>
-                                <Field name="sourceID" type="string">SOURCE00</Field>
+                                <Field name="sourceID" type="string">SOURCE04</Field>
                                 <Field name="variableName" type="string">tracer</Field>
-                                <Field name="active" type="bool">true</Field>
-                                <Field name="hidden" type="bool">false</Field>
+                                <Field name="active" type="bool">false</Field>
+                                <Field name="hidden" type="bool">true</Field>
                                 <Field name="realized" type="bool">true</Field>
                                 <Object name="ViewerPlot">
                                     <Field name="plotDescription" type="string"></Field>
@@ -8168,15 +8408,218 @@
                                             </Object>
                                         </Object>
                                     </Object>
+                                    <Object name="CompactSILRestrictionAttributes">
+                                        <Field name="topSet" type="string">mesh</Field>
+                                        <Field name="topSetIsAllOn" type="bool">true</Field>
+                                    </Object>
+                                    <Field name="namedSelection" type="string"></Field>
+                                </Object>
+                            </Object>
+                            <Object name="plot04">
+                                <Field name="plotName" type="string">Plot0016</Field>
+                                <Field name="pluginID" type="string">Pseudocolor_1.0</Field>
+                                <Field name="sourceID" type="string">SOURCE00</Field>
+                                <Field name="variableName" type="string">tr2</Field>
+                                <Field name="active" type="bool">false</Field>
+                                <Field name="hidden" type="bool">false</Field>
+                                <Field name="realized" type="bool">true</Field>
+                                <Object name="ViewerPlot">
+                                    <Field name="plotDescription" type="string"></Field>
+                                    <Field name="cacheIndex" type="int">0</Field>
+                                    <Field name="spatialExtentsType" type="string">AVT_ORIGINAL_EXTENTS</Field>
+                                    <Field name="bgColor" type="doubleArray" length="3">1 1 1 </Field>
+                                    <Field name="fgColor" type="doubleArray" length="3">0 0 0 </Field>
+                                    <Field name="expandedFlag" type="bool">false</Field>
+                                    <Field name="followsTime" type="bool">true</Field>
+                                    <Object name="PseudocolorAttributes">
+                                        <Field name="scaling" type="string">Log</Field>
+                                        <Field name="skewFactor" type="double">1</Field>
+                                        <Field name="limitsMode" type="string">OriginalData</Field>
+                                        <Field name="minFlag" type="bool">true</Field>
+                                        <Field name="min" type="double">0.005</Field>
+                                        <Field name="maxFlag" type="bool">true</Field>
+                                        <Field name="max" type="double">0.15</Field>
+                                        <Field name="centering" type="string">Natural</Field>
+                                        <Field name="colorTableName" type="string">calewhite</Field>
+                                        <Field name="invertColorTable" type="bool">false</Field>
+                                        <Field name="opacityType" type="string">FullyOpaque</Field>
+                                        <Field name="opacityVariable" type="string"></Field>
+                                        <Field name="opacity" type="double">1</Field>
+                                        <Field name="opacityVarMin" type="double">0</Field>
+                                        <Field name="opacityVarMax" type="double">1</Field>
+                                        <Field name="opacityVarMinFlag" type="bool">false</Field>
+                                        <Field name="opacityVarMaxFlag" type="bool">false</Field>
+                                        <Field name="pointSize" type="double">0.05</Field>
+                                        <Field name="pointType" type="string">Point</Field>
+                                        <Field name="pointSizeVarEnabled" type="bool">false</Field>
+                                        <Field name="pointSizeVar" type="string">default</Field>
+                                        <Field name="pointSizePixels" type="int">2</Field>
+                                        <Field name="lineType" type="string">Line</Field>
+                                        <Field name="lineStyle" type="int">0</Field>
+                                        <Field name="lineWidth" type="int">0</Field>
+                                        <Field name="tubeDisplayDensity" type="int">10</Field>
+                                        <Field name="tubeRadiusSizeType" type="string">FractionOfBBox</Field>
+                                        <Field name="tubeRadiusAbsolute" type="double">0.125</Field>
+                                        <Field name="tubeRadiusBBox" type="double">0.005</Field>
+                                        <Field name="varyTubeRadius" type="bool">false</Field>
+                                        <Field name="varyTubeRadiusVariable" type="string"></Field>
+                                        <Field name="varyTubeRadiusFactor" type="double">10</Field>
+                                        <Field name="endPointType" type="string">None</Field>
+                                        <Field name="endPointStyle" type="string">Spheres</Field>
+                                        <Field name="endPointRadiusSizeType" type="string">FractionOfBBox</Field>
+                                        <Field name="endPointRadiusAbsolute" type="double">1</Field>
+                                        <Field name="endPointRadiusBBox" type="double">0.005</Field>
+                                        <Field name="endPointRatio" type="double">2</Field>
+                                        <Field name="renderSurfaces" type="int">1</Field>
+                                        <Field name="renderWireframe" type="int">0</Field>
+                                        <Field name="renderPoints" type="int">0</Field>
+                                        <Field name="smoothingLevel" type="int">0</Field>
+                                        <Field name="legendFlag" type="bool">true</Field>
+                                        <Field name="lightingFlag" type="bool">true</Field>
+                                    </Object>
+                                    <Object name="Operators">
+                                        <Field name="activeOperatorIndex" type="int">2</Field>
+                                        <Object name="operator00">
+                                            <Field name="operatorType" type="string">Transform_1.0</Field>
+                                            <Object name="ViewerOperator">
+                                                <Object name="TransformAttributes">
+                                                    <Field name="doRotate" type="bool">false</Field>
+                                                    <Field name="rotateOrigin" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="rotateAxis" type="doubleArray" length="3">0 0 1 </Field>
+                                                    <Field name="rotateAmount" type="double">0</Field>
+                                                    <Field name="rotateType" type="string">Deg</Field>
+                                                    <Field name="doScale" type="bool">true</Field>
+                                                    <Field name="scaleOrigin" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="scaleX" type="double">2.5</Field>
+                                                    <Field name="scaleY" type="double">2</Field>
+                                                    <Field name="scaleZ" type="double">0.15</Field>
+                                                    <Field name="doTranslate" type="bool">false</Field>
+                                                    <Field name="translateX" type="double">0</Field>
+                                                    <Field name="translateY" type="double">0</Field>
+                                                    <Field name="translateZ" type="double">0</Field>
+                                                    <Field name="transformType" type="string">Similarity</Field>
+                                                    <Field name="inputCoordSys" type="string">Cartesian</Field>
+                                                    <Field name="outputCoordSys" type="string">Spherical</Field>
+                                                    <Field name="continuousPhi" type="bool">false</Field>
+                                                    <Field name="m00" type="double">1</Field>
+                                                    <Field name="m01" type="double">0</Field>
+                                                    <Field name="m02" type="double">0</Field>
+                                                    <Field name="m03" type="double">0</Field>
+                                                    <Field name="m10" type="double">0</Field>
+                                                    <Field name="m11" type="double">1</Field>
+                                                    <Field name="m12" type="double">0</Field>
+                                                    <Field name="m13" type="double">0</Field>
+                                                    <Field name="m20" type="double">0</Field>
+                                                    <Field name="m21" type="double">0</Field>
+                                                    <Field name="m22" type="double">1</Field>
+                                                    <Field name="m23" type="double">0</Field>
+                                                    <Field name="m30" type="double">0</Field>
+                                                    <Field name="m31" type="double">0</Field>
+                                                    <Field name="m32" type="double">0</Field>
+                                                    <Field name="m33" type="double">1</Field>
+                                                    <Field name="invertLinearTransform" type="bool">false</Field>
+                                                    <Field name="vectorTransformMethod" type="string">AsDirection</Field>
+                                                    <Field name="transformVectors" type="bool">true</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                        <Object name="operator01">
+                                            <Field name="operatorType" type="string">Clip_1.0</Field>
+                                            <Object name="ViewerOperator">
+                                                <Object name="ClipAttributes">
+                                                    <Field name="quality" type="string">Fast</Field>
+                                                    <Field name="funcType" type="string">Plane</Field>
+                                                    <Field name="plane1Status" type="bool">false</Field>
+                                                    <Field name="plane2Status" type="bool">true</Field>
+                                                    <Field name="plane3Status" type="bool">false</Field>
+                                                    <Field name="plane1Origin" type="doubleArray" length="3">700 0 0 </Field>
+                                                    <Field name="plane2Origin" type="doubleArray" length="3">0 70 0 </Field>
+                                                    <Field name="plane3Origin" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="plane1Normal" type="doubleArray" length="3">1 0 0 </Field>
+                                                    <Field name="plane2Normal" type="doubleArray" length="3">0 -1 0 </Field>
+                                                    <Field name="plane3Normal" type="doubleArray" length="3">0 0 1 </Field>
+                                                    <Field name="planeInverse" type="bool">false</Field>
+                                                    <Field name="planeToolControlledClipPlane" type="string">Plane1</Field>
+                                                    <Field name="center" type="doubleArray" length="3">0 0 0 </Field>
+                                                    <Field name="radius" type="double">1</Field>
+                                                    <Field name="sphereInverse" type="bool">false</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                        <Object name="operator02">
+                                            <Field name="operatorType" type="string">Threshold_1.0</Field>
+                                            <Object name="ViewerOperator">
+                                                <Object name="ThresholdAttributes">
+                                                    <Field name="outputMeshType" type="int">0</Field>
+                                                    <Field name="listedVarNames" type="stringVector">"tr2" </Field>
+                                                    <Field name="zonePortions" type="intVector">1 </Field>
+                                                    <Field name="lowerBounds" type="doubleVector">0.005 </Field>
+                                                    <Field name="upperBounds" type="doubleVector">1e+37 </Field>
+                                                    <Field name="defaultVarName" type="string">tr2</Field>
+                                                    <Field name="defaultVarIsScalar" type="bool">true</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                    </Object>
+                                    <Object name="plotKeyframes">
+                                        <Object name="AttributeSubjectMap">
+                                            <Field name="indices" type="intVector">0 </Field>
+                                            <Object name="attributes">
+                                                <Object name="PseudocolorAttributes">
+                                                    <Field name="scaling" type="string">Log</Field>
+                                                    <Field name="skewFactor" type="double">1</Field>
+                                                    <Field name="limitsMode" type="string">OriginalData</Field>
+                                                    <Field name="minFlag" type="bool">true</Field>
+                                                    <Field name="min" type="double">0.005</Field>
+                                                    <Field name="maxFlag" type="bool">true</Field>
+                                                    <Field name="max" type="double">0.15</Field>
+                                                    <Field name="centering" type="string">Natural</Field>
+                                                    <Field name="colorTableName" type="string">calewhite</Field>
+                                                    <Field name="invertColorTable" type="bool">false</Field>
+                                                    <Field name="opacityType" type="string">FullyOpaque</Field>
+                                                    <Field name="opacityVariable" type="string"></Field>
+                                                    <Field name="opacity" type="double">1</Field>
+                                                    <Field name="opacityVarMin" type="double">0</Field>
+                                                    <Field name="opacityVarMax" type="double">1</Field>
+                                                    <Field name="opacityVarMinFlag" type="bool">false</Field>
+                                                    <Field name="opacityVarMaxFlag" type="bool">false</Field>
+                                                    <Field name="pointSize" type="double">0.05</Field>
+                                                    <Field name="pointType" type="string">Point</Field>
+                                                    <Field name="pointSizeVarEnabled" type="bool">false</Field>
+                                                    <Field name="pointSizeVar" type="string">default</Field>
+                                                    <Field name="pointSizePixels" type="int">2</Field>
+                                                    <Field name="lineType" type="string">Line</Field>
+                                                    <Field name="lineStyle" type="int">0</Field>
+                                                    <Field name="lineWidth" type="int">0</Field>
+                                                    <Field name="tubeDisplayDensity" type="int">10</Field>
+                                                    <Field name="tubeRadiusSizeType" type="string">FractionOfBBox</Field>
+                                                    <Field name="tubeRadiusAbsolute" type="double">0.125</Field>
+                                                    <Field name="tubeRadiusBBox" type="double">0.005</Field>
+                                                    <Field name="varyTubeRadius" type="bool">false</Field>
+                                                    <Field name="varyTubeRadiusVariable" type="string"></Field>
+                                                    <Field name="varyTubeRadiusFactor" type="double">10</Field>
+                                                    <Field name="endPointType" type="string">None</Field>
+                                                    <Field name="endPointStyle" type="string">Spheres</Field>
+                                                    <Field name="endPointRadiusSizeType" type="string">FractionOfBBox</Field>
+                                                    <Field name="endPointRadiusAbsolute" type="double">1</Field>
+                                                    <Field name="endPointRadiusBBox" type="double">0.005</Field>
+                                                    <Field name="endPointRatio" type="double">2</Field>
+                                                    <Field name="renderSurfaces" type="int">1</Field>
+                                                    <Field name="renderWireframe" type="int">0</Field>
+                                                    <Field name="renderPoints" type="int">0</Field>
+                                                    <Field name="smoothingLevel" type="int">0</Field>
+                                                    <Field name="legendFlag" type="bool">true</Field>
+                                                    <Field name="lightingFlag" type="bool">true</Field>
+                                                </Object>
+                                            </Object>
+                                        </Object>
+                                    </Object>
                                     <Object name="databaseKeyframes">
                                         <Object name="AttributeSubjectMap">
-                                            <Field name="indices" type="intVector">0 1318 </Field>
+                                            <Field name="indices" type="intVector">0 </Field>
                                             <Object name="attributes">
                                                 <Object name="DatabaseAttributes">
                                                     <Field name="state" type="int">0</Field>
-                                                </Object>
-                                                <Object name="DatabaseAttributes">
-                                                    <Field name="state" type="int">1318</Field>
                                                 </Object>
                                             </Object>
                                         </Object>
@@ -8189,7 +8632,7 @@
                                 </Object>
                             </Object>
                             <Field name="activeSource" type="string">SOURCE00</Field>
-                            <Field name="nPlots" type="int">3</Field>
+                            <Field name="nPlots" type="int">5</Field>
                             <Field name="keyframeMode" type="bool">false</Field>
                             <Field name="nKeyframes" type="int">1</Field>
                             <Object name="AnimationAttributes">

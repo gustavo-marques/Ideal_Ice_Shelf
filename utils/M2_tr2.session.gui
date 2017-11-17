@@ -3,14 +3,14 @@
     <Field name="Version" type="string">2.9.2</Field>
     <Object name="GUI">
         <Object name="FileServerList">
-            <Field name="path" type="string">/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK</Field>
+            <Field name="path" type="string">/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK</Field>
             <Field name="filter" type="string">*</Field>
             <Field name="useCurrentDir" type="bool">true</Field>
-            <Field name="automaticFileGrouping" type="bool">true</Field>
-            <Field name="smartFileGrouping" type="bool">true</Field>
+            <Field name="automaticFileGrouping" type="bool">false</Field>
+            <Field name="smartFileGrouping" type="bool">false</Field>
             <Field name="showDotFiles" type="bool">false</Field>
             <Object name="recentpaths">
-                <Field name="localhost" type="stringVector">"/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK" "/work2/gmm/Projects/Ideal_ice_shelf/Ideal_Ice_Shelf/utils" "/work2/gmm/Projects/Ideal_ice_shelf" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4" "/work2/gmm/Projects/Ideal_ice_shelf/Ideal_Ice_Shelf" "/ncrc/home2/Gustavo.Marques/Notebooks/Ideal_Ice_Shelf/utils" "/ncrc/home2/Gustavo.Marques" "/ncrc/home2/Gustavo.Marques/bin" "/ncrc/home2/Gustavo.Marques/Library" "/ncrc/home2/Gustavo.Marques/Notebooks" "/ncrc/home2/Gustavo.Marques/Notebooks/Ideal_Ice_Shelf" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx10km/Sigma_zstar/M2_exp4" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx10km/Sigma_zstar/M2_exp4/VTK" "/work2/gmm/visit2_12_1.linux-x86_64/bin" "/work2/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK" "/home/Gustavo.Marques" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out3/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out1" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp3/out1" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp3/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp2/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M1_exp3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M1_exp3/INPUT" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp2" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Mode2_cold_variable_w3/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Linear_forcing3/VTK" "/Users/gmarques/Desktop" "/Users/gmarques/Desktop/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Linear_forcing3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Standard4" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Standard4/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km/Sigma_zstar/Test_sponge" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km/Sigma_zstar/Test_sponge/VTK" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4_TMP/VTK" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4_TMP" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK" </Field>
+                <Field name="localhost" type="stringVector">"/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK" "/work2/gmm/Projects/Ideal_ice_shelf/Ideal_Ice_Shelf/utils" "/work2/gmm/Projects/Ideal_ice_shelf" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4" "/work2/gmm/Projects/Ideal_ice_shelf/Ideal_Ice_Shelf" "/ncrc/home2/Gustavo.Marques/Notebooks/Ideal_Ice_Shelf/utils" "/ncrc/home2/Gustavo.Marques" "/ncrc/home2/Gustavo.Marques/bin" "/ncrc/home2/Gustavo.Marques/Library" "/ncrc/home2/Gustavo.Marques/Notebooks" "/ncrc/home2/Gustavo.Marques/Notebooks/Ideal_Ice_Shelf" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx10km/Sigma_zstar/M2_exp4" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx10km/Sigma_zstar/M2_exp4/VTK" "/work2/gmm/visit2_12_1.linux-x86_64/bin" "/work2/gmm/Projects/Ideal_ice_shelf/Mode1/dx1km/Sigma_zstar/M1_exp5/out3/VTK" "/home/Gustavo.Marques" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out3/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out1" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp13/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp3/out1" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km/Sigma_zstar/M1_exp3/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp2/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx1km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M1_exp3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M1_exp3/INPUT" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Sigma_zstar/M2_exp2" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx2km/Mode2_cold_variable_w3/out1/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Linear_forcing3/VTK" "/Users/gmarques/Desktop" "/Users/gmarques/Desktop/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Linear_forcing3" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Standard4" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/TESTS/layer/dx2km/Standard4/VTK" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km/Sigma_zstar" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km/Sigma_zstar/Test_sponge" "/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/dx5km/Sigma_zstar/Test_sponge/VTK" "/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK" </Field>
             </Object>
         </Object>
         <Object name="AppearanceAttributes">
@@ -27,8 +27,8 @@
             <Field name="defaultOrientation" type="int">0</Field>
         </Object>
         <Object name="Animation">
-            <Field name="x" type="int">12</Field>
-            <Field name="y" type="int">54</Field>
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">27</Field>
             <Field name="width" type="int">368</Field>
             <Field name="height" type="int">273</Field>
             <Field name="visible" type="bool">false</Field>
@@ -36,17 +36,17 @@
         </Object>
         <Field name="postWhenShown" type="bool">false</Field>
         <Object name="Annotation">
-            <Field name="x" type="int">12</Field>
-            <Field name="y" type="int">54</Field>
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">27</Field>
             <Field name="width" type="int">591</Field>
             <Field name="height" type="int">802</Field>
             <Field name="visible" type="bool">false</Field>
             <Field name="posted" type="bool">false</Field>
-            <Field name="activeTab" type="int">0</Field>
+            <Field name="activeTab" type="int">5</Field>
         </Object>
         <Object name="Color tables">
-            <Field name="x" type="int">949</Field>
-            <Field name="y" type="int">224</Field>
+            <Field name="x" type="int">0</Field>
+            <Field name="y" type="int">0</Field>
             <Field name="width" type="int">407</Field>
             <Field name="height" type="int">802</Field>
             <Field name="visible" type="bool">false</Field>
@@ -54,23 +54,23 @@
             <Field name="currentColorTable" type="string">bottom</Field>
         </Object>
         <Object name="File information">
-            <Field name="x" type="int">12</Field>
-            <Field name="y" type="int">54</Field>
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">27</Field>
             <Field name="width" type="int">800</Field>
             <Field name="height" type="int">848</Field>
             <Field name="visible" type="bool">false</Field>
             <Field name="posted" type="bool">false</Field>
         </Object>
         <Object name="File open">
-            <Field name="x" type="int">0</Field>
-            <Field name="y" type="int">0</Field>
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">27</Field>
             <Field name="width" type="int">1113</Field>
             <Field name="height" type="int">510</Field>
             <Field name="visible" type="bool">false</Field>
         </Object>
         <Object name="Information">
-            <Field name="x" type="int">12</Field>
-            <Field name="y" type="int">54</Field>
+            <Field name="x" type="int">6</Field>
+            <Field name="y" type="int">27</Field>
             <Field name="width" type="int">483</Field>
             <Field name="height" type="int">304</Field>
             <Field name="visible" type="bool">false</Field>
@@ -86,13 +86,13 @@
         <Object name="MainWin">
             <Field name="x" type="int">0</Field>
             <Field name="y" type="int">24</Field>
-            <Field name="width" type="int">459</Field>
+            <Field name="width" type="int">412</Field>
             <Field name="height" type="int">999</Field>
             <Field name="SPLITTER_VALUES_V2" type="floatVector">0 0.9953216 0 </Field>
         </Object>
         <Object name="Contour plot attributes">
-            <Field name="x" type="int">18</Field>
-            <Field name="y" type="int">81</Field>
+            <Field name="x" type="int">12</Field>
+            <Field name="y" type="int">54</Field>
             <Field name="width" type="int">513</Field>
             <Field name="height" type="int">800</Field>
             <Field name="visible" type="bool">false</Field>
@@ -107,38 +107,38 @@
             <Field name="posted" type="bool">false</Field>
         </Object>
         <Object name="Vector plot attributes">
-            <Field name="x" type="int">75</Field>
-            <Field name="y" type="int">501</Field>
+            <Field name="x" type="int">69</Field>
+            <Field name="y" type="int">474</Field>
             <Field name="width" type="int">647</Field>
             <Field name="height" type="int">428</Field>
             <Field name="visible" type="bool">false</Field>
             <Field name="posted" type="bool">false</Field>
         </Object>
         <Object name="Clip operator attributes">
-            <Field name="x" type="int">-6</Field>
-            <Field name="y" type="int">-27</Field>
+            <Field name="x" type="int">0</Field>
+            <Field name="y" type="int">0</Field>
             <Field name="width" type="int">415</Field>
             <Field name="height" type="int">658</Field>
             <Field name="visible" type="bool">false</Field>
             <Field name="posted" type="bool">false</Field>
         </Object>
         <Object name="Threshold operator attributes">
-            <Field name="x" type="int">51</Field>
-            <Field name="y" type="int">291</Field>
+            <Field name="x" type="int">0</Field>
+            <Field name="y" type="int">0</Field>
             <Field name="width" type="int">501</Field>
             <Field name="height" type="int">455</Field>
             <Field name="visible" type="bool">false</Field>
             <Field name="posted" type="bool">false</Field>
         </Object>
         <Object name="Transform operator attributes">
-            <Field name="x" type="int">51</Field>
-            <Field name="y" type="int">291</Field>
+            <Field name="x" type="int">0</Field>
+            <Field name="y" type="int">0</Field>
             <Field name="width" type="int">573</Field>
             <Field name="height" type="int">506</Field>
             <Field name="visible" type="bool">false</Field>
             <Field name="posted" type="bool">false</Field>
         </Object>
-        <Field name="plotDatabases" type="stringVector">"localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-bathymetry.vtk" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK/M2_exp14_1km-salt-00181.vtk" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp14/VTK/M2_exp14_1km-rhopot2-00181.vtk" </Field>
+        <Field name="plotDatabases" type="stringVector">"localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-bathymetry.vtk" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-salt-00121.vtk" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp4/VTK/M2_exp4_1km-temp-00121.vtk" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-rhopot2-00121.vtk" "localhost:/work2/gmm/Projects/Ideal_ice_shelf/Mode2/dx1km/M2_exp0/VTK/M2_exp0_1km-tr2-00031.vtk" </Field>
         <Object name="TimeFormat">
             <Field name="displayMode" type="string">Cycles</Field>
             <Field name="precision" type="int">5</Field>

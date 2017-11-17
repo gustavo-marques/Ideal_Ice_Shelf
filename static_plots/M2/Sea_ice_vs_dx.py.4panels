@@ -11,7 +11,6 @@ color1 = '#6495ed'
 color2 = '#ff6347'
 color3 = '#8470ff'
 color4 = '#3cb371'
-colors = ['#6495ed','#ff6347','k','#3cb371']
 
 # plot some metrics for runs with varing wind forcing
 
@@ -28,7 +27,7 @@ wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
 
-f, ((ax1, ax2)) = plt.subplots(1, 2, sharey='row', figsize=(12,7))
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(12,10))
 
 for j in range(len(dx)):
   ice1_mean = []; ice1_std = []
@@ -50,20 +49,28 @@ for j in range(len(dx)):
      ice2_std.append(data2.std())
 
   # plot
-  ax1.errorbar(wind, ice1_mean, ice1_std, linestyle='-', marker='o', color=colors[j], elinewidth=2, label=r'$\Delta x$ = '+dx[j])
-  ax2.errorbar(wind, ice2_mean, ice2_std, linestyle='-', marker='o', color=colors[j], elinewidth=2)
+  if j == 0:
+     ax = ax1
+  elif j == 1:
+     ax = ax2
+  elif j == 2:
+     ax = ax3
+  else:
+     ax = ax4
 
-ax1.legend(loc='lower left', fontsize=14, ncol=2)
-ax1.set_ylabel(r'Sea ice volume [1000 km$^3$]', fontsize=20)
-ax1.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
-ax2.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
-ax1.set_title('a) Melting on', fontsize=20)
-ax2.set_title('b) Melting off',fontsize=20)
-ax1.set_xlim(-5.5,5.5)
-ax2.set_xlim(-5.5,5.5)
-ax1.set_ylim(0,1.6)
-ax2.set_ylim(0,1.6)
-ax1.set_xticks((wind))
-ax2.set_xticks((wind))
+  ax.errorbar(wind, ice1_mean, ice1_std, linestyle='-', marker='o', color=color1, elinewidth=2, label='Melting on')
+  ax.errorbar(wind, ice2_mean, ice2_std, linestyle='-', marker='o', color=color2, elinewidth=2, label='Melting off')
+  if j == 0:
+    ax.legend(loc='upper left', fontsize=14, ncol=2)
+  if j == 2:
+    ax.set_ylabel(r'Sea ice volume [1000 km$^3$]', fontsize=20)
+    ax.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
+
+  ax.set_title(abcd[j] + r'$\Delta$x = ' + dx[j])
+  ax.set_xlim(-5.5,5.5)
+  ax.set_ylim(0,1.6)
+  ax.set_xticks((wind))
+  #plt.grid()
+
 plt.savefig(param+'.png',format='png',dpi=300,bbox_inches='tight')
 plt.show()

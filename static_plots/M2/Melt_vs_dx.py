@@ -14,7 +14,7 @@ color4 = '#3cb371'
 
 # plot some metrics for runs with varing wind forcing
 
-path='/lustre/f1/unswept/Gustavo.Marques/MOM6-examples/ice_ocean_SIS2/IDEAL_IS/'
+path='/work/gmm/Projects/Ideal_ice_shelf/Mode2/'
 icfile = 'IDEAL_IS_IC.nc'
 exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
 exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
@@ -33,7 +33,7 @@ for j in range(len(dx)):
   OHT1_mean = []; OHT1_std = []
   OHT2_mean = []; OHT2_std = []
   for i in range(len(exps1)):
-     path_to_file1 = path+'dx'+dx[j]+'/Sigma_zstar/'+exps1[i]+'/'+exps1[i]+'_'+dx[j]+'.nc'
+     path_to_file1 = path+'dx'+dx[j]+'/'+exps1[i]+'/'+exps1[i]+'_'+dx[j]+'.nc'
      time1 = netCDF4.Dataset(path_to_file1).variables['time'][:]
      print 'Melt on, path/time:',path_to_file1, time1
      print '--------------------------------- \n'
@@ -55,7 +55,7 @@ for j in range(len(dx)):
 
 ax.legend(loc='upper left', fontsize=14, ncol=2)
 ax.set_ylabel(r'Mean melt rate [m yr$^{-1}$]', fontsize=20)
-ax.set_xlabel(r'U$_{asf}$ [m s$^{-1}$]', fontsize=20)
+ax.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 ax.set_xlim(-5.5,5.5)
 ax.set_ylim(4,10)
 ax.set_xticks((wind))
