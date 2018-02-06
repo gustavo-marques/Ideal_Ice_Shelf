@@ -134,18 +134,15 @@ e0 = Dataset(path+'/prog.nc').variables['e'][0:2,:,:,im/2].mean(axis=0)
 h0 = Dataset(path+'/prog.nc').variables['h'][0:2,:,:,im/2].mean(axis=0)
 ncIn.close()
 
-if args.plot:
-   # grid
-   os.system('mkdir OSF')
-   psi_vals = numpy.linspace(-0.2,0.2,30)
-   #fig = plt.figure(figsize=(10,8),facecolor='white')
-   #ax = fig.add_subplot(111,axisbg='black')
-   dy = y[1]-y[0]
-   y0 = y[0]-0.5*dy
-   (YOut, ZOut) = numpy.meshgrid(y0 + dy*(numpy.arange(ny+1)),
+# grid
+dy = y[1]-y[0]
+y0 = y[0]-0.5*dy
+(YOut, ZOut) = numpy.meshgrid(y0 + dy*(numpy.arange(ny+1)),
                                       zInterfaceOut,
                                       indexing='xy')
-
+if args.plot:
+   os.system('mkdir OSF')
+   psi_vals = numpy.linspace(-0.2,0.2,30)
    # remapping params
    cs = mom_remapping.Remapping_Cs()
    cs.remapping_scheme = 2
@@ -190,14 +187,18 @@ if args.plot:
 
 print 'Saving streamfunction stats...'
 os.system('mkdir TXT')
-tmp1 = numpy.nonzero(y<=170.0e3)[0][-1]
-print YOut.shape, osf.shape
+tmp1 = numpy.nonzero(y<=200.0e3)[0][-1]
+osf = osf * 1.0e-6 # in sv
+# cell averaged osf
+h_mean = h.mean(axis=2)
+h_mean = numpy.ma.masked_where(h_mean<0.001,h_mean)
+asf_mean =  (np.abs(osf[:,0:tmp1])*h_mean[:,0:tmp1]).sum()/h_mean[:,0:tmp1].sum()
 print 'Ice shelf ends at y =',y[tmp1]
 text_file = open('TXT/'+args.exp+'_dx'+args.dx+'_streamfunction.txt', "w")
-text_file.write("%f \n" % np.abs(osf[:,0:tmp1]/1.0e6).max())
-text_file.write("%f \n" % np.abs(osf[:,0:tmp1]/1.0e6).mean())
+text_file.write("%f \n" % np.abs(osf[:,0:tmp1]).max())
+text_file.write("%f \n" % asf_mean)
 text_file.close()
 
-print 'Mean psi:', np.abs(osf[:,0:tmp1]/1.0e6).mean()
-print 'Max psi:', np.abs(osf[:,0:tmp1]/1.0e6).max()
+print 'Mean psi:', asf_mean
+print 'Max psi:', np.abs(osf[:,0:tmp1]).max()
 print 'Done!'
