@@ -186,7 +186,6 @@ if args.plot:
    ax.set_xlabel('y [km]', fontsize=18)
    ax.set_ylabel('depth [m]', fontsize=18)
    plt.savefig('OSF/'+args.exp+'_dx'+args.dx+'_overturning_circulation.png',format='png',dpi=300,bbox_inches='tight')
-   plt.show()
    plt.close()
 
 print 'Saving streamfunction stats...'
