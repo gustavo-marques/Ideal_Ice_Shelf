@@ -68,8 +68,11 @@ def parseCommandLine():
   parser.add_argument('-tauy_efold', type=float, default=20.,
       help='''E-folding lenght for the katabatic wind (km). Default is 20.0''')
 
-  parser.add_argument('-SW', type=float, default=220.,
-      help='''Shortwave radiation (W/m^2). Default is 220.0''')
+  parser.add_argument('-SW', type=float, default=50.,
+      help='''Downward Shortwave radiation (W/m^2). Default is 50.0''')
+
+  parser.add_argument('-LW', type=float, default=50.,
+      help='''Downward Longwave radiation (W/m^2). Default is 200.0''')
 
   parser.add_argument('-tauy_min', type=float, default=0.001,
       help='''Min. (katabatic) wind stress in y (Pa). Default is 0.001''')
@@ -815,14 +818,16 @@ def make_ts(x,y,args):
    # use sw.dist to find distance
    # 176 lon (Ross Sea), July, southern wall conditions (-78)
    i =  176; t = 6; j = 14 # 11
+   # Amudsen sea
+   #i = 240; t = 6; j = 20
    temp_south = get_profile(t,i,j,'PTEMP',depth,z,args,'TempSouth')
    salt_south = get_profile(t,i,j,'SALT',depth,z,args,'SaltSouth')
    # shelf break conditions (-72)
-   j = 21 # j = 17
+   j = 18 # j = 17
    temp_break = get_profile(t,i,j,'PTEMP',depth,z,args,'TempSlope')
    salt_break = get_profile(t,i,j,'SALT',depth,z,args,'SaltSlope')
    # northern wall conditions (-65)
-   j = 21 # j = 27
+   j = 21 #j = 21 # j = 27
    temp_north = get_profile(t,i,j,'PTEMP',depth,z,args,'TempNorth')
    salt_north = get_profile(t,i,j,'SALT',depth,z,args,'SaltNorth')
 
@@ -1033,7 +1038,10 @@ def make_forcing(x,y,args):
    tauy_max = args.tauy_max # def is 0.05 N/m2
    tauy_min = args.tauy_min  # min northward wind
    sponge = args.sponge_width # 100 km
-   ISL = args.ISL
+   ice_depth = Dataset('ice_topog.nc').variables['depth'][:,0]
+   tmp = np.nonzero(ice_depth == 0.0)[0][-1]
+   ISL = y[tmp]
+   print 'Sea ice grid starts at y = (km)',y[tmp+1]
    nx = len(x); ny = len(y)
    if args.add_seasonal_cycle:
      nt = 365*4 # one year every 6 hours
@@ -1190,9 +1198,9 @@ def make_forcing(x,y,args):
      #tmp = args.cshelf_lenght
      tmp = ISL#+100.0
      for j in range(ny):
-	if y[j] < tmp:
+	if y[j] <= tmp:
 	   liq[t,j,:] = 0.0; snow[t,j,:] = 0.0
-           sw[t,j,:] = 0.0
+           sw[t,j,:] = 0.0; lw_dn[:,j,:] = 0.0
         else:
 	#elif y[j]>= tmp and y[j]< (Ly-sponge):
            #tmp = (Ly-sponge) - wind_x_pos
@@ -1201,6 +1209,7 @@ def make_forcing(x,y,args):
            #snow[t,j,:] = season_sin * fprec  #* np.sin((np.pi * (y[j]-wind_x_pos))/ tmp)
            snow[t,j,:] = fprec
            sw[t,j,:] = args.SW
+           lw_dn[:,j,:] = args.LW
         #else:
         #   liq[t,j,:] = 0.0
         #   snow[t,j,:] = 0.0
@@ -1222,19 +1231,20 @@ def make_forcing(x,y,args):
      t10 = Dataset(core_path+'t_10_mod.clim.nc')
      q10 = Dataset(core_path+'q_10_mod.clim.nc')
      for j in range(ny):
-       if y[j] < tmp:
+       if y[j] <= tmp:
          liq[:,j,:] = 0.0; snow[:,j,:] = 0.0
          sw[:,j,:] = 0.0; lw_dn[:,j,:] = 0.0
-         t_bot[:,j,:] = t10.variables['T_10_MOD'][:,6:11,93:102].mean()
-         sphum[:,j,:] = q10.variables['Q_10_MOD'][:,6:11,93:102].mean()
+         #t_bot[:,j,:] = t10.variables['T_10_MOD'][:,6:11,93:102].mean()
+         #sphum[:,j,:] = q10.variables['Q_10_MOD'][:,6:11,93:102].mean()
        else:
            liq[:,j,:] =  lprec   # ppt.variables['RAIN'][:,6:11,93:102].mean()
            snow[:,j,:] = fprec   # ppt.variables['SNOW'][:,6:11,93:102].mean()
            sw[:,j,:] = rad.variables['SWDN_MOD'][:,6:11,93:102].mean()
            lw_dn[:,j,:] = rad.variables['LWDN_MOD'][:,6:11,93:102].mean()
-           t_bot[:,j,:] = t10.variables['T_10_MOD'][:,6:11,93:102].mean()
-           sphum[:,j,:] = q10.variables['Q_10_MOD'][:,6:11,93:102].mean()
-   rad.close(); ppt.close(); t10.close(); q10.close()
+           #t_bot[:,j,:] = t10.variables['T_10_MOD'][:,6:11,93:102].mean()
+           #sphum[:,j,:] = q10.variables['Q_10_MOD'][:,6:11,93:102].mean()
+
+     rad.close(); ppt.close(); t10.close(); q10.close()
    # plots
    if args.debug:
 
@@ -1524,9 +1534,9 @@ def make_forcing(x,y,args):
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
-   print ('*** Run make_quick_mosaic ***')
-   os.system('module load fre')
-   os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
+   #print ('*** Run make_quick_mosaic ***')
+   #os.system('module load fre/bronx-1/bronx-100')
+   #os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
    return
 
 def make_topo(x,y,args):
@@ -1702,6 +1712,7 @@ def make_topo(x,y,args):
    # 1) topography used in the coupler
    # open a new netCDF file for writing.
    name = 'ice_topog'
+   os.system('rm ' + name +'.nc')
    ncfile = Dataset(name+'.nc','w')
    # create dimensions.
    ncfile.createDimension('nx',nx)
@@ -1758,6 +1769,10 @@ def make_topo(x,y,args):
    depth[:,:] = D[:,:]
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
+
+   print ('*** Run make_quick_mosaic ***')
+   os.system('module load fre/bronx-10')
+   os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
 
    return D
 
