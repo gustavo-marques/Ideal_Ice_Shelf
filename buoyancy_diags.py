@@ -105,7 +105,7 @@ def driver(args):
            print 'Time (years):', time[tt]
 	   # load data
 	   saltf = -mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
-           Qall = mask_bad_values(Dataset(args.sfc_file).variables['LwLatSens'][t,:])
+           Qall = mask_bad_values(Dataset(args.sfc_file).variables['net_heat_surface'][t,:])
            lprec = mask_bad_values(Dataset(args.sfc_file).variables['lprec'][t,:])
            ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])
            vh = mask_bad_values(Dataset(args.prog_file).variables['vh'][t,:])

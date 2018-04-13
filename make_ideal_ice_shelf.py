@@ -1038,10 +1038,11 @@ def make_forcing(x,y,args):
    tauy_max = args.tauy_max # def is 0.05 N/m2
    tauy_min = args.tauy_min  # min northward wind
    sponge = args.sponge_width # 100 km
-   ice_depth = Dataset('ice_topog.nc').variables['depth'][:,0]
-   tmp = np.nonzero(ice_depth == 0.0)[0][-1]
-   ISL = y[tmp]
-   print 'Sea ice grid starts at y = (km)',y[tmp+1]
+   #ice_depth = Dataset('ice_topog.nc').variables['depth'][:,0]
+   #tmp = np.nonzero(ice_depth == 0.0)[0][-1]
+   #ISL = y[tmp]
+   ISL = args.ISL
+   #print 'Sea ice grid starts at y = (km)',y[tmp+1]
    nx = len(x); ny = len(y)
    if args.add_seasonal_cycle:
      nt = 365*4 # one year every 6 hours
@@ -1534,9 +1535,9 @@ def make_forcing(x,y,args):
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
-   #print ('*** Run make_quick_mosaic ***')
-   #os.system('module load fre/bronx-1/bronx-100')
-   #os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
+   print ('*** Run make_quick_mosaic ***')
+   os.system('module load fre/bronx-10')
+   os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
    return
 
 def make_topo(x,y,args):
@@ -1770,9 +1771,9 @@ def make_topo(x,y,args):
    ncfile.close()
    print ('*** SUCCESS creating '+name+'.nc!')
 
-   print ('*** Run make_quick_mosaic ***')
-   os.system('module load fre/bronx-10')
-   os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
+   #print ('*** Run make_quick_mosaic ***')
+   #os.system('module load fre/bronx-10')
+   #os.system('make_quick_mosaic --input_mosaic ocean_mosaic.nc --ocean_topog ice_topog.nc')
 
    return D
 
