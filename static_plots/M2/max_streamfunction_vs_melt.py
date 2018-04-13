@@ -49,8 +49,8 @@ ax1.legend(loc='upper left', fontsize=14, ncol=2)
 ax1.set_ylabel(r'Max. $|\overline{\psi}|$ [sv]', fontsize=20)
 ax1.set_xlabel(r'Melt rate [m yr$^{-1}$]', fontsize=20)
 
-ax1.set_xlim(4,10)
-ax1.set_ylim(0.06,0.11)
+#ax1.set_xlim(4,10)
+#ax1.set_ylim(0.06,0.11)
 
 plt.savefig(param+'.png',format='png',dpi=300,bbox_inches='tight')
 plt.show()

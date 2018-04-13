@@ -110,7 +110,7 @@ def driver(args):
    norm = MidpointNormalize(midpoint=0)
    psi=get_data(path+'/'+args.out)
    psi = np.ma.masked_where(depth<500,psi)
-   tmp1 = np.nonzero(ssh<=-200.0)[0][-1]
+   tmp1 = np.nonzero(ssh<=-150.0)[0][-1]
    psi_ice_shelf = psi[0:tmp1,:]
  
    fig = plt.figure(figsize=(10,8),facecolor='white')

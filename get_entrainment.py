@@ -23,7 +23,7 @@ def parseCommandLine():
 
   parser.add_argument('-n', type=str, default='test_entrainment', help='''Name of the experiment (default is test_entrainment).''')
 
-  parser.add_argument('-month_file', type=str, default='ocean_month.nc', help='''Name of the file with monthly means (default is ocean_month.nc).''')
+  parser.add_argument('-prog_file', type=str, default='prog.nc', help='''Name of the file prognistic file (default is prog.nc).''')
 
   parser.add_argument('-ice_shelf_file', type=str, default='MOM_Shelf_IC.nc', help='''Name of the file that has the initial conditions for the ice shelf (default is MOM_Shelf_IC.nc).''')
 
@@ -46,12 +46,12 @@ def driver(args):
    """
    # load a few variables
    if args.tf == -1:
-      time = Dataset(args.month_file).variables['time'][args.t0::]/365. # in years
+      time = Dataset(args.prog_file).variables['time'][args.t0::]/365. # in years
    else:
-      time = Dataset(args.month_file).variables['time'][args.t0:args.tf+1]/365.
+      time = Dataset(args.prog_file).variables['time'][args.t0:args.tf+1]/365.
 
-   x = Dataset(args.month_file).variables['xh'][:] # in km
-   y = Dataset(args.month_file).variables['yh'][:]
+   x = Dataset(args.prog_file).variables['xh'][:] # in km
+   y = Dataset(args.prog_file).variables['yh'][:]
    depth = Dataset('ocean_geometry.nc').variables['D'][:]
    area = Dataset('ocean_geometry.nc').variables['Ah'][:]
    area_ice_shelf = Dataset(args.ice_shelf_file).variables['shelf_area'][0,:,:]
@@ -75,10 +75,10 @@ def driver(args):
            tt = t - args.t0 # time indice used in the arrays
            print 'Time (years):', time[tt]
 	   # load data
-           vh = mask_bad_values(Dataset(args.month_file).variables['vh'][t,:])
-	   tr2 = mask_bad_values(Dataset(args.month_file).variables['tr2'][t,:])
+           vh = mask_bad_values(Dataset(args.prog_file).variables['vh'][t,:])
+	   tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
            # convert FW mass flux into volume flux kg/s to m^3/s
-	   vol_flux = mask_bad_values(Dataset(args.month_file).variables['mass_flux'][t,:]) * 1.0e-3
+	   vol_flux = mask_bad_values(Dataset(args.prog_file).variables['mass_flux'][t,:]) * 1.0e-3
            # volume flux of tracer
            vol_flux_tr2 = vol_flux
            Qin[tt] = np.ma.masked_where(vol_flux_tr2==0.0, vol_flux_tr2).sum()

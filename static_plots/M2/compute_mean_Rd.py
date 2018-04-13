@@ -23,27 +23,35 @@ def parseCommandLine():
   parser.add_argument('-exp', type=str, default='M2_exp0',
       help='''Experiment name (default = M2_exp0).''')
 
-  parser.add_argument('-out', type=str, default='',
-      help='''Name of output file (default = '').''')
+  parser.add_argument('-out', type=str, default='out6',
+      help='''Name of output file (default = out6).''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
 
-def get_data(exp):
-    s=Dataset(exp+'/ocean_month.nc')
+def get_data(exp, ind1, ind2):
+    s=Dataset(exp+'/prog.nc')
     print 'Reading file', exp
+    dx = s.variables['xh'][1] - s.variables['xh'][0]
+    print 'Dx is:', dx
     tmp = len(s.variables['time'][:])
-    if tmp>24:
-      melt=s.variables['mass_flux'][-24::,:,:]
+    if tmp>144:
+      rd=s.variables['Rd_dx'][-144::,:,:]*dx
     else:
-      melt=s.variables['mass_flux'][:,:,:]
+      rd=s.variables['Rd_dx'][:,:,:]*dx
     
     s.close()
-    m = np.zeros(melt.shape[0])
-    for t in range(melt.shape[0]):
-        m[t] = melt[t,:,:].sum() * 1.0e-12 * 3600. * 24 * 365 # in Gt/yr 
-    return m
+    m = np.zeros(rd.shape[0])
+    m1 = np.zeros(rd.shape[0])
+    m2 = np.zeros(rd.shape[0])
+    for t in range(rd.shape[0]):
+        tmp = np.ma.masked_where(rd[t,:] <0.01 , rd[t,:])
+        m[t] = tmp.mean() # in km TOTAL
+        m1[t] = tmp[0:ind2,:].mean() # in km C. Shelf and I shelf
+        m2[t] = tmp[0:ind1,:].mean() # in km Ice Shelf
+        
+    return m, m1, m2
 
 def driver(args):
    """
@@ -56,18 +64,28 @@ def driver(args):
    if os.path.exists(path+'/out1/'):
      x = Dataset(path+'/out1/ocean_geometry.nc').variables['geolon'][:]
      y = Dataset(path+'/out1/ocean_geometry.nc').variables['geolat'][:]
+     HI = Dataset(path+'/out1/ice_month.nc').variables['HI'][0,:]
    else:
      x = Dataset(path+'/ocean_geometry.nc').variables['geolon'][:]
      y = Dataset(path+'/ocean_geometry.nc').variables['geolat'][:]
+     HI = Dataset(path+'/ice_month.nc').variables['HI'][0,:]
 
-   melt=get_data(path+'/'+args.out)
-   print 'melt',melt
-   print 'Saving melt rates...'
+  
+   ISL = y[HI[:,0].mask == True,0][-1] 
+   print('Ice shelf lenght is (km):',ISL)
+   y_ishelf = np.nonzero(y[:,0]<=ISL)[0][-1]
+   y_cshelf = np.nonzero(y[:,0]<=400.)[0][-1]
+   print 'y_ishelf, y_cshelf', y_ishelf, y_cshelf
+
+   rd_total, rd_ishelf, rd_cshelf=get_data(path+'/'+args.out,y_ishelf, y_cshelf)
+   print 'rd_total, rd_ishelf, rd_cshelf:',rd_total, rd_ishelf, rd_cshelf
+   print 'Saving Rds ...'
    os.system('mkdir TXT')
-   print 'Melt rate is mean/std (Gt/yr):',melt.mean(), melt.std()
-   text_file = open('TXT/'+args.exp+'_dx'+args.dx+'_melt_rate.txt', "w")
-   text_file.write("%f \n" % melt.mean())
-   text_file.write("%f \n" % melt.std())
+   #print ' mean/std (km):',rd.mean(), rd.std()
+   text_file = open('TXT/'+args.exp+'_dx'+args.dx+'_Rd.txt', "w")
+   text_file.write("%f %f \n" % (rd_total.mean(), rd_total.std()))
+   text_file.write("%f %f \n" % (rd_ishelf.mean(), rd_ishelf.std()))
+   text_file.write("%f %f \n" % (rd_cshelf.mean(), rd_cshelf.std()))
    text_file.close()
    print 'Done!'
 

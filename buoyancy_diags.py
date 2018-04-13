@@ -105,15 +105,14 @@ def driver(args):
            print 'Time (years):', time[tt]
 	   # load data
 	   saltf = -mask_bad_values(Dataset(args.ice_file).variables['SALTF'][t,:])
-           Qall = mask_bad_values(Dataset(args.sfc_file).variables['LwLatSens'][t,:])
+           Qall = mask_bad_values(Dataset(args.sfc_file).variables['net_heat_surface'][t,:])
            lprec = mask_bad_values(Dataset(args.sfc_file).variables['lprec'][t,:])
            ustar = mask_bad_values(Dataset(args.sfc_file).variables['ustar'][t,:])
            vh = mask_bad_values(Dataset(args.prog_file).variables['vh'][t,:])
 	   CI_tot = mask_bad_values(Dataset(args.ice_file).variables['CI_tot'][t,:])
 	   HI = mask_bad_values(Dataset(args.ice_file).variables['HI'][t,:])
 	   h = mask_bad_values(Dataset(args.prog_file).variables['h'][t,:])
-	   hml = mask_bad_values(Dataset(args.prog_file).variables['ePBL_h_ML'][t,:])
-	   rhopot2 = mask_bad_values(Dataset(args.prog_file).variables['rhopot2'][t,:])
+	   hml = mask_bad_values(Dataset(args.sfc_file).variables['ePBL_h_ML'][t,:])
 	   temp = mask_bad_values(Dataset(args.prog_file).variables['temp'][t,:])
 	   salt = mask_bad_values(Dataset(args.prog_file).variables['salt'][t,:])
 	   e = Dataset(args.prog_file).variables['e'][t,:]
@@ -123,8 +122,8 @@ def driver(args):
            depth = 0.5*(e[0:-1,:,:]+e[1::,:,:]) # vertical pos. of cell
 	   #tr1 = mask_bad_values(Dataset(args.prog_file).variables['tr1'][t,:])
 	   #tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
-           #pressure = gsw.p_from_z(depth,-75.) * 1.0e4 # in Pa [1 db = 10e4 Pa]
-           #rho = eos.wright_eos(temp,salt,pressure)
+           pressure = gsw.p_from_z(depth,-75.) * 1.0e4 # in Pa [1 db = 10e4 Pa]
+           rho = eos.wright_eos(temp,salt,pressure)
            # get ML properties
            SST,SSS=ml_average(temp,salt,hml,h)
            SST = np.ma.masked_where(np.abs(SST)>1.0e15,SST)
@@ -149,7 +148,7 @@ def driver(args):
            print 'Ustar shelf (m/s):',Ustar_shelf[tt]
            h1 = -np.diff(depth,axis=0)
            # ambient strat.
-           N = np.sqrt((9.8/1028.0)*np.diff(rhopot2,axis=0)/h1)
+           N = np.sqrt((9.8/1028.0)*np.diff(rho,axis=0)/h1)
            Ntmp = ((N*h1).sum(axis=0)/h.sum(axis=0))
            Nshelf[tt] = (np.ma.masked_where(area_cshelf.mask == True,Ntmp)).mean()
            print 'N shelf (1/s):',Nshelf[tt]
@@ -162,7 +161,7 @@ def driver(args):
            Tshelf[tt] = (np.ma.masked_where(area_cshelf.mask == True,Ttmp)).mean()
            print 'Temp shelf (C):',Tshelf[tt]
            # AABW mass flux
-           AABW_transp[tt] = get_mass_flux(x,y,vh,h,rhopot2,args)
+           AABW_transp[tt] = get_mass_flux(x,y,vh,h,rho,args)
            # sea ice vol
            tmp,ice_volume[tt] = get_ice_diags(x,y,CI_tot,HI)
            print 'Total sea ice vol. (m^3):',ice_volume[tt]

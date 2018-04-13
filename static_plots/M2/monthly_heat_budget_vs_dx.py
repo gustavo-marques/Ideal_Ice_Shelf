@@ -15,14 +15,14 @@ c4 = '#3cb371'
 colors = ['#6495ed','#ff6347','k','#3cb371']
 # plot some metrics for runs with varing wind forcing
 
-path='ncfiles/'
+path='TXT/'
 exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
 exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 
 dx2 = ['1 km','2 km','5 km','10 km']
 dx = ['dx1','dx2','dx5','dx10']
 
-param = 'heat_budget_dx_and_melting'
+param = 'monthly_heat_budget_dx_and_melting'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
 wind = np.array([-5,-2.5,0.0,2.5,5.0])
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
@@ -35,32 +35,24 @@ for j in range(len(dx)):
   out2_mean = []; out2_std = []
   in1_mean = []; in1_std = []
   in2_mean = []; in2_std = []
-  lat1_mean = []; lat2_mean = []
   eff1_mean = []
   eff2_mean = []
   for i in range(len(exps1)):
-     print path+exps1[i]+'_'+dx[j]+'_heat_budget_cavity.nc'
-     print path+exps2[i]+'_'+dx[j]+'_heat_budget_cavity.nc'
      # Hout 
-     out1_mean.append(-np.mean(netCDF4.Dataset(path+exps1[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hout'][:]))
-     out1_std.append(np.std(netCDF4.Dataset(path+exps1[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hout'][:]))
-     out2_mean.append(-np.mean(netCDF4.Dataset(path+exps2[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hout'][:]))
-     out2_std.append(np.std(netCDF4.Dataset(path+exps2[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hout'][:]))
+     out1_mean.append(np.loadtxt(path+exps1[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[0])
+     out1_std.append(np.loadtxt(path+exps1[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[1])
+     out2_mean.append(np.loadtxt(path+exps2[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[0])
+     out2_std.append(np.loadtxt(path+exps2[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[1])
      # Hin
-     in1_mean.append(-np.mean(netCDF4.Dataset(path+exps1[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hin'][:]))
-     in1_std.append(np.std(netCDF4.Dataset(path+exps1[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hin'][:]))
-     # Latent
-     lat1_mean.append(-np.mean(netCDF4.Dataset(path+exps1[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Lat'][:]))
-     lat2_mean.append(-np.mean(netCDF4.Dataset(path+exps2[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Lat'][:]))
-     
-     in2_mean.append(-np.mean(netCDF4.Dataset(path+exps2[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hin'][:]))
-     in2_std.append(np.std(netCDF4.Dataset(path+exps2[i]+'_'+dx[j]+'_heat_budget_cavity.nc').variables['Hin'][:]))
+     in1_mean.append(np.loadtxt(path+exps1[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[2])
+     in1_std.append(np.loadtxt(path+exps1[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[3])
+     in2_mean.append(np.loadtxt(path+exps2[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[2])
+     in2_std.append(np.loadtxt(path+exps2[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[3])
 
      # (Hin + Hout)/Hin
      eff1_mean.append((in1_mean[i]+out1_mean[i])/in1_mean[i])
-     #eff1_mean.append(lat1_mean[i]/in1_mean[i])
+     #eff1_mean.append((np.abs(in1_mean[i])-out1_mean[i])/np.abs(in1_mean[i]))
      eff2_mean.append((in2_mean[i]+out2_mean[i])/in2_mean[i])
-     #eff2_mean.append(lat2_mean[i]/in2_mean[i])
      #eff2_mean.append((np.abs(in2_mean[i])-out2_mean[i])/np.abs(in2_mean[i]))
 
   # plot
@@ -74,7 +66,7 @@ for j in range(len(dx)):
   ax6.plot(wind, eff2_mean, 'o-', color=colors[j], lw=2)
   ax6.plot([-10,10], [0,0], '-', color='gray', lw=1)
 
-ax3.legend(loc='best', fontsize=14, ncol=2)
+ax3.legend(loc='upper left', fontsize=14, ncol=2)
 ax1.set_ylabel(r'$H_{in}$ [TW]', fontsize=20)
 ax3.set_ylabel(r'$H_{out}$ [TW]', fontsize=20)
 ax5.set_ylabel(r'$\delta_{th}$', fontsize=20)
@@ -89,12 +81,12 @@ ax3.set_xlim(-5.5,5.5)
 ax4.set_xlim(-5.5,5.5)
 ax5.set_xlim(-5.5,5.5)
 ax6.set_xlim(-5.5,5.5)
-ax1.set_ylim(-0.1,2.5)
-ax2.set_ylim(-0.1,2.5)
-ax3.set_ylim(-2.5,0.1)
-ax4.set_ylim(-2.5,0.1)
-ax5.set_ylim(-0.4,0.4)
-ax6.set_ylim(-0.4,0.4)
+ax1.set_ylim(-5,0.1)
+ax2.set_ylim(-5,0.1)
+ax3.set_ylim(-0.1,5)
+ax4.set_ylim(-0.1,5)
+ax5.set_ylim(-0.5,0.5)
+ax6.set_ylim(-0.5,0.5)
 ax1.set_xticks((wind))
 ax2.set_xticks((wind))
 ax3.set_xticks((wind))

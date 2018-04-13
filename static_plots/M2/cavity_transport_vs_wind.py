@@ -20,8 +20,9 @@ exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
 exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 
 dx = ['dx1','dx2','dx5','dx10']
+dx = ['dx2','dx5','dx10']
 
-param = 'psi_amplitude'
+param = 'cavity_transport_vs_wind'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
 wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
@@ -33,10 +34,10 @@ for j in range(len(dx)):
   data1_mean = []
   data2_mean = []
   for i in range(len(exps1)):
-     data1 = np.loadtxt('TXT/'+exps1[i]+'_'+dx[j]+'_barotropic_amplitude.txt')
-     data2 = np.loadtxt('TXT/'+exps2[i]+'_'+dx[j]+'_barotropic_amplitude.txt')
-     data1_mean.append(data1)
-     data2_mean.append(data2)
+     data1 = np.loadtxt('TXT/'+exps1[i]+'_'+dx[j]+'_cavity_transports.txt')[2]
+     data2 = np.loadtxt('TXT/'+exps2[i]+'_'+dx[j]+'_cavity_transports.txt')[2]
+     data1_mean.append(np.abs(data1)/1.0e6) # in SV
+     data2_mean.append(np.abs(data2)/1.0e6)
 
   # plot
   ax1.plot(wind, data1_mean, linestyle='-', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx[j])
@@ -44,7 +45,7 @@ for j in range(len(dx)):
 
 
 ax2.legend(loc='upper left', fontsize=14, ncol=2)
-ax1.set_ylabel(r'Barotropic transport [sv]', fontsize=20)
+ax1.set_ylabel(r'$|T_{in}|$ [sv]', fontsize=20)
 ax1.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 ax2.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 
@@ -52,8 +53,8 @@ ax1.set_title('a) Melting on', fontsize=20)
 ax2.set_title('b) Melting off',fontsize=20)
 ax1.set_xlim(-5.5,5.5)
 ax2.set_xlim(-5.5,5.5)
-ax1.set_ylim(0,0.7)
-ax2.set_ylim(0,0.7)
+#ax1.set_ylim(0,0.11)
+#ax2.set_ylim(0,0.11)
 ax1.set_xticks((wind))
 ax2.set_xticks((wind))
   #plt.grid()

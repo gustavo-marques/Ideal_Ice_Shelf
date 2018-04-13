@@ -8563,7 +8563,7 @@
                                             </Object>
                                         </Object>
                                         <Field name="contourNLevels" type="int">10</Field>
-                                        <Field name="contourValue" type="doubleVector">1037 </Field>
+                                        <Field name="contourValue" type="doubleVector">1037.11 </Field>
                                         <Field name="contourPercent" type="doubleVector"></Field>
                                         <Field name="contourMethod" type="string">Value</Field>
                                         <Field name="minFlag" type="bool">false</Field>
@@ -8670,7 +8670,7 @@
                                                         </Object>
                                                     </Object>
                                                     <Field name="contourNLevels" type="int">10</Field>
-                                                    <Field name="contourValue" type="doubleVector">1037 </Field>
+                                                    <Field name="contourValue" type="doubleVector">1037.11 </Field>
                                                     <Field name="contourPercent" type="doubleVector"></Field>
                                                     <Field name="contourMethod" type="string">Value</Field>
                                                     <Field name="minFlag" type="bool">false</Field>

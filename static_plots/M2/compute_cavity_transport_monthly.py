@@ -30,47 +30,46 @@ def parseCommandLine():
   parser.add_argument('-exp', type=str, default='M2_exp0',
       help='''Experiment name (default = M2_exp0).''')
 
-  parser.add_argument('-out', type=str, default='out6',
-      help='''Name of output file (default = out6).''')
+  parser.add_argument('-out', type=str, default='',
+      help='''Name of output file (default = '').''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
 
 def get_data(exp,area,y_loc):
-    s=Dataset(exp+'/prog.nc')
+    s=Dataset(exp+'/ocean_month.nc')
     print 'Reading file', exp
     y = s.variables['yh'][:]
-    dy = ((y[1]-y[0])*1.0e3)
-    area = (dy)**2 # in m^2
     y_tmp = np.nonzero(y<=y_loc)[0][-1]
     tm = len(s.variables['time'][:])
-    tmp = 60
+    tmp = 24
     if tm<tmp:
         tmp = tm
-    tmp = tm
-    Hout = np.zeros(tmp)
-    Hin = np.zeros(tmp)
-    Heat = np.zeros(tmp)
-    transp = np.zeros(tmp)
+    #tmp = tm
+    Tout = np.zeros(tmp)
+    Tin = np.zeros(tmp)
     time = np.zeros(tmp)
-    for t in range(1,tmp):
-      time0 = s.variables['time'][t-1] * 3600 * 24. # in sec
-      time1 = s.variables['time'][t] * 3600 * 24. # in sec
-      dt = time1 - time0
-      print 'Time is (secs):',time1, dt
-      # at h points
-      vh1 = 0.5*(s.variables['vh'][t,:,y_tmp-1,:] + s.variables['vh'][t,:,y_tmp,:])
-      temp0 = s.variables['temp'][t-1,:] + 273.
-      temp1 = s.variables['temp'][t,:] + 273.
-      h0 = s.variables['h'][t-1,:,0:y_tmp,:]
-      h1 = s.variables['h'][t,:,0:y_tmp,:]
-      transp[t] = ((temp1[:,y_tmp,:])*vh1).sum()
-      dTdt = ((((temp1[:,0:y_tmp,:]*h1) - (temp0[:,0:y_tmp,:]*h0))/dt)*area).sum()
-      print 'dTdt, transp[t]',dTdt, transp[t]
-
+    for t in range(tmp):
+      time[t] = s.variables['time'][t-tmp]/365.
+      print 'Time is (years):',time[t]
+      vh = s.variables['vh'][t-tmp,:]
+      Tout[t], Tin[t] = get_transport(vh,y,y_loc)
     s.close()
-    return #Hout/1.0e12, Hin/1.0e12, transp/1.0e12, time # in TW
+    return Tout, Tin
+
+def get_transport(vh,y,y_loc):
+         '''
+         Compute transport in/out of the cavity
+         '''
+         tmp = np.nonzero(y<=y_loc)[0][-1]
+         # transport at h point
+         # mask transport. > 0.
+         vhh = 0.5 * (vh[:,tmp-1,:] + vh[:,tmp,:])
+         Tout = np.ma.masked_where(vhh<0.0, vhh)
+         Tin = np.ma.masked_where(vhh>0.0, vhh)
+         print 'Tout, Tin, out+in:',Tout.sum(), Tin.sum(),Tout.sum()+Tin.sum()
+         return Tout.sum(), Tin.sum()
 
 def driver(args):
    """
@@ -105,29 +104,26 @@ def driver(args):
      HI = Dataset(path+'/ice_month.nc').variables['HI'][0,:]
 
    e0 = Dataset(path+'/'+args.out+'/prog.nc').variables['e'][0:2,:,:,im/2].mean(axis=0)
-   ISL = y[HI[:,0].mask == True,0][-1] - 10.0 # -10 km to make sure it is under cavity
-   #ISL = 150.0
+   #ISL = y[HI[:,0].mask == True,0][-1] - 10.0 # -10 km to make sure it is under cavity
+   ISL = 190.0
    print('Ice shelf lenght is (km):',ISL)
 
    ### Call the function make_cmap which returns your colormap
    colors = [(0,0,255), (255,255,255), (255,0,0)]
    my_cmap = make_cmap(colors, bit=True)
    # read data
-   #Hout,Hin, transp, time=get_data(path+'/'+args.out,area,ISL)
-   get_data(path+'/'+args.out,area,ISL)
-   print 'Hout',Hout.mean(),Hout.std()
-   print 'Hin',Hin.mean(),Hin.std()
-   plt.figure()
-   plt.plot(time,transp)
-   plt.show()
+   Tout,Tin=get_data(path+'/'+args.out,area,ISL)
+   print 'Tout',Tout.mean(),Tout.std()
+   print 'Tin',Tin.mean(),Tin.std()
+
    print 'Saving data...'
    os.system('mkdir TXT')
-   #text_file = open('TXT/'+args.exp+'_dx'+args.dx+'_heat_budget.txt', "w")
-   #text_file.write("%f \n" % (Hout.mean()))
-   #text_file.write("%f \n" % (Hout.std()))
-   #text_file.write("%f \n" % (Hin.mean()))
-   #text_file.write("%f \n" % (Hin.std()))
-   #text_file.close()
+   text_file = open('TXT/'+args.exp+'_dx'+args.dx+'_cavity_transports.txt', "w")
+   text_file.write("%f \n" % (Tout.mean()))
+   text_file.write("%f \n" % (Tout.std()))
+   text_file.write("%f \n" % (Tin.mean()))
+   text_file.write("%f \n" % (Tin.std()))
+   text_file.close()
    print 'Done!'
 
 # Invoke parseCommandLine(), the top-level prodedure

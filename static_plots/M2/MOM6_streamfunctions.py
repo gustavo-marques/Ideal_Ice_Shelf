@@ -123,15 +123,15 @@ osf = \
 km, jm, im = zInterface.shape
 
 # mean ocean properties
-temp=Dataset(path+'/ocean_month.nc').variables['temp'][-24:,:,:,:].mean(axis=0).mean(axis=2)
-salt=Dataset(path+'/ocean_month.nc').variables['salt'][-24:,:,:,:].mean(axis=0).mean(axis=2)
+temp=Dataset(path+'/prog.nc').variables['temp'][-24:,:,:,:].mean(axis=0).mean(axis=2)
+salt=Dataset(path+'/prog.nc').variables['salt'][-24:,:,:,:].mean(axis=0).mean(axis=2)
 rho = eos.wright_eos(temp,salt,2.0e7)
 
 # to contour ice shelf and ocean bottom
 depth = Dataset(path+'/ocean_geometry.nc').variables['D'][:,im/2]
 ssh = Dataset(path+'/IDEAL_IS_IC.nc').variables['ave_ssh'][0,:,im/2]
-e0 = Dataset(path+'/prog.nc').variables['e'][0:2,:,:,im/2].mean(axis=0)
-h0 = Dataset(path+'/prog.nc').variables['h'][0:2,:,:,im/2].mean(axis=0)
+e0 = Dataset(path+'/prog.nc').variables['e'][-24:,:,:,im/2].mean(axis=0)
+h0 = Dataset(path+'/prog.nc').variables['h'][-24:,:,:,im/2].mean(axis=0)
 ncIn.close()
 
 # grid
@@ -195,10 +195,10 @@ h_mean = numpy.ma.masked_where(h_mean<0.001,h_mean)
 asf_mean =  (np.abs(osf[:,0:tmp1])*h_mean[:,0:tmp1]).sum()/h_mean[:,0:tmp1].sum()
 print 'Ice shelf ends at y =',y[tmp1]
 text_file = open('TXT/'+args.exp+'_dx'+args.dx+'_streamfunction.txt', "w")
-text_file.write("%f \n" % np.abs(osf[:,0:tmp1]).max())
+text_file.write("%f \n" % np.abs(osf[:,tmp1]).max())
 text_file.write("%f \n" % asf_mean)
 text_file.close()
 
 print 'Mean psi:', asf_mean
-print 'Max psi:', np.abs(osf[:,0:tmp1]).max()
+print 'Max psi:', np.abs(osf[:,tmp1]).max()
 print 'Done!'

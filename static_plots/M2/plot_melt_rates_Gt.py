@@ -17,9 +17,12 @@ colors = ['#6495ed','#ff6347','k','#3cb371']
 path='TXT/'
 icfile = 'IDEAL_IS_IC.nc'
 exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
-exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 
 dx = ['dx1','dx2','dx5','dx10']
+dx2 = ['1 km','2 km','5 km','10 km']
+
+dx = ['dx2','dx5','dx10']
+dx2 = ['2 km','5 km','10 km']
 
 param = 'melt_rate_Gt'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
@@ -39,7 +42,7 @@ for j in range(len(dx)):
      data1_std.append(data1)
 
   # plot
-  ax1.errorbar(wind, data1_mean, data1_std, linestyle='-', marker='o', color=colors[j], elinewidth=3, label=r'$\Delta$x = '+dx[j])
+  ax1.errorbar(wind, data1_mean, data1_std, linestyle='-', marker='o', lw=3.5, capsize=5, color=colors[j], elinewidth=3, label=r'$\Delta$x = '+dx2[j])
 
 ax1.legend(loc='upper left', fontsize=14, ncol=2)
 ax1.set_ylabel(r'Melt rate [Gt yr$^{-1}$]', fontsize=20)

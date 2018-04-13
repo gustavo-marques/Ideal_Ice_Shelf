@@ -52,14 +52,14 @@ def get_data(exp):
     s=Dataset(exp+'/ocean_month.nc')
     print 'Reading file', exp
     tmp = len(s.variables['time'][:])
-    #if tmp>24:
-    #    v=s.variables['vhbt'][-24::,:,:].mean(axis=0)
-    #    u=s.variables['uhbt'][-24::,:,:].mean(axis=0)
-    #else:
-    #    v=s.variables['vhbt'][:,:,:].mean(axis=0)
-    #    u=s.variables['uhbt'][:,:,:].mean(axis=0)
-    v=s.variables['vhbt'][-4::,:,:].mean(axis=0)
-    u=s.variables['uhbt'][-4::,:,:].mean(axis=0)
+    if tmp>24:
+        v=s.variables['vhbt'][-24::,:,:].mean(axis=0)
+        u=s.variables['uhbt'][-24::,:,:].mean(axis=0)
+    else:
+        v=s.variables['vhbt'][:,:,:].mean(axis=0)
+        u=s.variables['uhbt'][:,:,:].mean(axis=0)
+    #v=s.variables['vhbt'][-12::,:,:].mean(axis=0)
+    #u=s.variables['uhbt'][-12::,:,:].mean(axis=0)
     s.close()
 
     uh = np.zeros(u.shape); vh = np.zeros(v.shape); psi = np.zeros(u.shape)
@@ -111,7 +111,7 @@ def driver(args):
    norm = MidpointNormalize(midpoint=0)
    psi=get_data(path+'/'+args.out)
    psi = np.ma.masked_where(depth<500,psi)
-   tmp1 = np.nonzero(ssh<=-200.0)[0][-1]
+   tmp1 = np.nonzero(ssh<=-150.0)[0][-1]
    psi_ice_shelf = psi[0:tmp1,:]
  
    fig = plt.figure(figsize=(10,8),facecolor='white')

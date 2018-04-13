@@ -14,16 +14,15 @@ color4 = '#3cb371'
 
 # plot some metrics for runs with varing wind forcing
 
-path='/work/gmm/Projects/Ideal_ice_shelf/Mode2/'
-icfile = 'IDEAL_IS_IC.nc'
+path='ncfiles/'
 exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
 exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 
-dx= ['1km','2km','5km','10km']
-#dx= ['2km','5km','10km']
+dx = ['1km','2km','5km','10km']
+dx1 = ['dx1','dx2','dx5','dx10']
 
-param= 'seaice_dx_and_melting'
-labels= ['-5.0','-2.5','0.0','2.5','5.0']
+param = 'mean_RD_DX_dx_and_melting'
+labels = ['-5.0','-2.5','0.0','2.5','5.0']
 wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
@@ -31,23 +30,23 @@ abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(12,10))
 
 for j in range(len(dx)):
-  ice1_mean = []; ice1_std = []
-  ice2_mean = []; ice2_std = []
+  d1_mean = []; d1_std = []
+  d2_mean = []; d2_std = []
   for i in range(len(exps1)):
-     path_to_file1 = path+'dx'+dx[j]+'/'+exps1[i]+'/'+exps1[i]+'_'+dx[j]+'_buoyancy.nc'
-     path_to_file2 = path+'dx'+dx[j]+'/'+exps2[i]+'/'+exps2[i]+'_'+dx[j]+'_buoyancy.nc'
+     path_to_file1 = path+exps1[i]+'_'+dx1[j]+'_mean_surface_properties.nc'
+     path_to_file2 = path+exps2[i]+'_'+dx1[j]+'_mean_surface_properties.nc'
      print 'Path1, path2',path_to_file1, path_to_file2
      time1 = netCDF4.Dataset(path_to_file1).variables['time'][:]
      time2 = netCDF4.Dataset(path_to_file2).variables['time'][:]
      print 'Melt on, path/time:',path_to_file1, time1
      print 'Melt off path/time:',path_to_file2, time2
      print '--------------------------------- \n'
-     data1 = netCDF4.Dataset(path_to_file1).variables['seaiceVolume'][:]/1.0e12 # 1000 km^3
-     data2 = netCDF4.Dataset(path_to_file2).variables['seaiceVolume'][:]/1.0e12
-     ice1_mean.append(data1.mean())
-     ice2_mean.append(data2.mean())
-     ice1_std.append(data1.std())
-     ice2_std.append(data2.std())
+     data1 = netCDF4.Dataset(path_to_file1).variables['RD_DX'][:]
+     data2 = netCDF4.Dataset(path_to_file2).variables['RD_DX'][:]
+     d1_mean.append(data1.mean())
+     d2_mean.append(data2.mean())
+     d1_std.append(data1.std())
+     d2_std.append(data2.std())
 
   # plot
   if j == 0:
@@ -59,17 +58,17 @@ for j in range(len(dx)):
   else:
      ax = ax4
 
-  ax.errorbar(wind, ice1_mean, ice1_std, linestyle='-', marker='o', color=color1, elinewidth=2, label='Melting on')
-  ax.errorbar(wind, ice2_mean, ice2_std, linestyle='-', marker='o', color=color2, elinewidth=2, label='Melting off')
+  ax.errorbar(wind, d1_mean, d1_std, linestyle='-', marker='o', color=color1, elinewidth=2, label='Melting on')
+  ax.errorbar(wind, d2_mean, d2_std, linestyle='-', marker='o', color=color2, elinewidth=2, label='Melting off')
   if j == 0:
-    ax.legend(loc='upper left', fontsize=14, ncol=2)
+    ax.legend(loc='lower left', fontsize=14, ncol=2)
   if j == 2:
-    ax.set_ylabel(r'Sea ice volume [1000 km$^3$]', fontsize=20)
+    ax.set_ylabel(r'RD_DX [nondim]', fontsize=20)
     ax.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 
   ax.set_title(abcd[j] + r'$\Delta$x = ' + dx[j])
   ax.set_xlim(-5.5,5.5)
-  ax.set_ylim(0,1.6)
+  ax.set_ylim(0,7)
   ax.set_xticks((wind))
   #plt.grid()
 

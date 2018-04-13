@@ -22,13 +22,13 @@ exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 dx2 = ['1 km','2 km','5 km','10 km']
 dx = ['dx1','dx2','dx5','dx10']
 
-param = 'heat_budget_dx_and_melting'
+param = 'heat_budget_dx_and_melting_OSM'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
 wind = np.array([-5,-2.5,0.0,2.5,5.0])
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
 
-f, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, sharey='row', figsize=(12,12))
+f, ((ax1, ax2, ax3)) = plt.subplots(3, 1, figsize=(8,16))
 
 for j in range(len(dx)):
   out1_mean = []; out1_std = []
@@ -65,43 +65,29 @@ for j in range(len(dx)):
 
   # plot
   ax1.errorbar(wind, in1_mean, in1_std, linestyle='-', marker='o', color=colors[j], elinewidth=2, label=r'$\Delta x$ = '+dx2[j])
-  ax2.errorbar(wind, in2_mean, in2_std, linestyle='-', marker='o', color=colors[j], elinewidth=2)
-  ax3.errorbar(wind, out1_mean, out1_std, linestyle='-', marker='o', color=colors[j], elinewidth=2, label=r'$\Delta x$ = '+dx2[j])
-  ax4.errorbar(wind, out2_mean, out2_std, linestyle='-', marker='o', color=colors[j], elinewidth=2)
+  ax2.errorbar(wind, out1_mean, out1_std, linestyle='-', marker='o', color=colors[j], elinewidth=2, label=r'$\Delta x$ = '+dx2[j])
+  ax3.plot(wind, eff1_mean, 'o-', color=colors[j], lw=2)
+  ax3.plot([-10,10], [0,0], '-', color='gray', lw=1)
 
-  ax5.plot(wind, eff1_mean, 'o-', color=colors[j], lw=2)
-  ax5.plot([-10,10], [0,0], '-', color='gray', lw=1)
-  ax6.plot(wind, eff2_mean, 'o-', color=colors[j], lw=2)
-  ax6.plot([-10,10], [0,0], '-', color='gray', lw=1)
-
-ax3.legend(loc='best', fontsize=14, ncol=2)
+ax2.legend(loc='best', fontsize=14, ncol=2)
 ax1.set_ylabel(r'$H_{in}$ [TW]', fontsize=20)
-ax3.set_ylabel(r'$H_{out}$ [TW]', fontsize=20)
-ax5.set_ylabel(r'$\delta_{th}$', fontsize=20)
-ax5.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
-ax6.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
+ax2.set_ylabel(r'$H_{out}$ [TW]', fontsize=20)
+ax3.set_ylabel(r'$\delta_{th}$', fontsize=20)
+#ax1.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
+#ax2.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
+ax3.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 
-ax1.set_title('Melting on', fontsize=20)
-ax2.set_title('Melting off',fontsize=20)
+#ax1.set_title('Melting on', fontsize=20)
+#ax2.set_title('Melting off',fontsize=20)
 ax1.set_xlim(-5.5,5.5)
 ax2.set_xlim(-5.5,5.5)
 ax3.set_xlim(-5.5,5.5)
-ax4.set_xlim(-5.5,5.5)
-ax5.set_xlim(-5.5,5.5)
-ax6.set_xlim(-5.5,5.5)
 ax1.set_ylim(-0.1,2.5)
-ax2.set_ylim(-0.1,2.5)
-ax3.set_ylim(-2.5,0.1)
-ax4.set_ylim(-2.5,0.1)
-ax5.set_ylim(-0.4,0.4)
-ax6.set_ylim(-0.4,0.4)
+ax2.set_ylim(-2.5,0.1)
+ax3.set_ylim(-0.1,0.4)
 ax1.set_xticks((wind))
 ax2.set_xticks((wind))
 ax3.set_xticks((wind))
-ax4.set_xticks((wind))
-ax5.set_xticks((wind))
-ax6.set_xticks((wind))
-  #plt.grid()
 
 plt.savefig(param+'.png',format='png',dpi=300,bbox_inches='tight')
 plt.show()

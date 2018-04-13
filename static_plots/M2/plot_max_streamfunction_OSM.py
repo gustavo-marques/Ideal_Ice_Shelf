@@ -20,14 +20,15 @@ exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
 exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 
 dx = ['dx1','dx2','dx5','dx10']
+dx1 = ['1','2','5','10']
 
-param = 'max_streamfunction'
+param = 'max_overturning_transport_OSM'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
 wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
 
-f, ((ax1, ax2)) = plt.subplots(1, 2, sharey='row', figsize=(12,7))
+f, ((ax1)) = plt.subplots(1, 1)
 
 for j in range(len(dx)):
   data1_mean = []
@@ -39,23 +40,23 @@ for j in range(len(dx)):
      data2_mean.append(data2)
 
   # plot
-  ax1.plot(wind, data1_mean, linestyle='-', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx[j])
-  ax2.plot(wind, data2_mean, linestyle='-', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx[j])
+  ax1.plot(wind, data1_mean, linestyle='-', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx1[j] +' km')
+  #ax2.plot(wind, data2_mean, linestyle='-', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx1[j] +' km')
 
 
-ax2.legend(loc='upper left', fontsize=14, ncol=2)
-ax1.set_ylabel(r'Max. $|\overline{\psi}|$ [sv]', fontsize=20)
+ax1.legend(loc='lower center', fontsize=20, ncol=2)
+ax1.set_ylabel(r'Mean overturning transport [Sv]', fontsize=20)
 ax1.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
-ax2.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
+#ax2.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 
-ax1.set_title('a) Melting on', fontsize=20)
-ax2.set_title('b) Melting off',fontsize=20)
+#ax1.set_title('a) Melting on', fontsize=20)
+#ax2.set_title('b) Melting off',fontsize=20)
 ax1.set_xlim(-5.5,5.5)
-ax2.set_xlim(-5.5,5.5)
-ax1.set_ylim(0,0.11)
-ax2.set_ylim(0,0.11)
+#ax2.set_xlim(-5.5,5.5)
+i#ax1.set_ylim(0,0.014)
+#ax2.set_ylim(0,0.014)
 ax1.set_xticks((wind))
-ax2.set_xticks((wind))
+#ax2.set_xticks((wind))
   #plt.grid()
 
 plt.savefig(param+'.png',format='png',dpi=300,bbox_inches='tight')

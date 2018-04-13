@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import netCDF4
 import numpy as np
+from matplotlib.colors import LogNorm
 import sys
 sys.path.append('/work/gmm/pyGVtools/')
 import m6toolbox
@@ -29,7 +30,7 @@ def add_subplot_axes(ax,rect,axisbg='w'):
     return subax
 
 # Define a function to plot a section
-def plot_section(file_handle, record, xq, ax, i=250, variable='temp',eta='e',yvar='yh',clim=(0,30), plot_grid=True, rep='pcm', xlim=(0,1000), ylim=(-4000,0), cmap=plt.cm.jet, hide_ticks=False):
+def plot_section(file_handle, record, xq, ax, i=250, variable='temp',eta='e',yvar='yh',clim=(0,30), plot_grid=True, rep='pcm', xlim=(0,1000), ylim=(-4000,0), cmap=plt.cm.jet, hide_ticks=False, cb=False):
     """Plots a section of by reading vertical grid and scalar variable and super-sampling
     both in order to plot vertical and horizontal reconstructions.
 
@@ -47,9 +48,11 @@ def plot_section(file_handle, record, xq, ax, i=250, variable='temp',eta='e',yva
     s = file_handle.variables[variable][record,:,:,i] # Scalar field to color
     y = file_handle.variables[yvar][:]
     x = file_handle.variables['xh'][:]
-    #x,z,q = m6toolbox.section2quadmesh(xq, e, s, representation=rep) # This yields three areas at twice the model resolution
-    ##cs = plt.pcolormesh(x, z, q, cmap=cmap);
-    #plt.colorbar()
+    x,z,q = m6toolbox.section2quadmesh(xq, e, s, representation=rep) # This yields three areas at twice the model resolution
+    cs = ax.pcolormesh(x, z, q,norm=LogNorm(vmin=1, vmax=110), cmap=cmap)
+    if cb:
+      cbar=plt.colorbar(cs,orientation='horizontal')
+      cbar.ax.set_xlabel(r'$\Delta z$ [m]')
     ##cs.set_clim(clim)
     [Y,TMP] = np.meshgrid(y,e[:,0])
     print e.shape, Y.shape
@@ -82,7 +85,7 @@ yq = np.concatenate(([0],yq)) # Inserts left most edge of domain in to coordinat
 fig = plt.figure(figsize=(12,8))
 ax1 = plt.subplot(111, axisbg='white')
 #cs1 = plot_section(file, 0, yq, variable='h', eta='e',yvar='yh')
-plot_section(file, 0, yq, ax1, variable='h', eta='e',yvar='yh')
+plot_section(file, 0, yq, ax1, variable='h', eta='e',yvar='yh',cb=True)
 # box for zoom
 ax1.plot([220,5],[-920,-920],'k',linewidth=1)
 ax1.plot([220,5],[-5,-5],'k',linewidth=1)
