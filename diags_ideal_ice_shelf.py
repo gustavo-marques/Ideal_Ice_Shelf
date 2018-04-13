@@ -1,12 +1,10 @@
-#!/usr/bin/env /ncrc/home2/Gustavo.Marques/anaconda2/bin/python
-
-##!/usr/bin/env python
+#!/usr/bin/env python
 
 # Compute various diagnostics for the Idealized Ice Shelf problem.
 # Gustavo Marques
 
 import argparse
-from netCDF4 import MFDataset, Dataset
+from netCDF4 import Dataset
 import numpy as np
 import wright_eos as eos
 import gsw
@@ -86,17 +84,17 @@ def driver(args):
    ice_area = np.zeros(len(time)); var.append('ice_area'); varname.append('seaiceArea')
    ice_volume = np.zeros(len(time)); var.append('ice_volume'); varname.append('seaiceVolume')
    HI_max = np.zeros(len(time)); var.append('HI_max'); varname.append('maxSeaiceThick')
-   AABW_transp = np.zeros(len(time)); var.append('AABW_transp'); varname.append('AABW')
-   CDW_transp = np.zeros(len(time)); var.append('CDW_transp'); varname.append('CDW')
-   CDW1_transp = np.zeros(len(time)); var.append('CDW1_transp'); varname.append('CDW1')
+   #AABW_transp = np.zeros(len(time)); var.append('AABW_transp'); varname.append('AABW')
+   #CDW_transp = np.zeros(len(time)); var.append('CDW_transp'); varname.append('CDW')
+   #CDW1_transp = np.zeros(len(time)); var.append('CDW1_transp'); varname.append('CDW1')
    NHT_shelf = np.zeros(len(time)); var.append('NHT_shelf'); varname.append('NorthwardTranspShelf')
    SHT_shelf = np.zeros(len(time)); var.append('SHT_shelf'); varname.append('SouthwardTranspShelf')
    NHT_ice_shelf = np.zeros(len(time)); var.append('NHT_ice_shelf'); varname.append('NorthwardTranspIceShelf')
    SHT_ice_shelf = np.zeros(len(time)); var.append('SHT_ice_shelf'); varname.append('SouthwardTranspIceShelf')
    oht1 = np.zeros(len(time)); var.append('oht1'); varname.append('OHT_shelf')
    oht2 = np.zeros(len(time)); var.append('oht2'); varname.append('OHT_ice_shelf')
-   AABW_transp_x = np.zeros((len(time),len(x)))
-   AABW_h = np.zeros((len(time),len(x)))
+   #AABW_transp_x = np.zeros((len(time),len(x)))
+   #AABW_h = np.zeros((len(time),len(x)))
    MO_lenght = np.zeros((len(time),len(y),len(x)))
    var.append('MO_lenght'); varname.append('Monin_Obukhov_lenght')
    B0 = np.zeros((len(time),len(y),len(x)))
@@ -122,14 +120,14 @@ def driver(args):
 	   HI = mask_bad_values(Dataset(args.ice_file).variables['HI'][t,:])
 	   h = mask_bad_values(Dataset(args.prog_file).variables['h'][t,:])
 	   vh = mask_bad_values(Dataset(args.prog_file).variables['vh'][t,:])
-	   rhopot2 = mask_bad_values(Dataset(args.prog_file).variables['rhopot2'][t,:])
+	   #rhopot2 = mask_bad_values(Dataset(args.prog_file).variables['rhopot2'][t,:])
 	   temp = mask_bad_values(Dataset(args.prog_file).variables['temp'][t,:])
 	   salt = mask_bad_values(Dataset(args.prog_file).variables['salt'][t,:])
 	   e = Dataset(args.prog_file).variables['e'][t,:]
 	   mass_flux = mask_bad_values(Dataset(args.prog_file).variables['mass_flux'][t,:])
 	   melt_all = mask_bad_values(Dataset(args.prog_file).variables['melt'][t,:])
            # PRCmE: net surface water flux (lprec + melt + lrunoff - evap + calcing)
-	   PRCmE = mask_bad_values(Dataset(args.sfc_file).variables['PRCmE'][t,:])
+	   #PRCmE = mask_bad_values(Dataset(args.sfc_file).variables['PRCmE'][t,:])
            depth = 0.5*(e[0:-1,:,:]+e[1::,:,:]) # vertical pos. of cell
 	   #tr1 = mask_bad_values(Dataset(args.prog_file).variables['tr1'][t,:])
 	   #tr2 = mask_bad_values(Dataset(args.prog_file).variables['tr2'][t,:])
@@ -141,16 +139,16 @@ def driver(args):
 	   polynya_area[tt] = get_polynya_area(x,y,CI_tot,args)
 	   ice_area[tt],ice_volume[tt] = get_ice_diags(x,y,CI_tot,HI)
 	   HI_max[tt] = HI.max()
-           AABW_transp[tt],AABW_transp_x[tt,:], AABW_h[tt,:] = get_transport(x,y,vh,h,rhopot2,args)
-           CDW_transp[tt] = get_CDW(x,y,vh,rhopot2,args.cshelf_lenght, args)
-           CDW1_transp[tt] = get_CDW(x,y,vh,rhopot2,300.0,args)
+           #AABW_transp[tt],AABW_transp_x[tt,:], AABW_h[tt,:] = get_transport(x,y,vh,h,rhopot2,args)
+           #CDW_transp[tt] = get_CDW(x,y,vh,rhopot2,args.cshelf_lenght, args)
+           #CDW1_transp[tt] = get_CDW(x,y,vh,rhopot2,300.0,args)
            NHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,0) # northward
            SHT_shelf[tt] = get_total_transp(y,vh,args.cshelf_lenght,1) # southward
            NHT_ice_shelf[tt] = get_total_transp(y,vh,args.ISL,0) # northward
            SHT_ice_shelf[tt] = get_total_transp(y,vh,args.ISL,1) # southward
            oht1[tt] = get_oht(temp,salt,depth,vh,y,y_loc = 460.)
            oht2[tt] = get_oht(temp,salt,depth,vh,y,y_loc = args.ISL)
-           FW_IS[tt], FW[tt] = get_fw(PRCmE,mass_flux,x,y)
+           #FW_IS[tt], FW[tt] = get_fw(PRCmE,mass_flux,x,y)
            melt[tt] = get_melt(melt_all,shelf_area)
            total_mass_flux[tt] = get_total_mass_flux(mass_flux,shelf_area)
            #return l, B0, B0.mean(), B0_shelf, B0_IS
