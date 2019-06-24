@@ -1,3 +1,4 @@
+from remapping import mom_remapping
 import numpy
 from netCDF4 import Dataset
 import argparse
@@ -8,8 +9,6 @@ import sys, os
 sys.path.append('../../')
 from misc import *
 import wright_eos as eos
-from remapping import mom_remapping
-
 from computeOSF import computeOSF
 
 parser = argparse.ArgumentParser(description=
@@ -142,7 +141,7 @@ y0 = y[0]-0.5*dy
                                       indexing='xy')
 if args.plot:
    os.system('mkdir OSF')
-   psi_vals = numpy.linspace(-0.2,0.2,30)
+   psi_vals = numpy.linspace(-0.15,0.15,30)
    # remapping params
    cs = mom_remapping.Remapping_Cs()
    cs.remapping_scheme = 2
@@ -169,17 +168,18 @@ if args.plot:
    fig = plt.figure(figsize=(10,8),facecolor='white')
    ax = fig.add_subplot(111,axisbg='black')
    #ct=ax.contourf(1e-3*Y,-Z,psi*1.0e-6,psi_vals,cmap=plt.cm.bwr,extend='both')
-   ct = ax.pcolormesh(1e-3*YOut, ZOut, 1e-6*osf,vmin=-0.2,vmax=0.2,cmap=plt.cm.bwr)
-   cb = plt.colorbar(ct,orientation='horizontal',ticks=[-0.2,-0.1,0.0,0.1, 0.2],extend='both')
+   ct = ax.pcolormesh(1e-3*YOut, ZOut, 1e-6*osf,vmin=-0.15,vmax=0.15,cmap=plt.cm.bwr)
+   cb = plt.colorbar(ct,orientation='horizontal',ticks=[-0.15, -0.1,-0.05,0.0,0.05, 0.1, 0.15],extend='both')
    cb.set_label('Overturning circulation [sv]', fontsize=18)
    s=ax.contour(1.0e-3*Y,-Z,rho1-1000,[37.0,37.1,37.2],colors='k',lw=0.5)
-   ax.clabel(s, inline=1, fontsize=10,fmt='%4.2f')
+   ax.clabel(s, inline=1, fontsize=12,fmt='%4.2f')
    # fill IS and bottom
    ax.fill_between(1e-3*y, e0[0,:], 0.0, facecolor='white', interpolate=True)
-   ax.fill_between(1e-3*y, e0[-1,:], -4000, facecolor='#A9A9A9', interpolate=True)
+   #ax.fill_between(1e-3*y, e0[-1,:], -4000, facecolor='#A9A9A9', interpolate=True)
+   ax.fill_between(1e-3*y, e0[-1,:], -4000, facecolor='peru', interpolate=True)
    ax.plot(1e-3*y, ssh,'k-',lw=1.5)
-   ax.set_xlim([0,1000])
-   ax.set_ylim([-4000,0])
+   ax.set_xlim([0,650])
+   ax.set_ylim([-2000,0])
    ax.set_xlabel('y [km]', fontsize=18)
    ax.set_ylabel('depth [m]', fontsize=18)
    plt.savefig('OSF/'+args.exp+'_dx'+args.dx+'_overturning_circulation.png',format='png',dpi=300,bbox_inches='tight')

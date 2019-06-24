@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
-from computeOSF import computeOSF
+#from computeOSF import computeOSF
 
 class MyError(Exception):
   """
@@ -78,9 +78,11 @@ def driver(args):
    if name == 'Ocean0_COM_MOM6-LAYER':
       print("WARNING: exp. name has not been defined, using the default name Ocean0_COM_MOM6-LAYER.")
 
+
    # load essential variables
    # bedrock
    depth = Dataset(args.geometry).variables['D'][:]
+   args.ny, args.nx = depth.shape
    # area under shelf
    shelf_area = Dataset(args.isfile).variables['shelf_area'][0,:,:]
    # base of STATIC ice shelf, which is ssh(t=0); make it positive
@@ -99,6 +101,8 @@ def driver(args):
    # just part of the data (e.g., last 6 months)
    time = Dataset(args.month_file).variables['time'][:]
    zi = Dataset(args.prog_file).variables['zi'][:]
+   args.nz = len(zi)
+   print len(zi)
 
    # create ncfile and zero fields. Each function below will corresponding values
    create_ncfile(name,time,args)
@@ -142,18 +146,18 @@ def driver(args):
    # bathymetry (negative)
    bathymetry = -mask_grounded_ice(depth,depth,ice_base)
    bathymetry.fill_value=0.0
-   saveXY(bathymetry,'bathymetry')
+#   saveXY(bathymetry,'bathymetry')
 
    # meltRate, already masked above
    melt = melt/(3600.*24*365) # in m/s
    saveXY(melt,'meltRate')
 
    # frictionVelocity
-   ustar_shelf = Dataset(args.month_file).variables['ustar_shelf'][:]
+#   ustar_shelf = Dataset(args.month_file).variables['ustar_shelf'][:]
    # mask open ocean and grounded ice
-   ustar_shelf = mask_grounded_ice(ustar_shelf,depth,ice_base)
-   ustar_shelf = mask_ocean(ustar_shelf,shelf_area)
-   saveXY(ustar_shelf,'frictionVelocity')
+#   ustar_shelf = mask_grounded_ice(ustar_shelf,depth,ice_base)
+#   ustar_shelf = mask_ocean(ustar_shelf,shelf_area)
+#   saveXY(ustar_shelf,'frictionVelocity')
 
    # thermalDriving
    thermal_driving = Dataset(args.month_file).variables['thermal_driving'][:]
@@ -182,11 +186,11 @@ def driver(args):
    #if (args.type == 'ocean3' or args.type == 'ocean4'):
    # iceDraft
    # will have to works this out when we run these cases
-   iceDraft = ice_base.copy()
-   iceDraft = mask_grounded_ice(iceDraft,depth,ice_base)
+#   iceDraft = ice_base.copy()
+#   iceDraft = mask_grounded_ice(iceDraft,depth,ice_base)
    #iceDraft[shelf_area == 0.] = 0.0
-   iceDraft.fill_value = 720.0; iceDraft = iceDraft.filled()
-   saveXY(-iceDraft,'iceDraft')
+#   iceDraft.fill_value = 720.0; iceDraft = iceDraft.filled()
+#   saveXY(-iceDraft,'iceDraft')
 
    # data from ocean_month_z
    temp_z = Dataset(args.month_z_file).variables['temp'][:]
@@ -227,87 +231,8 @@ def driver(args):
    psi2D = mask_grounded_ice(psi2D,depth,ice_base)
    saveXY(psi2D,'barotropicStreamfunction')
 
-   # overturningStreamfunction
-
-   #uh = Dataset(args.month_file).variables['uh'][:]
-   #e = Dataset(args.month_file).variables['e'][:]
-   #osf = get_OSF(uh,e,h,x[0,:],y[:,0])
-   #osf = np.ma.masked_where(osf==0.0, osf)
-   #saveXY(osf,'overturningStreamfunction')
-
    print('Done!')
    return
-
-def get_OSF(uh,e,h,x,y):
-    '''
-    Loop in time, interpolate uh to a fixed z spaced grid, then
-    compute the overturning streamfunction psi at the grid corner points.
-    '''
-    x=x*1.0e3; y=y*1.0e3
-    dy = y[1]-y[0]
-    nxOut = 240
-    nyOut = 40
-    nzOut = 144
-    dzOut = 720./nzOut
-    nzExtra = 6
-    # the z location of grid-cell corners (or top-bottom inderfaces) on the output
-    # grid, with extra points at the top to catch anything above 0
-    zInterfaceOut = -dzOut*np.arange(-nzExtra, nzOut+1)
-    # the z location of grid-cell centers on the output grid
-    zOut = 0.5*(zInterfaceOut[0:-1] + zInterfaceOut[1:])
-    NT,NZ,NY,NX = uh.shape
-    osfOut = np.zeros((NT,nzOut,NX))
-    print 'Computing OSF...'
-    for t in range(NT):
-       print "time index {} of {}".format(t, NT)
-       zInterface = e[t, :, :, :]
-       # h at u points
-       h_u = 0.5 * (h[t, :, :, 0:-1] + h[t, :, :, 1::])
-       uht = uh[t, :, :, 0:-1]
-       # recover u
-       ut = uht/(h_u * dy*np.ones(uht.shape))
-       zInterface_u = 0.5*(zInterface[:, :, 0:-1] + zInterface[:, :, 1:])
-       uMask = np.ones((NZ,NY,NX-1), bool)
-
-       dummy = computeOSF(ut, uMask, dy=dy*np.ones(uht.shape),
-                        zInterface=zInterface_u,
-                        zInterfaceOut=zInterfaceOut, plot=True,
-                        xPlot=x, zPlot=zInterface, tIndex=t)
-       # skip the extra points we added at the top, since those aren't part of
-       # standard ISOMIP+ output
-       osfOut[t,:,:] = dummy[nzExtra:, :]
-    return osfOut
-
-def get_psi3D_OLD(u,e,shelf,depth):
-    '''
-    This is obsolete and is left here for comparison purposes.
-    Loop in time, interpolate uh to a fixed z spaced grid, then
-    compute the overturning streamfunction psi at the grid corner points.
-    '''
-    z = - np.arange(2.5,720.,5)
-    NT,NZ,NY,NX = u.shape
-    psi = np.zeros((NT,len(z),NX))
-
-    enew = np.zeros((NT,NZ,NX))
-    for t in range(NT):
-          et = e[t,:,:,:]
-          ut = u[t,:]
-          h = np.abs(np.diff(et[:,:],axis=0))
-          e1 = 0.5*(et[0:-1,:,:] + et[1::,:,:])
-          psi_dum = np.ones((len(z),NY,NX)) * 1.0e27
-          for j in range(NY):
-             for i in range(NX):
-                if (h[:,j,i].sum() > 0.1): # interp. to z grid
-                   ztmp = np.nonzero((z<=shelf[j,i]) & (z>=depth[j,i]))[0]
-                   psi_dum[ztmp,j,i] = np.interp(-z[ztmp], -e1[:,j,i], ut[:,j,i])
-
-          psi_dum = np.ma.masked_where(np.abs(psi_dum) >= 1.0e27, psi_dum)
-          usum = psi_dum.sum(axis=1)
-          # cumsum starting from the bottom
-          psi[t,:,:] = np.cumsum(usum[::-1,:],axis=0)[::-1,:]
-
-    psi = np.ma.masked_where(psi == 0., psi)
-    return -psi # in z space
 
 def get_psi2D(u,v):
     '''
@@ -522,12 +447,9 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    meanSalinity.units = 'PSU'; meanSalinity.description = 'the salinity averaged over the ocean volume'
    iceDraft = ncfile.createVariable('iceDraft',np.dtype('float32').char,('ny','nx'))
    bathymetry = ncfile.createVariable('bathymetry',np.dtype('float32').char,('ny','nx'))
-   iceDraft.units = 'm'; iceDraft.description = 'elevation of the ice-ocean interface'
    bathymetry.units = 'm'; bathymetry.description = 'elevation of the bathymetry'
    meltRate = ncfile.createVariable('meltRate',np.dtype('float32').char,('time','ny','nx'))
    meltRate.units = 'm/s'; meltRate.description = 'melt rate, positive for melting'
-   frictionVelocity = ncfile.createVariable('frictionVelocity',np.dtype('float32').char,('time','ny','nx'))
-   frictionVelocity.units = 'm/s'; frictionVelocity.description = 'friction velocity u* used in melt calculations'
    thermalDriving = ncfile.createVariable('thermalDriving',np.dtype('float32').char,('time','ny','nx'))
    thermalDriving.units = 'deg C'; thermalDriving.description = 'thermal driving used in the melt calculation'
    halineDriving = ncfile.createVariable('halineDriving',np.dtype('float32').char,('time','ny','nx'))
@@ -539,27 +461,10 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    barotropicStreamfunction = ncfile.createVariable('barotropicStreamfunction',np.dtype('float32').char,('time','ny','nx'))
    barotropicStreamfunction.units = 'm^3/s'; barotropicStreamfunction.description = 'barotropic streamfunction'
 
-   # As of now we need to compute overturningStreamfunction in the native grid
-   overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('time','nz','nx'))
-
-   overturningStreamfunction.units = 'm^3/s'
-   overturningStreamfunction.description = 'overturning (meridional) streamfunction'
-   overturningStreamfunction.long_name = 'overturning (meridional) streamfunction'
-   #overturningStreamfunction = ncfile.createVariable('overturningStreamfunction',np.dtype('float32').char,('time','nz','nx'))
-   #overturningStreamfunction.units = 'm^3/s'; overturningStreamfunction.description = 'overturning (meridional) streamfunction'
-
    bottomTemperature = ncfile.createVariable('bottomTemperature',np.dtype('float32').char,('time','ny','nx'))
    bottomTemperature.units = 'deg C'; bottomTemperature.description = 'temperature in the bottom grid cell of each ocean column'
    bottomSalinity = ncfile.createVariable('bottomSalinity',np.dtype('float32').char,('time','ny','nx'))
    bottomSalinity.units = 'PSU'; bottomSalinity.description = 'salinity in the bottom grid cell of each ocean column'
-   #temperatureXZ = ncfile.createVariable('temperatureXZ',np.dtype('float32').char,('time','nz','nx'))
-   #temperatureXZ.units = 'deg C'; temperatureXZ.description = 'temperature slice in x-z plane through the center of the domain (y = 40 km)'
-   #salinityXZ = ncfile.createVariable('salinityXZ',np.dtype('float32').char,('time','nz','nx'))
-   #salinityXZ.units = 'PSU'; salinityXZ.description = 'salinity slice in x-z plane through the center of the domain (y = 40 km)'
-   #temperatureYZ = ncfile.createVariable('temperatureYZ',np.dtype('float32').char,('time','nz','ny'))
-   #temperatureYZ.units = 'deg C'; temperatureYZ.description = 'temperature slice in y-z plane through x = 500 km'
-   #salinityYZ = ncfile.createVariable('salinityYZ',np.dtype('float32').char,('time','nz','ny'))
-   #salinityYZ.units = 'PSU'; salinityYZ.description = 'salinity slice in y-z plane through x = 500 km'
 
    # write data to coordinate vars.
    lon = Dataset(args.icfile).variables['lonh'][:]
@@ -568,11 +473,9 @@ def create_ncfile(exp_name, ocean_time, args): # may add exp_type
    W = (lon[-1]+(lon[1]-lon[0])*0.5)-(lon[0]-(lon[1]-lon[0])*0.5)
    L = (lat[-1]+(lat[1]-lat[0])*0.5)-(lat[0]-(lat[1]-lat[0])*0.5)
    max_depth = D.max()
-   dx = W/nx
-   dy = L/ny
    dz = max_depth/nz
-   x[:] = np.arange((lon[0]-(lon[1]-lon[0])*0.5)+dx*0.5,W+lon[0]-0.5*dx,dx)*1.0e3
-   y[:] = np.arange((lat[0]-(lat[1]-lat[0])*0.5)+dy*0.5,L,dy)*1.0e3
+   x[:] = lon[:]
+   y[:] = lat[:]
    z[:] = -np.arange(0.5*dz,max_depth,dz)
    # time since start of simulation
    time[:] = ocean_time[:]/365.# in years

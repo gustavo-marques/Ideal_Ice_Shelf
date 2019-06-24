@@ -33,31 +33,36 @@ def parseCommandLine():
   parser.add_argument('-out', type=str, default='out6',
       help='''Name of output file (default = out6).''')
 
+  parser.add_argument('-start', type=float, default=18.0,
+          help='''Start time in years (default = 18).''')
+  
+  parser.add_argument('-end', type=float, default=20.0,
+                    help='''End time in years (default = 20).''')
+
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
 
-def get_data(exp,area,y_loc):
+def get_data(exp,area,y_loc,args):
     s=Dataset(exp+'/ocean_month.nc')
     print 'Reading file', exp
     y = s.variables['yh'][:]
     y_tmp = np.nonzero(y<=y_loc)[0][-1]
-    tm = len(s.variables['time'][:])
-    tmp = 24
-    if tm<tmp:
-        tmp = tm
-    #tmp = tm
-    Hout = np.zeros(tmp)
-    Hin = np.zeros(tmp)
-    Heat = np.zeros(tmp)
-    transp = np.zeros(tmp)
-    time = np.zeros(tmp)
-    for t in range(tmp):
-      time[t] = s.variables['time'][t-tmp]/365.
+    time_all = s.variables['time'][:]/365.
+    tmp = np.nonzero((time_all >= args.start) & (time_all<=args.end))[0]
+
+    tm = len(tmp)
+    Hout = np.zeros(tm)
+    Hin = np.zeros(tm)
+    Heat = np.zeros(tm)
+    transp = np.zeros(tm)
+    time = np.zeros(tm)
+    for t in range(tm):
+      time[t] = s.variables['time'][tmp[t]]/365.
       print 'Time is (years):',time[t]
-      vh = s.variables['vh'][t-tmp,:]
-      tf = s.variables['tfreeze'][t-tmp,y_tmp,:] + 273.0 # in K
-      temp = s.variables['temp'][t-tmp,:] + 273.0 # in K
+      vh = s.variables['vh'][tmp[t],:]
+      tf = s.variables['tfreeze'][tmp[t],y_tmp,:] + 273.0 # in K
+      temp = s.variables['temp'][tmp[t],:] + 273.0 # in K
       transp[t] = (vh).sum()
       Hout[t], Hin[t] = get_ht(temp,tf,vh,y,y_loc)
 
@@ -128,7 +133,7 @@ def driver(args):
    colors = [(0,0,255), (255,255,255), (255,0,0)]
    my_cmap = make_cmap(colors, bit=True)
    # read data
-   Hout,Hin, transp, time=get_data(path+'/'+args.out,area,ISL)
+   Hout,Hin, transp, time=get_data(path+'/'+args.out,area,ISL,args)
    print 'Hout',Hout.mean(),Hout.std()
    print 'Hin',Hin.mean(),Hin.std()
    print 'Saving data...'

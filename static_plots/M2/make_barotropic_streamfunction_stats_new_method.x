@@ -1,9 +1,9 @@
 # 1 km
-python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp0 -out out5
+python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp0 -out ''
 python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp1 -out ''
 python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp2 -out ''
 python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp3 -out ''
-python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp4
+python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp4 -out ''
 python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp13 -out ''
 python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp14 -out ''
 python get_barotropic_flow_usingUH.py -dx 1 -exp M2_exp15 -out ''

@@ -33,27 +33,32 @@ def parseCommandLine():
   parser.add_argument('-out', type=str, default='',
       help='''Name of output file (default = '').''')
 
+  parser.add_argument('-start', type=float, default=18.0,
+      help='''Start time in years (default = 18).''')
+
+  parser.add_argument('-end', type=float, default=20.0,
+      help='''End time in years (default = 20).''')
+
+
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
 
-def get_data(exp,area,y_loc):
+def get_data(exp,area,y_loc, args):
     s=Dataset(exp+'/ocean_month.nc')
     print 'Reading file', exp
     y = s.variables['yh'][:]
     y_tmp = np.nonzero(y<=y_loc)[0][-1]
-    tm = len(s.variables['time'][:])
-    tmp = 24
-    if tm<tmp:
-        tmp = tm
-    #tmp = tm
-    Tout = np.zeros(tmp)
-    Tin = np.zeros(tmp)
-    time = np.zeros(tmp)
-    for t in range(tmp):
-      time[t] = s.variables['time'][t-tmp]/365.
+    time_all = s.variables['time'][:]/365.
+    tmp = np.nonzero((time_all >= args.start) & (time_all<=args.end))[0]
+    tm=len(tmp)
+    Tout = np.zeros(tm)
+    Tin = np.zeros(tm)
+    time = np.zeros(tm)
+    for t in range(tm):
+      time[t] = s.variables['time'][tmp[t]]/365.
       print 'Time is (years):',time[t]
-      vh = s.variables['vh'][t-tmp,:]
+      vh = s.variables['vh'][tmp[t],:]
       Tout[t], Tin[t] = get_transport(vh,y,y_loc)
     s.close()
     return Tout, Tin
@@ -112,7 +117,7 @@ def driver(args):
    colors = [(0,0,255), (255,255,255), (255,0,0)]
    my_cmap = make_cmap(colors, bit=True)
    # read data
-   Tout,Tin=get_data(path+'/'+args.out,area,ISL)
+   Tout,Tin=get_data(path+'/'+args.out,area,ISL,args)
    print 'Tout',Tout.mean(),Tout.std()
    print 'Tin',Tin.mean(),Tin.std()
 

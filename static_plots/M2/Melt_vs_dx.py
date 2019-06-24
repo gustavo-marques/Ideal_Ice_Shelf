@@ -20,6 +20,7 @@ exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
 exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 
 dx = ['1km','2km','5km','10km']
+dx = ['2km','5km','10km']
 
 param = 'Melt_dx'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']

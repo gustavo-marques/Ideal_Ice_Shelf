@@ -25,23 +25,29 @@ def parseCommandLine():
 
   parser.add_argument('-out', type=str, default='',
       help='''Name of output file (default = '').''')
+  
+  parser.add_argument('-start', type=float, default=18.0,
+          help='''Start time in years (default = 18).''')
+
+  parser.add_argument('-end', type=float, default=20.0,
+                    help='''End time in years (default = 20).''')
 
   optCmdLineArgs = parser.parse_args()
   driver(optCmdLineArgs)
 
 
-def get_data(exp):
-    s=Dataset(exp+'/ocean_month.nc')
+def get_data(exp,args):
     print 'Reading file', exp
-    tmp = len(s.variables['time'][:])
-    if tmp>24:
-      melt=s.variables['mass_flux'][-24::,:,:]
-    else:
-      melt=s.variables['mass_flux'][:,:,:]
+    s=Dataset(exp+'/ocean_month.nc')
+    time_all = s.variables['time'][:]/365.
+    tmp = np.nonzero((time_all >= args.start) & (time_all<=args.end))[0]
+    tm = len(tmp)
+    melt=s.variables['mass_flux'][tmp,:,:]
     
     s.close()
     m = np.zeros(melt.shape[0])
     for t in range(melt.shape[0]):
+        print 'melt[t,:,:].sum()',melt[t,:,:].sum()
         m[t] = melt[t,:,:].sum() * 1.0e-12 * 3600. * 24 * 365 # in Gt/yr 
     return m
 
@@ -60,7 +66,7 @@ def driver(args):
      x = Dataset(path+'/ocean_geometry.nc').variables['geolon'][:]
      y = Dataset(path+'/ocean_geometry.nc').variables['geolat'][:]
 
-   melt=get_data(path+'/'+args.out)
+   melt=get_data(path+'/'+args.out,args)
    print 'melt',melt
    print 'Saving melt rates...'
    os.system('mkdir TXT')

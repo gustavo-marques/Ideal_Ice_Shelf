@@ -15,25 +15,25 @@ c4 = '#3cb371'
 colors = ['#6495ed','#ff6347','k','#3cb371']
 # plot some metrics for runs with varing wind forcing
 
-plot = False
+#plot = False
 plot = True
 path='TXT/'
 path1='ncfiles/'
 icfile = 'IDEAL_IS_IC.nc'
 exps1 = ['M2_exp0','M2_exp1','M2_exp2','M2_exp3','M2_exp4'] # melt on
-exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
+exps2 = ['M2_exp0_NT','M2_exp1_NT','M2_exp2_NT','M2_exp3_NT','M2_exp4_NT'] # melt off
 
 dx = ['dx1','dx2','dx5','dx10']
 dx1 = ['1km','2km','5km','10km']
 
-#dx = ['dx2','dx5','dx10']
-#dx1 = ['2km','5km','10km']
+dx = ['dx5']
+dx1 = ['5km']
 
 param = 'cavity_transport_vs_Hin'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
 wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd)']
-tx=[1.1,1.4,1.7,2.0]
+tx=[1.4,1.7,2.0,2.3]
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
 
 #f, ((ax1),(ax2)) = plt.subplots(1, 2, figsize=(14,8))
@@ -52,16 +52,16 @@ for j in range(len(dx)):
      Hi1 = np.loadtxt(path+exps1[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[2] 
      Hi1_mean.append(np.abs(Hi1))
      # melting off
-     #tr2 = np.loadtxt(path+exps2[i]+'_'+dx[j]+'_cavity_transports.txt')[2]
-     #tr2_mean.append(np.abs(tr2)/1.0e6)
-     #Hi2 = np.loadtxt(path+exps2[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[2]         
-     #Hi2_mean.append(np.abs(Hi2))
+     tr2 = np.loadtxt(path+exps2[i]+'_'+dx[j]+'_cavity_transports.txt')[2]
+     tr2_mean.append(np.abs(tr2)/1.0e6)
+     Hi2 = np.loadtxt(path+exps2[i]+'_'+dx[j]+'_heat_budget_monthly.txt')[2]         
+     Hi2_mean.append(np.abs(Hi2))
 
 
   # plot
   ax1.plot(tr1_mean, Hi1_mean, linestyle='', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx1[j], markersize=10)
-  #ax2.plot(Hi2_mean, tr2_mean, linestyle='', marker='o', color=colors[j], lw=
-
+  ax1.plot(tr2_mean, Hi2_mean, linestyle='', marker='o', color=colors[j+1], lw=2, label=r'$\Delta x$ = '+dx1[j], markersize=10)
+  print 
   # fit line 
   yy=np.array(Hi1_mean)
   xx=np.array(tr1_mean)
@@ -78,7 +78,7 @@ for j in range(len(dx)):
     ax1.text(0.025,tx[j],r'$TF$ = '+str(m)+' (r = '+str(r_value)+')', color=colors[j], fontsize=20)
 
 
-ax1.legend(loc='upper left', fontsize=18, ncol=2)
+ax1.legend(loc='upper left', fontsize=18, ncol=4)
 ax1.set_ylabel(r'$H_{in}$ [TW]', fontsize=20)
 ax1.set_xlabel(r'$\Phi_{in}$ [Sv]', fontsize=20)
 ax1.set_xlim(0,0.4)

@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib
 from matplotlib.colors import Normalize
 matplotlib.rcParams.update({'font.size': 16})
+matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
 import sys, os
 sys.path.append('../../')
 from remapping import mom_remapping
@@ -48,7 +49,6 @@ class MidpointNormalize(Normalize):
         return np.ma.masked_array(np.interp(value, x, y))
 
 def get_data(exp):
-    s1=Dataset(exp+'/prog.nc')
     s=Dataset(exp+'/ocean_month.nc')
     print 'Reading file', exp
     tmp = len(s.variables['time'][:])
@@ -59,7 +59,6 @@ def get_data(exp):
         v=s.variables['vh'][:,:,:,:].mean(axis=0).sum(axis=0)
         u=s.variables['uh'][:,:,:,:].mean(axis=0).sum(axis=0)
     s.close()
-    print u.shape, v.shape
 
     uh = np.zeros(u.shape); vh = np.zeros(v.shape); psi = np.zeros(u.shape)
     utmp = 0.5 * (u[:,0:-1] + u[:,1::]) #u_i = 0.5(u_(i+0.5) + u_(i-0.5))
@@ -106,38 +105,27 @@ def driver(args):
    colors = [(0,0,255), (255,255,255), (255,0,0)]
    my_cmap = make_cmap(colors, bit=True)
    # read data
-   psi_vals = np.linspace(-0.5,40,50)
+   psi_vals = np.linspace(40,40,50)
    norm = MidpointNormalize(midpoint=0)
    psi=get_data(path+'/'+args.out)
    psi = np.ma.masked_where(depth<500,psi)
-   tmp1 = np.nonzero(ssh<=-150.0)[0][-1]
+   tmp1 = np.nonzero(ssh<=-200.0)[0][-1]
    psi_ice_shelf = psi[0:tmp1,:]
  
    fig = plt.figure(figsize=(10,8),facecolor='white')
-   ax = fig.add_subplot(111,axisbg='black')
+   ax = fig.add_subplot(111,axisbg='gray')
    #ct=ax.contourf(Y,-Z,psi,psi_vals,cmap=plt.cm.bwr, norm=norm)
-   #ct=ax.contourf(x,y,psi,psi_vals,cmap=plt.cm.bwr,extend='both')
-   ct=ax.contourf(x[0:tmp1,:],y[0:tmp1,:],psi_ice_shelf,cmap=plt.cm.bwr,extend='both')
-   cb=plt.colorbar(ct, orientation='horizontal')
-   cb.set_label('Barotropic streamfunction [sv]', fontsize=18)
+   ax.contour(x,y,psi,6,colors='k')
+   #ct=ax.contourf(x[0:tmp1,:],y[0:tmp1,:],psi_ice_shelf,cmap=plt.cm.bwr,extend='both')
+   #cb=plt.colorbar(ct, orientation='horizontal')
+   #cb.set_label('Barotropic streamfunction [sv]', fontsize=18)
    #ax.contour(Y,-Z,np.abs(psi),5,colors='gray',linewidth=0.2)
    #ax.set_aspect('equal',adjustable = 'box-forced')
    ax.set_xlim([0,500])
-   ax.set_ylim([0,200])
+   #ax.set_ylim([0,220])
    plt.savefig('PSI/'+args.exp+'_dx'+args.dx+'_barotropic_ice_shelf.png',format='png',dpi=300,bbox_inches='tight')
    plt.close()
    #plt.show()
-
-   fig = plt.figure(figsize=(10,8),facecolor='white')
-   ax = fig.add_subplot(111,axisbg='black')
-   #ct=ax.contourf(Y,-Z,psi,psi_vals,cmap=plt.cm.bwr, norm=norm)
-   ct=ax.contourf(x,y,psi,psi_vals,cmap=plt.cm.bwr,extend='both')
-   cb=plt.colorbar(ct, orientation='horizontal')
-   cb.set_label('Barotropic streamfunction [sv]', fontsize=18)
-   ax.set_xlim([0,500])
-   ax.set_ylim([0,1000])
-   #plt.savefig('PSI/'+args.exp+'_dx'+args.dx+'_barotropic.png',format='png',dpi=300,bbox_inches='tight')
-   plt.close()
 
    print 'Saving streamfunction stats...'
    os.system('mkdir TXT')

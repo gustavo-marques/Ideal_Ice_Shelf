@@ -27,6 +27,7 @@ dx1 = ['1km','2km','5km','10km']
 
 param = 'cavity_transport_vs_melt'
 labels = ['-5.0','-2.5','0.0','2.5','5.0']
+symbs = ['s','s','*','o','o']
 wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 tx=[0.10,0.12,0.14,0.16]
@@ -58,11 +59,25 @@ for j in range(len(dx)):
   melt = np.linspace(np.min(data2_mean),np.max(data2_mean),10)
   y=m1*melt+b1
 
-  ax1.plot(data2_mean, data1_mean, linestyle='', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx1[j], markersize=10)
+  for i in range(len(exps1)):
+      ax1.plot(data2_mean[i], data1_mean[i], linestyle='', marker=symbs[i], color=colors[j], markersize=10)
+
+  ax1.plot(data2_mean, data1_mean, linestyle='-', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx1[j])
+ 
+  #ax1.plot(data2_mean, data1_mean, linestyle='', marker='o', color=colors[j], lw=2, label=r'$\Delta x$ = '+dx1[j], markersize=10)
   if plot: 
-    ax1.plot(melt,y,linestyle='-', color=colors[j], lw=2)
+    ax1.plot(melt,y,linestyle='--', color=colors[j], lw=2)
     # TEXT
     ax1.text(41,tx[j],r'$\eta_{dyn}$ = '+str(m)+' (r = '+str(r_value)+')', color=colors[j], fontsize=20)
+
+# wind legened
+w1=[2,4,6,8]
+w2=[0.30,0.32,0.34]
+symbs = ['s','*','o']
+ms=[10,15,10]
+for i in range(len(w1)):
+  for j in range(len(w2)):
+    ax1.plot(w1[i], w2[j], linestyle='', marker=symbs[j], color=colors[i], markersize=ms[j])
 
 
 ax1.legend(loc='upper left', fontsize=18, ncol=2)

@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams.update({'font.size': 16})
 
 #gamma_h10 = [0.001, 0.002, 0.003, 0.004, 0.005, 0.0075, 0.01, 0.015]
 gamma_h10 = [0.001, 0.002, 0.003, 0.004, 0.005, 0.0075]
@@ -30,12 +32,4 @@ plt.xlim(0.0,0.008)
 plt.savefig('melt_vs_gamma.png',format='png',dpi=300,bbox_inches='tight')
 plt.show()
 
-#plt.figure()
-#plt.plot(gamma_com,melt_com,'k-o',label='COM',lw=1)
-#plt.plot(gamma_tpy,melt_tpy,'r-o',label='TPY',lw=1)
-#plt.legend(loc='upper left', shadow=True)
-#plt.xlabel(r'$\Gamma_T$')
-#plt.ylabel('mean melt rate (m a$^{-1}$)')
-#plt.xlim(0,3.01)
-#plt.savefig('melt_gamma_COMvsTPY.png')
 

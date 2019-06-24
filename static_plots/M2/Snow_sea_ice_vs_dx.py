@@ -23,12 +23,11 @@ exps2 = ['M2_exp13','M2_exp15','M2_exp16','M2_exp17','M2_exp14'] # melt off
 dx= ['dx2','dx5','dx10']
 dx1= ['2 km','5 km','10 km']
 
-param= 'seaice_dx_and_melting'
+param= 'snow_seaice_dx_and_melting'
 labels= ['-5.0','-2.5','0.0','2.5','5.0']
 wind = [-5,-2.5,0,2.5,5]
 abcd = ['a) ', 'b) ', 'c) ', 'd) ']
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #
-f1, ((ax11)) = plt.subplots(1,1)
 f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(12,10))
 
 for j in range(len(dx)):
@@ -40,16 +39,18 @@ for j in range(len(dx)):
      print 'Path1, path2',path_to_file1, path_to_file2
      time1 = netCDF4.Dataset(path_to_file1).variables['time'][:]
      time2 = netCDF4.Dataset(path_to_file2).variables['time'][:]
-     tmp = np.nonzero((time1>=15) & (time1<20.))[0]
+     tmp = np.nonzero((time1>=18) & (time1<20.))[0]
      print 'Melt on, path/time:',path_to_file1, time1[tmp]
      print 'Melt off path/time:',path_to_file2, time2[tmp]
      print '--------------------------------- \n'
      data1 = netCDF4.Dataset(path_to_file1).variables['IV'][tmp]/1.0e12 # 1000 km^3
+     data1a = netCDF4.Dataset(path_to_file1).variables['SV'][tmp]/1.0e12 # 1000 km^3
      data2 = netCDF4.Dataset(path_to_file2).variables['IV'][tmp]/1.0e12
-     ice1_mean.append(data1.mean())
-     ice2_mean.append(data2.mean())
-     ice1_std.append(data1.std())
-     ice2_std.append(data2.std())
+     data2a = netCDF4.Dataset(path_to_file2).variables['SV'][tmp]/1.0e12
+     ice1_mean.append(data1.mean()+data1a.mean())
+     ice2_mean.append(data2.mean()+data2a.mean())
+     ice1_std.append(data1.std()+data1a.std())
+     ice2_std.append(data2.std()+data2a.std())
 
   ice1_mean = np.array(ice1_mean)
   ice2_mean = np.array(ice2_mean)
@@ -65,26 +66,18 @@ for j in range(len(dx)):
 
   ax.errorbar(wind, ice1_mean, ice1_std, linestyle='-', marker='o', color=color1, elinewidth=2, label='Melting on')
   ax.errorbar(wind, ice2_mean, ice2_std, linestyle='-', marker='o', color=color2, elinewidth=2, label='Melting off')
-  ax11.plot(wind,ice1_mean-ice2_mean,marker='o',label=dx1[j],color=c[j],linewidth=2)
 
   if j == 0:
     ax.legend(loc='upper left', fontsize=14, ncol=2)
   if j == 2:
-    ax.set_ylabel(r'Sea ice volume [1000 km$^3$]', fontsize=20)
+    ax.set_ylabel(r'Snow + Sea ice vol. [1000 km$^3$]', fontsize=20)
     ax.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
 
   ax.set_title(abcd[j] + r'$\Delta$x = ' + dx1[j])
   ax.set_xlim(-5.5,5.5)
-  ax.set_ylim(0.,2.2)
+  #ax.set_ylim(0.,2.2)
   ax.set_xticks((wind))
 
-ax11.set_xlim(-5.5,5.5)
-ax11.set_xticks((wind))
-ax11.set_title(r'$\Delta V$ = Melting on - Melting off')
-ax11.set_xlabel(r'U$_{shelf}$ [m s$^{-1}$]', fontsize=20)
-ax11.set_ylabel(r'$\Delta V$ [1000 km$^3$]', fontsize=20)
-ax11.legend(loc='upper left', fontsize=14, ncol=3)
-  #plt.grid()
 
 plt.savefig(param+'.png',format='png',dpi=300,bbox_inches='tight')
 plt.show()
